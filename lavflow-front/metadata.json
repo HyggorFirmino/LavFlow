@@ -1,0 +1,6 @@
+{
+  "name": "Lavflow-front",
+  "description": "Um aplicativo de quadro Kanban para gerenciar as tarefas de uma lavanderia de autosserviço. Permite o rastreamento de pedidos de lavagem, desde a recepção até a entrega, e usa a API Gemini para gerar notificações inteligentes para os clientes.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
