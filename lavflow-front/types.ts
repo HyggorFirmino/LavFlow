@@ -1,9 +1,9 @@
 
 export interface Client {
-  customer: string;
-  fullName: string;
-  documentId: string;
-  cellphone: string;
+  id: string;
+  name: string;
+  document: string;
+  phone: string;
 }
 
 export interface CardTag {

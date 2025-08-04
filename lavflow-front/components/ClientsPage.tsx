@@ -1,9 +1,7 @@
-
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Client } from '../types';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Client, Card } from '../types';
+import { UserGroupIcon, MagnifyingGlassIcon } from './icons';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
-import { MagnifyingGlassIcon, UserGroupIcon } from './icons';
-
 
 interface ClientsPageProps {
   clients: Client[];
@@ -89,17 +87,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
         }
         const lowercasedFilter = searchTerm.toLowerCase();
         return clients.filter(client =>
-            client.fullName.toLowerCase().includes(lowercasedFilter) ||
-            client.documentId.toLowerCase().includes(lowercasedFilter) ||
-            client.cellphone.toLowerCase().includes(lowercasedFilter)
+            client.name.toLowerCase().includes(lowercasedFilter) ||
+            client.document.toLowerCase().includes(lowercasedFilter) ||
+            client.phone.toLowerCase().includes(lowercasedFilter)
         );
     }, [clients, searchTerm]);
     
     const handleOpenCreateSingle = (client: Client) => {
         onOpenAddCardModal({
-            customerName: client.fullName,
-            customerDocument: client.documentId,
-            contact: client.cellphone,
+            customerName: client.name,
+            customerDocument: client.document,
+            contact: client.phone,
         });
     };
 
@@ -112,9 +110,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
         if (!selectedClient) return;
         for (let i = 0; i < quantity; i++) {
             onAddCard({
-                customerName: selectedClient.fullName,
-                customerDocument: selectedClient.documentId,
-                contact: selectedClient.cellphone,
+                customerName: selectedClient.name,
+                customerDocument: selectedClient.document,
+                contact: selectedClient.phone,
                 basketIdentifier: `Cesto ${i + 1}/${quantity}`,
                 services: { washing: true, drying: false }, // Sensible default
             });
@@ -159,12 +157,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-laundry-blue-100 dark:divide-slate-700">
                     {filteredClients.length > 0 ? filteredClients.map(client => (
-                      <tr key={client.customer} className="transition-colors hover:bg-laundry-blue-100/60 dark:hover:bg-slate-700/60">
+                      <tr key={client.id} className="transition-colors hover:bg-laundry-blue-100/60 dark:hover:bg-slate-700/60">
                         <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-laundry-blue-900 dark:text-slate-100">{client.fullName}</div>
+                            <div className="text-sm font-semibold text-laundry-blue-900 dark:text-slate-100">{client.name}</div>
                         </td>
-                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.documentId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.cellphone}</td>
+                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.document}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.phone}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                            <ActionsMenu client={client} onOpenCreateSingle={handleOpenCreateSingle} onOpenCreateMultiple={handleOpenCreateMultiple} />
                         </td>

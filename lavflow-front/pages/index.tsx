@@ -1,23 +1,23 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, CardHistoryEvent, Client } from './types';
-import { INITIAL_LIST_ORDER, INITIAL_LIST_TITLES, TAG_COLORS, DEFAULT_TAG_COLOR, WASHER_LIST_IDS, DRYER_LIST_IDS } from './constants';
-import Header from './components/Header';
-import KanbanBoard from './components/KanbanBoard';
-import AddCardModal from './components/AddCardModal';
-import AddListModal from './components/AddListModal';
-import ListSettingsModal from './components/ListSettingsModal';
-import TagsPage from './components/TagsPage';
-import Login from './components/Login';
-import ProfilePage from './components/ProfilePage';
-import DashboardPage from './components/DashboardPage';
-import PrintLabelsPage from './components/PrintLabelsPage';
-import ListView from './components/ListView';
-import HistoryPage from './components/HistoryPage';
-import ClientsPage from './components/ClientsPage';
-import { ExclamationTriangleIcon, XMarkIcon } from './components/icons';
-import { fetchClients } from './services/apiService';
-import CreateMultipleCardsModal from './components/CreateMultipleCardsModal'; // Although used in ClientsPage, App needs to know about it for bundling if it were structured differently. Keeping it here is safe.
+import Head from 'next/head';
+import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, CardHistoryEvent, Client } from '../types';
+import { INITIAL_LIST_ORDER, INITIAL_LIST_TITLES, TAG_COLORS, DEFAULT_TAG_COLOR, WASHER_LIST_IDS, DRYER_LIST_IDS } from '../constants';
+import Header from '../components/Header';
+import KanbanBoard from '../components/KanbanBoard';
+import AddCardModal from '../components/AddCardModal';
+import AddListModal from '../components/AddListModal';
+import ListSettingsModal from '../components/ListSettingsModal';
+import TagsPage from '../components/TagsPage';
+import Login from '../components/Login';
+import ProfilePage from '../components/ProfilePage';
+import DashboardPage from '../components/DashboardPage';
+import PrintLabelsPage from '../components/PrintLabelsPage';
+import ListView from '../components/ListView';
+import HistoryPage from '../components/HistoryPage';
+import ClientsPage from '../components/ClientsPage';
+import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
+import { fetchClients } from '../services/apiService';
+import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal'; // Although used in ClientsPage, App needs to know about it for bundling if it were structured differently. Keeping it here is safe.
 
 // --- Toast Notification Components ---
 
@@ -180,7 +180,7 @@ const buildInitialBoardData = (): BoardData => {
 
 type View = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
 
-const App: React.FC = () => {
+const Home: React.FC = () => {
   const [boardData, setBoardData] = useState<BoardData>(buildInitialBoardData);
   const [listOrder, setListOrder] = useState<string[]>(INITIAL_LIST_ORDER);
   const [tags, setTags] = useState<TagDefinition[]>([]);
@@ -211,8 +211,6 @@ const App: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
-    document.title = 'Lavanderia Kanban Inteligente';
-
     const initialBoardData = buildInitialBoardData();
     setBoardData(initialBoardData);
 
@@ -743,34 +741,39 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
-      <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={handleLogout} currentUser={currentUser} currentView={currentView} />
-      <ToastContainer notifications={notifications} removeNotification={removeNotification} />
-      {renderContent()}
-      
-      <AddCardModal
-        isOpen={isCardModalOpen}
-        onClose={() => setIsCardModalOpen(false)}
-        onSave={handleAddCard}
-        cardToEdit={cardToEdit}
-        allTags={tags}
-        tagsMap={tagsMap}
-        currentUser={currentUser!}
-      />
-       <AddListModal
-        isOpen={isAddListModalOpen}
-        onClose={() => setIsAddListModalOpen(false)}
-        onSave={handleAddList}
-      />
-      <ListSettingsModal 
-        isOpen={isListSettingsModalOpen}
-        onClose={() => setIsListSettingsModalOpen(false)}
-        onSave={handleSaveListSettings}
-        onDelete={handleDeleteList}
-        list={listToEdit}
-      />
-    </div>
+    <>
+      <Head>
+        <title>Lavanderia Kanban Inteligente</title>
+      </Head>
+      <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
+        <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={handleLogout} currentUser={currentUser} currentView={currentView} />
+        <ToastContainer notifications={notifications} removeNotification={removeNotification} />
+        {renderContent()}
+        
+        <AddCardModal
+          isOpen={isCardModalOpen}
+          onClose={() => setIsCardModalOpen(false)}
+          onSave={handleAddCard}
+          cardToEdit={cardToEdit}
+          allTags={tags}
+          tagsMap={tagsMap}
+          currentUser={currentUser!}
+        />
+        <AddListModal
+          isOpen={isAddListModalOpen}
+          onClose={() => setIsAddListModalOpen(false)}
+          onSave={handleAddList}
+        />
+        <ListSettingsModal 
+          isOpen={isListSettingsModalOpen}
+          onClose={() => setIsListSettingsModalOpen(false)}
+          onSave={handleSaveListSettings}
+          onDelete={handleDeleteList}
+          list={listToEdit}
+        />
+      </div>
+    </>
   );
 };
 
-export default App;
+export default Home;

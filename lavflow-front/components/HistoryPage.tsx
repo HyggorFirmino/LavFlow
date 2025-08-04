@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardHistoryEvent } from '../types';
 import { ArchiveBoxIcon, MagnifyingGlassIcon, ClockIcon } from './icons';
