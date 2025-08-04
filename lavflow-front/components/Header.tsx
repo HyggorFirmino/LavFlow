@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TagIcon, WashingMachineIcon, LogoutIcon, UserCircleIcon, ChartBarIcon, ViewGridIcon, PrinterIcon, ListBulletIcon, ArchiveBoxIcon, UserGroupIcon } from './icons';
 import { User } from '../types';

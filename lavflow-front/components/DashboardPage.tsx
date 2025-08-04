@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { BoardData } from '../types';
 import { ChartBarIcon, CurrencyDollarIcon, CheckCircleIcon, ArrowTrendingUpIcon, UsersIcon, ExclamationTriangleIcon } from './icons';

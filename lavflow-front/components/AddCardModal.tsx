@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, TagDefinition, CardTag, User } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
 import { ClockIcon } from './icons';
