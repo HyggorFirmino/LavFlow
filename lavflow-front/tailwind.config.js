@@ -55,5 +55,15 @@ const config = {
     },
   },
   plugins: [],
+  safelist: [
+    'bg-blue-100', 'text-blue-800', 'border-blue-300',
+    'bg-green-100', 'text-emerald-800', 'border-emerald-300',
+    'bg-violet-100', 'text-violet-800', 'border-violet-300',
+    'bg-orange-100', 'text-orange-800', 'border-orange-300',
+    'bg-cyan-100', 'text-cyan-800', 'border-cyan-300',
+    'bg-pink-100', 'text-pink-800', 'border-pink-300',
+    'bg-yellow-100', 'text-yellow-800', 'border-yellow-300',
+    'bg-slate-200', 'text-slate-800', 'border-slate-400',
+  ],
 }
 export default config

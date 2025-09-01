@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { BoardData, TagDefinition, Card, User } from '../types';
 import { TagIcon, PencilIcon, TrashIcon } from './icons';
@@ -77,7 +76,7 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
               {sortedTags.map((tag, index) => (
                 <li key={tag.name} className={`grid grid-cols-5 gap-4 items-center px-6 py-3 transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-laundry-blue-50/50 dark:bg-slate-800/50'} hover:bg-laundry-blue-100/60 dark:hover:bg-slate-700/60`}>
                   <div className="col-span-2 flex items-center">
-                    <span className={`w-4 h-4 rounded-full mr-3 border ${tag.color.split(' ')[0]} ${tag.color.split(' ')[2] || 'border-transparent'}`}></span>
+                    <span className={`w-4 h-4 rounded-full mr-3 border-2 ${tag.color}`}></span>
                     <span className="font-semibold text-gray-800 dark:text-slate-200">{tag.name}</span>
                   </div>
                   <div className="text-sm capitalize text-gray-700 dark:text-slate-300 text-center">{tag.type}</div>

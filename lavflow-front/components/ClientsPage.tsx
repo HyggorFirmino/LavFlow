@@ -3,6 +3,16 @@ import { Client, Card } from '../types';
 import { UserGroupIcon, MagnifyingGlassIcon } from './icons';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
 
+// Formata o saldo para reais, considerando as duas últimas casas como centavos
+function formatCurrency(value: number | undefined): string {
+  if (typeof value !== 'number' || isNaN(value)) return '-';
+  const abs = Math.abs(value);
+  const cents = abs % 100;
+  const reais = Math.floor(abs / 100);
+  const formatted = `${reais.toLocaleString('pt-BR')}\u002C${cents.toString().padStart(2, '0')}`;
+  return (value < 0 ? '-R$ ' : 'R$ ') + formatted;
+}
+
 interface ClientsPageProps {
   clients: Client[];
   onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>>) => void;
@@ -13,9 +23,10 @@ interface ActionsMenuProps {
   client: Client;
   onOpenCreateSingle: (client: Client) => void;
   onOpenCreateMultiple: (client: Client) => void;
+  showSensitiveData: (client: Client) => void;
 }
 
-const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple }) => {
+const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, showSensitiveData }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +51,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
     onOpenCreateMultiple(client);
     setIsOpen(false);
   };
+
 
   return (
     <div ref={menuRef} className="relative inline-block text-left">
@@ -67,6 +79,13 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
             </button>
             <button onClick={handleMultipleClick} className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700" role="menuitem">
               Criar Múltiplos Pedidos
+            </button>
+            <button
+              onClick={() => showSensitiveData(client)}
+              className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700"
+              role="menuitem"
+            >
+              Mostrar dados sensíveis
             </button>
           </div>
         </div>
@@ -145,14 +164,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
           </div>
           
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700 overflow-hidden">
-             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700">
+             <div className="w-full overflow-x-auto">
+                <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700 text-xs md:text-sm">
                   <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Nome</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Documento</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Telefone</th>
-                      <th scope="col" className="relative px-6 py-3 text-right text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Ações</th>
+                      <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nome</th>
+                      <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Documento</th>
+                      <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Telefone</th>
+                      <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Saldo</th>
+                      <th scope="col" className="relative px-2 py-2 md:px-6 md:py-3 text-right font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-laundry-blue-100 dark:divide-slate-700">
@@ -161,15 +181,24 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
                         <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-laundry-blue-900 dark:text-slate-100">{client.name}</div>
                         </td>
-                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.document}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{client.phone}</td>
+                        {/* Dados sensíveis ocultos */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-slate-600 italic">Oculto</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-slate-600 italic">Oculto</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 font-mono">
+                          {formatCurrency(client.saldo)}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                           <ActionsMenu client={client} onOpenCreateSingle={handleOpenCreateSingle} onOpenCreateMultiple={handleOpenCreateMultiple} />
+                           <ActionsMenu
+                              client={client}
+                              onOpenCreateSingle={handleOpenCreateSingle}
+                              onOpenCreateMultiple={handleOpenCreateMultiple}
+                              showSensitiveData={() => setSelectedClient(client)}
+                            />
                         </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={4} className="text-center py-16">
+                        <td colSpan={5} className="text-center py-16">
                           <p className="text-xl text-gray-500 dark:text-slate-400">Nenhum cliente encontrado.</p>
                           <p className="text-base text-gray-400 dark:text-slate-500 mt-2">{searchTerm ? 'Tente ajustar sua busca.' : 'Os clientes cadastrados aparecerão aqui.'}</p>
                         </td>
@@ -187,6 +216,23 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
           onConfirm={handleConfirmMultiple}
           client={selectedClient}
        />
+       {selectedClient && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-2xl max-w-sm w-full">
+      <h2 className="text-lg font-bold mb-4 text-laundry-blue-900 dark:text-slate-100">Dados do Cliente</h2>
+      <div className="mb-2"><span className="font-semibold">Nome:</span> {selectedClient.name}</div>
+      <div className="mb-2"><span className="font-semibold">Documento:</span> {selectedClient.document}</div>
+      <div className="mb-2"><span className="font-semibold">Telefone:</span> {selectedClient.phone}</div>
+      <button
+        className="mt-4 px-4 py-2 rounded-lg bg-laundry-teal-500 text-white font-bold"
+        onClick={() => setSelectedClient(null)}
+      >
+        Fechar
+      </button>
+    </div>
+  </div>
+)}
+
     </>
   );
 };

@@ -4,6 +4,7 @@ export interface Client {
   name: string;
   document: string;
   phone: string;
+  saldo: number;
 }
 
 export interface CardTag {

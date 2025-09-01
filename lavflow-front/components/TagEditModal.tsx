@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { TagDefinition, TagType } from '../types';
 import ColorPalette from './ColorPalette';
