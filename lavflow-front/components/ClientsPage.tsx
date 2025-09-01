@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Client, Card } from '../types';
 import { UserGroupIcon, MagnifyingGlassIcon } from './icons';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
+import { fetchClients } from '../services/apiService';
+import { maskCpf, maskPhone, maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
 
 // Formata o saldo para reais, considerando as duas últimas casas como centavos
 function formatCurrency(value: number | undefined): string {
@@ -14,7 +16,6 @@ function formatCurrency(value: number | undefined): string {
 }
 
 interface ClientsPageProps {
-  clients: Client[];
   onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>>) => void;
   onOpenAddCardModal: (initialData?: Partial<Card>) => void;
 }
@@ -23,10 +24,11 @@ interface ActionsMenuProps {
   client: Client;
   onOpenCreateSingle: (client: Client) => void;
   onOpenCreateMultiple: (client: Client) => void;
-  showSensitiveData: (client: Client) => void;
+  onToggleSensitiveData: (clientId: string) => void;
+  isSensitiveDataVisible: boolean;
 }
 
-const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, showSensitiveData }) => {
+const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, onToggleSensitiveData, isSensitiveDataVisible }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -81,11 +83,11 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
               Criar Múltiplos Pedidos
             </button>
             <button
-              onClick={() => showSensitiveData(client)}
+              onClick={() => onToggleSensitiveData(client.id)}
               className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700"
               role="menuitem"
             >
-              Mostrar dados sensíveis
+              {isSensitiveDataVisible ? 'Ocultar dados' : 'Mostrar dados'}
             </button>
           </div>
         </div>
@@ -95,10 +97,20 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
 };
 
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAddCardModal }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal }) => {
+    const [clients, setClients] = useState<Client[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isMultiCardModalOpen, setIsMultiCardModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [visibleSensitiveData, setVisibleSensitiveData] = useState<string[]>([]);
+
+    useEffect(() => {
+        const loadClients = async () => {
+            const fetchedClients = await fetchClients();
+            setClients(fetchedClients);
+        };
+        loadClients();
+    }, []);
 
     const filteredClients = useMemo(() => {
         if (!searchTerm.trim()) {
@@ -138,6 +150,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
         }
         setIsMultiCardModalOpen(false);
         setSelectedClient(null);
+    };
+
+    const toggleSensitiveData = (clientId: string) => {
+        setVisibleSensitiveData(prev => 
+            prev.includes(clientId) 
+                ? prev.filter(id => id !== clientId) 
+                : [...prev, clientId]
+        );
     };
 
   return (
@@ -181,9 +201,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
                         <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-laundry-blue-900 dark:text-slate-100">{client.name}</div>
                         </td>
-                        {/* Dados sensíveis ocultos */}
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-slate-600 italic">Oculto</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-slate-600 italic">Oculto</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
+                            {visibleSensitiveData.includes(client.id) ? maskVisibleCpf(client.document) : maskCpf(client.document)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
+                            {visibleSensitiveData.includes(client.id) ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 font-mono">
                           {formatCurrency(client.saldo)}
                         </td>
@@ -192,7 +215,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
                               client={client}
                               onOpenCreateSingle={handleOpenCreateSingle}
                               onOpenCreateMultiple={handleOpenCreateMultiple}
-                              showSensitiveData={() => setSelectedClient(client)}
+                              onToggleSensitiveData={toggleSensitiveData}
+                              isSensitiveDataVisible={visibleSensitiveData.includes(client.id)}
                             />
                         </td>
                       </tr>
@@ -216,23 +240,6 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ clients, onAddCard, onOpenAdd
           onConfirm={handleConfirmMultiple}
           client={selectedClient}
        />
-       {selectedClient && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-2xl max-w-sm w-full">
-      <h2 className="text-lg font-bold mb-4 text-laundry-blue-900 dark:text-slate-100">Dados do Cliente</h2>
-      <div className="mb-2"><span className="font-semibold">Nome:</span> {selectedClient.name}</div>
-      <div className="mb-2"><span className="font-semibold">Documento:</span> {selectedClient.document}</div>
-      <div className="mb-2"><span className="font-semibold">Telefone:</span> {selectedClient.phone}</div>
-      <button
-        className="mt-4 px-4 py-2 rounded-lg bg-laundry-teal-500 text-white font-bold"
-        onClick={() => setSelectedClient(null)}
-      >
-        Fechar
-      </button>
-    </div>
-  </div>
-)}
-
     </>
   );
 };

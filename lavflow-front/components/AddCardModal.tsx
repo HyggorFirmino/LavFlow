@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, TagDefinition, CardTag, User } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
 import { ClockIcon } from './icons';
+import { maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
 
 interface AddCardModalProps {
   isOpen: boolean;
@@ -35,8 +36,8 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
   useEffect(() => {
     if (cardToEdit) {
       setCustomerName(cardToEdit.customerName);
-      setCustomerDocument(cardToEdit.customerDocument || '');
-      setContact(cardToEdit.contact);
+      setCustomerDocument(cardToEdit.customerDocument ? maskVisibleCpf(cardToEdit.customerDocument) : '');
+      setContact(cardToEdit.contact ? maskVisiblePhone(cardToEdit.contact) : '');
       setBasketIdentifier(cardToEdit.basketIdentifier || '');
       setNotes(cardToEdit.notes);
       setSelectedTags(cardToEdit.tags || []);
@@ -133,8 +134,8 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
     onSave({
       id: isCreatingFromTemplate ? undefined : cardToEdit?.id,
       customerName,
-      customerDocument,
-      contact,
+      customerDocument: customerDocument.replace(/\D/g, ''),
+      contact: contact.replace(/\D/g, ''),
       basketIdentifier,
       notes,
       tags: selectedTags,
@@ -175,7 +176,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                     id="customerDocument"
                     type="text"
                     value={customerDocument}
-                    onChange={(e) => setCustomerDocument(e.target.value)}
+                    onChange={(e) => setCustomerDocument(maskVisibleCpf(e.target.value))}
                     className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
                   />
                 </div>
@@ -187,7 +188,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                 id="contact"
                 type="text"
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
+                onChange={(e) => setContact(maskVisiblePhone(e.target.value))}
                 className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
               />
             </div>

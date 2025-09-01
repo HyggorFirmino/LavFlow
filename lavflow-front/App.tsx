@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, CardHistoryEvent, Client } from './types';
 import { INITIAL_LIST_ORDER, INITIAL_LIST_TITLES, TAG_COLORS, DEFAULT_TAG_COLOR, WASHER_LIST_IDS, DRYER_LIST_IDS } from './constants';
@@ -16,8 +15,8 @@ import ListView from './components/ListView';
 import HistoryPage from './components/HistoryPage';
 import ClientsPage from './components/ClientsPage';
 import { ExclamationTriangleIcon, XMarkIcon } from './components/icons';
-import { fetchClients } from './services/apiService';
-import CreateMultipleCardsModal from './components/CreateMultipleCardsModal'; // Although used in ClientsPage, App needs to know about it for bundling if it were structured differently. Keeping it here is safe.
+import CreateMultipleCardsModal from './components/CreateMultipleCardsModal';
+import { useAuth } from './hooks/useAuth';
 
 // --- Toast Notification Components ---
 
@@ -181,6 +180,7 @@ const buildInitialBoardData = (): BoardData => {
 type View = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
 
 const App: React.FC = () => {
+  const { currentUser, loading, login, logout } = useAuth();
   const [boardData, setBoardData] = useState<BoardData>(buildInitialBoardData);
   const [listOrder, setListOrder] = useState<string[]>(INITIAL_LIST_ORDER);
   const [tags, setTags] = useState<TagDefinition[]>([]);
@@ -192,10 +192,6 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('board');
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
   
-  const [users, setUsers] = useState<User[]>([
-    { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'admin', theme: 'claro' },
-    { id: 'user-employee', name: 'Funcionário Teste', email: 'func@lavanderia.com', password: 'func123', role: 'employee', theme: 'claro' }
-  ]);
   const [laundryProfile, setLaundryProfile] = useState<LaundryProfile>({
     name: 'Lavanderia Inteligente',
     address: 'Rua das Máquinas, 123 - Bairro Bolhas',
@@ -207,8 +203,6 @@ const App: React.FC = () => {
       washingAndDrying: 35.00,
     }
   });
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
     document.title = 'Lavanderia Kanban Inteligente';
@@ -232,9 +226,6 @@ const App: React.FC = () => {
       });
     });
     setTags(Array.from(initialTags.values()));
-
-    // Fetch clients on app load
-    fetchClients().then(setClients);
   }, []);
 
   // Dark mode handler
@@ -259,20 +250,12 @@ const App: React.FC = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
   
-  // Login and Profile handlers
-  const handleLogin = (email: string, password: string): boolean => {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      // Redirect based on role
-      setCurrentView(user.role === 'admin' ? 'dashboard' : 'board');
-      return true;
+  const handleLogin = async (email:string, password:string):Promise<boolean> => {
+    const success = await login(email, password);
+    if (success) {
+      setCurrentView(currentUser?.role === 'admin' ? 'dashboard' : 'board');
     }
-    return false;
-  };
-  
-  const handleLogout = () => {
-    setCurrentUser(null);
+    return success;
   };
 
   const handleUpdateProfile = (profile: LaundryProfile) => {
@@ -282,30 +265,10 @@ const App: React.FC = () => {
   const handleUpdateUserTheme = (theme: 'claro' | 'escuro') => {
     if (!currentUser) return;
 
-    const updatedUser = { ...currentUser, theme };
-    setCurrentUser(updatedUser);
-
-    setUsers(prevUsers =>
-      prevUsers.map(u => (u.id === currentUser.id ? updatedUser : u))
-    );
+    // This should be handled by the backend
+    // const updatedUser = { ...currentUser, theme };
+    // setCurrentUser(updatedUser);
   };
-
-  const handleSaveUser = (newUser: Omit<User, 'id'>): boolean => {
-    if (users.some(u => u.email === newUser.email)) {
-      addNotification('Já existe um usuário com este email.');
-      return false;
-    }
-    const userWithId: User = { ...newUser, id: `user-${Date.now()}` };
-    setUsers(prevUsers => [...prevUsers, userWithId]);
-    return true;
-  };
-  
-  const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-    }
-  };
-
 
   // Card handlers
   const handleAddCard = (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string }) => {
@@ -708,14 +671,13 @@ const App: React.FC = () => {
         return <HistoryPage cards={getAllCardsSorted()} />;
       case 'clients':
         return <ClientsPage 
-                  clients={clients} 
                   onAddCard={handleAddCard}
                   onOpenAddCardModal={handleOpenAddCardModal}
                />;
       case 'tags':
         return <TagsPage boardData={boardData} tags={tags} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} currentUser={currentUser!} />;
       case 'profile':
-        return <ProfilePage profile={laundryProfile} users={users} currentUser={currentUser!} onUpdateProfile={handleUpdateProfile} onSaveUser={handleSaveUser} onDeleteUser={handleDeleteUser} onUpdateUserTheme={handleUpdateUserTheme} />;
+        return <ProfilePage profile={laundryProfile} currentUser={currentUser!} onUpdateProfile={handleUpdateProfile} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
         return <PrintLabelsPage cards={getActiveCards()} />;
       case 'board':
@@ -738,13 +700,17 @@ const App: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>; // Or a proper loading spinner
+  }
+
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
 
   return (
     <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
-      <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={handleLogout} currentUser={currentUser} currentView={currentView} />
+      <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={logout} currentUser={currentUser} currentView={currentView} />
       <ToastContainer notifications={notifications} removeNotification={removeNotification} />
       {renderContent()}
       

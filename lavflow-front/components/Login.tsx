@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { WashingMachineIcon } from './icons';
 
 interface LoginProps {
-  onLogin: (email: string, password: string) => boolean;
+  onLogin: (email: string, password: string) => Promise<boolean>;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -12,21 +12,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate an API call
-    setTimeout(() => {
-      const success = onLogin(email, password);
-      if (!success) {
-        setError('Email ou senha inválidos.');
-        setIsLoading(false);
-      }
-      // If login is successful, the parent component will re-render
-      // and this Login component will be unmounted.
-    }, 500);
+    const success = await onLogin(email, password);
+
+    if (!success) {
+      setError('Email ou senha inválidos.');
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -88,9 +85,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
           </div>
-           <div className="text-center text-xs text-gray-500 dark:text-slate-400 pt-4">
-                <p>Use <strong>admin@lavanderia.com</strong> e <strong>admin123</strong> para testar.</p>
-           </div>
         </form>
       </div>
     </div>

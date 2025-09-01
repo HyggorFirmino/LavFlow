@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, TagDefinition, List, User } from '../types';
 import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon } from './icons';
 import { generateWhatsAppMessage } from '../services/geminiService';
 import { DEFAULT_TAG_COLOR } from '../constants';
+import { maskCpf, maskPhone } from '../utils/formatters';
 
 interface KanbanCardProps {
   card: Card;
@@ -207,7 +207,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         {card.customerDocument && (
           <div className="flex items-center text-gray-700 dark:text-slate-300 mt-2">
             <IdentificationIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
-            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">{card.customerDocument}</span>
+            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">{maskCpf(card.customerDocument)}</span>
           </div>
         )}
 
@@ -278,7 +278,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         {card.contact && (
           <div className="flex items-center text-gray-600 dark:text-slate-400 mt-2">
             <PhoneIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400" />
-            <span className="text-sm">{card.contact}</span>
+            <span className="text-sm">{maskPhone(card.contact)}</span>
           </div>
         )}
 

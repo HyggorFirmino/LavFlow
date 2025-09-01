@@ -1,8 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { BoardData, Card, TagDefinition, User } from '../types';
 import { PencilIcon, TrashIcon, ListBulletIcon } from './icons';
 import { DEFAULT_TAG_COLOR } from '../constants';
+import { maskCpf, maskPhone } from '../utils/formatters';
 
 interface ListViewProps {
   cards: Card[];
@@ -114,6 +114,7 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Documento</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Contato</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Status</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Etiquetas</th>
                   {isAdmin && <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Valor</th>}
@@ -128,7 +129,8 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
                       <div className="text-sm font-semibold text-laundry-blue-900 dark:text-slate-100">{card.customerName}</div>
                       <div className="text-xs text-gray-500 dark:text-slate-400">ID: {card.id.substring(0, 8).toUpperCase()}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{card.customerDocument || '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{card.customerDocument ? maskCpf(card.customerDocument) : '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">{card.contact ? maskPhone(card.contact) : '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-0.5 text-sm font-semibold rounded-full border ${STATUS_COLORS[card.listId] || 'bg-gray-200 text-gray-800 border-gray-300'}`}>
                         {boardData[card.listId]?.title || 'Desconhecido'}
@@ -165,7 +167,7 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={isAdmin ? 7 : 6} className="text-center py-16">
+                    <td colSpan={isAdmin ? 8 : 7} className="text-center py-16">
                       <p className="text-xl text-gray-500 dark:text-slate-400">Nenhum pedido encontrado com os filtros atuais.</p>
                       <p className="text-base text-gray-400 dark:text-slate-500 mt-2">Tente ajustar ou limpar os filtros para ver mais resultados.</p>
                     </td>
