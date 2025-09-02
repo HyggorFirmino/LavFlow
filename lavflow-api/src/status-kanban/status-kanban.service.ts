@@ -25,7 +25,7 @@ export class StatusKanbanService {
   findAll(): Promise<StatusKanban[]> {
     return this.statusRepository.find({
       order: {
-        ordemExibicao: 'ASC',
+        ordem: 'ASC',
       },
     });
   }

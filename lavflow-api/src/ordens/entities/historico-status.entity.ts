@@ -13,20 +13,19 @@ export class HistoricoStatus {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // A ordem de serviço à qual este registro de histórico pertence
   @ManyToOne(() => OrdemServico, (ordem) => ordem.historico)
   @JoinColumn({ name: 'id_ordem' })
   ordem: OrdemServico;
 
-  @Column({ name: 'id_status_anterior', type: 'int', nullable: true })
-  idStatusAnterior: number;
+  @Column({ type: 'varchar', length: 255 })
+  fromListTitle: string;
 
-  @Column({ name: 'id_status_novo', type: 'int' })
-  idStatusNovo: number;
+  @Column({ type: 'varchar', length: 255 })
+  toListTitle: string;
 
   @Column({ name: 'id_funcionario_acao', type: 'int', nullable: true })
   idFuncionarioAcao: number;
-  
-  @CreateDateColumn({ name: 'data_mudanca' })
-  dataMudanca: Date;
+
+  @CreateDateColumn({ name: 'timestamp' })
+  timestamp: Date;
 }

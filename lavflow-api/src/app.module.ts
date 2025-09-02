@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrdensModule } from './ordens/ordens.module';
 import { FuncionariosModule } from './funcionarios/funcionarios.module';
 import { StatusKanbanModule } from './status-kanban/status-kanban.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { StatusKanbanModule } from './status-kanban/status-kanban.module';
     OrdensModule,
     FuncionariosModule,
     StatusKanbanModule,
+    TagsModule,
   ],
   controllers: [],
   providers: [],
