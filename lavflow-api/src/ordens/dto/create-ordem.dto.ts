@@ -22,10 +22,13 @@ class CardTagDto {
   value?: string;
 }
 
+
 class ServicesDto {
+  @ApiProperty({ example: true })
   @IsBoolean()
   washing: boolean;
 
+  @ApiProperty({ example: false })
   @IsBoolean()
   drying: boolean;
 }
