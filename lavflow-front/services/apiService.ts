@@ -1,117 +1,70 @@
-import { Client, LoginCredentials } from '../types';
+import { Card, List } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_MAXPAN_URL;
+const API_URL = 'http://localhost:3001';
 
-export const saveTokens = (accessToken: string, refreshToken: string) => {
-  localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
-};
+// Helper para centralizar as chamadas fetch e o tratamento de erros
+async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
-export const getAccessToken = () => {
-  return localStorage.getItem('accessToken')|| process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN;
-};
-
-export const getRefreshToken = () => {
-  return localStorage.getItem('refreshToken')||process.env.NEXT_PUBLIC_MAXPAN_REFRESH_TOKEN;
-};
-
-export const login = async (credentials: LoginCredentials): Promise<boolean> => {
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const { accessToken, refreshToken } = await response.json();
-    saveTokens(accessToken, refreshToken);
-    return true;
-  } catch (error) {
-    console.error('Erro ao fazer login:', error);
-    return false;
-  }
-};
-
-export const refreshToken = async (): Promise<boolean> => {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    return false;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(errorData.message || 'Ocorreu um erro na API');
   }
 
-  try {
-    const response = await fetch(`${API_URL}auth/refresh-tokens`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const data = await response.json();
-    console.log('Dados do token atualizado:', data);
-    saveTokens(data.access.token, data.refresh.token);
-    return true;
-  } catch (error) {
-    console.error('Erro ao atualizar token:', error);
-    return false;
+  if (response.status === 204) { // No Content
+    return null as T;
   }
+
+  return response.json();
+}
+
+// --- Funções da API para Ordens (Cards) ---
+
+export const getOrdens = (): Promise<any[]> => {
+  return apiFetch('/ordens');
 };
 
+export const createOrdem = (data: Partial<Card>): Promise<any> => {
+    // O backend espera um `id_status` no corpo
+    const payload = {
+        ...data,
+        id_status: Number(data.listId),
+    };
+    return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
+};
 
-/**
- * Simula uma chamada de API para buscar a lista de clientes.
- * @returns Uma promessa que resolve para uma lista de clientes.
- */
-export const fetchClients = async (): Promise<Client[]> => {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_MAXPAN_URL}users/customer-stores?mask=false&showName=true&limit=1000`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAccessToken()}`,
-        },
-      }
-    );
+export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promise<any> => {
+  return apiFetch(`/ordens/${ordemId}/mudar-status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ novoStatusId: Number(novoStatusId) }),
+  });
+};
 
-    if (response.status === 401) {
-      const refreshed = await refreshToken();
-      if (refreshed) {
-        return fetchClients();
-      }
-    }
+// --- Funções da API para Status (Lists) ---
 
-    if (!response.ok) {
-      throw new Error('Erro ao buscar clientes');
-    }
+export const getStatusKanban = (): Promise<any[]> => {
+  return apiFetch('/status-kanban');
+};
 
-    const data = await response.json();
-    console.log('Resposta da API:', data);
+export const createList = (data: Partial<List>): Promise<any> => {
+    const payload = {
+        titulo: data.title,
+        ordem: data.order,
+        // ... outros campos que o DTO do backend espera
+    };
+    return apiFetch('/status-kanban', { method: 'POST', body: JSON.stringify(payload) });
+};
 
-    // Ajuste conforme o formato real da resposta
-    const clientsArray = Array.isArray(data) ? data : data.results ?? [];
-    console.log('Array de clientes:', clientsArray);
+export const updateList = (id: string, data: Partial<List>): Promise<any> => {
+  return apiFetch(`/status-kanban/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+};
 
-    return clientsArray.map((item: any) => ({
-      id: item.customer || item.id || '',
-      name: item.fullName || item.name || '',
-      document: item.documentId || item.document || '',
-      phone: item.cellphone || item.phone || '',
-      saldo: item.rechargeBalance || 0,
-    }));
-  } catch (error) {
-    console.error('Erro ao buscar clientes:', error);
-    return [];
-  }
+export const deleteList = (id: string): Promise<void> => {
+  return apiFetch(`/status-kanban/${id}`, { method: 'DELETE' });
 };

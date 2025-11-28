@@ -1,6 +1,7 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { OrdemServico } from './ordem-servico.entity';
+import { Store } from 'src/stores/entities/store.entity';
 
 @Entity('status_kanban')
 export class StatusKanban {
@@ -35,4 +36,7 @@ export class StatusKanban {
   @ApiProperty({ type: () => [OrdemServico] })
   @OneToMany(() => OrdemServico, (ordem) => ordem.status)
   ordens: OrdemServico[];
+
+  @ManyToOne(() => Store, (store) => store.statusKanban)
+  store: Store;
 }

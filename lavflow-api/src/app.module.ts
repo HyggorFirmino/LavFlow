@@ -7,6 +7,8 @@ import { OrdensModule } from './ordens/ordens.module';
 import { FuncionariosModule } from './funcionarios/funcionarios.module';
 import { StatusKanbanModule } from './status-kanban/status-kanban.module';
 import { TagsModule } from './tags/tags.module';
+import { UsersModule } from './users/users.module';
+import { StoresModule } from './stores/stores.module';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { TagsModule } from './tags/tags.module';
     FuncionariosModule,
     StatusKanbanModule,
     TagsModule,
+    UsersModule,
+    StoresModule,
   ],
   controllers: [],
   providers: [],

@@ -13,11 +13,6 @@ export interface Client {
   saldo: number;
 }
 
-export interface CardTag {
-  name: string;
-  value?: string;
-}
-
 export interface CardHistoryEvent {
   timestamp: string;
   fromListId: string;
@@ -26,36 +21,41 @@ export interface CardHistoryEvent {
   toListTitle: string;
 }
 
+// Conforme a entidade OrdemServico do backend
 export interface Card {
-  id: string;
+  id: string; // Convertido de number para string no frontend
   customerName: string;
   customerDocument?: string;
-  contact: string;
   notes: string;
-  tags: CardTag[];
-  listId: string;
-  basketIdentifier?: string;
-  notifiedAt?: string;
+  contact: string;
   serviceValue?: number;
   paymentMethod?: 'dinheiro' | 'pix';
-  services?: {
-    washing: boolean;
-    drying: boolean;
-  };
-  createdAt: string;
-  completedAt?: string;
+  tags: { name: string; value?: string }[];
+  basketIdentifier?: string;
+  notifiedAt?: string;
+  services?: { washing: boolean; drying: boolean };
+  createdAt: string; // Convertido de Date para string
+  completedAt?: string; // Convertido de Date para string
   enteredDryerAt?: string;
   history?: CardHistoryEvent[];
+
+  // Relacionamentos
+  listId: string; // Vem de status.id
+  funcionarioResponsavel?: any; // Simplificado por enquanto
 }
 
+// Conforme a entidade StatusKanban do backend
 export interface List {
-  id: string;
-  title: string;
+  id: string; // Convertido de number para string no frontend
+  title: string; // Mapeado de 'titulo'
+  order: number; // Mapeado de 'ordem'
+  cardLimit?: number | null; // Mapeado de 'limiteCartoes'
+  type?: 'default' | 'dryer' | 'lavadora'; // Mapeado de 'tipo'
+  totalDryingTime?: number | null; // Mapeado de 'tempoSecagemTotal'
+  reminderInterval?: number | null; // Mapeado de 'intervaloLeitura'
+
+  // Adicionado no frontend para conter os cartões
   cards: Card[];
-  cardLimit?: number | null;
-  type?: 'default' | 'dryer' | 'lavadora';
-  totalDryingTime?: number; // in minutes
-  reminderInterval?: number; // in minutes
 }
 
 export type BoardData = Record<string, List>;

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Client, Card } from '../types';
 import { UserGroupIcon, MagnifyingGlassIcon } from './icons';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
-import { fetchClients } from '../services/apiService';
+import { fetchClients } from '../services/maxpanApiService';
 import { maskCpf, maskPhone, maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
 
 // Formata o saldo para reais, considerando as duas últimas casas como centavos
