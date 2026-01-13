@@ -6,7 +6,9 @@ import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { StatusKanban } from './entities/status-kanban.entity';
 import { HistoricoStatus } from './entities/historico-status.entity';
 import { MudarStatusOrdemDto } from './dto/mudar-status-ordem.dto';
-import { Funcionario } from 'src/funcionarios/entities/funcionario.entity';
+
+import { User } from 'src/users/entities/user.entity';
+import { Client } from 'src/clients/entities/client.entity';
 
 @Injectable()
 export class OrdensService {
@@ -16,28 +18,37 @@ export class OrdensService {
 
     @InjectRepository(StatusKanban)
     private readonly statusKanbanRepository: Repository<StatusKanban>,
-    
+
     @InjectRepository(HistoricoStatus)
     private readonly historicoRepository: Repository<HistoricoStatus>,
 
+    @InjectRepository(Client)
+    private readonly clientRepository: Repository<Client>,
+
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(createOrdemDto: CreateOrdemDto): Promise<OrdemServico> {
-    const { idStatusInicial, idFuncionarioResponsavel, ...dadosOrdem } = createOrdemDto;
+    const { idStatusInicial, idFuncionarioResponsavel, clientId, ...dadosOrdem } = createOrdemDto;
 
     const statusInicial = await this.statusKanbanRepository.findOneBy({ id: idStatusInicial });
     if (!statusInicial) {
       throw new NotFoundException(`Status com ID ${idStatusInicial} não encontrado.`);
     }
 
+    const client = await this.clientRepository.findOneBy({ id: clientId });
+    if (!client) {
+      throw new NotFoundException(`Cliente com ID ${clientId} não encontrado.`);
+    }
+
     const novaOrdem = this.ordemServicoRepository.create({
       ...dadosOrdem,
       status: statusInicial,
+      client: client,
     });
-    
-    if(idFuncionarioResponsavel) {
-      novaOrdem.funcionarioResponsavel = { id: idFuncionarioResponsavel } as Funcionario;
+
+    if (idFuncionarioResponsavel) {
+      novaOrdem.funcionarioResponsavel = { id: idFuncionarioResponsavel } as User;
     }
 
     const ordemSalva = await this.ordemServicoRepository.save(novaOrdem);
@@ -75,7 +86,7 @@ export class OrdensService {
 
       const ordem = await ordemRepo.findOne({ where: { id }, relations: ['status'] });
       if (!ordem) throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
-      
+
       const novoStatus = await statusRepo.findOneBy({ id: novoStatusId });
       if (!novoStatus) throw new NotFoundException(`Status com ID ${novoStatusId} não encontrado.`);
 
@@ -91,7 +102,7 @@ export class OrdensService {
         idFuncionarioAcao: idFuncionarioAcao,
       });
       await historicoRepo.save(historico);
-      
+
       return ordem;
     });
   }

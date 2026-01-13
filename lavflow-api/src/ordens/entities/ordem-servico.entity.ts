@@ -9,9 +9,10 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { StatusKanban } from './status-kanban.entity';
-import { Funcionario } from '../../funcionarios/entities/funcionario.entity';
+import { User } from '../../users/entities/user.entity';
 import { Notificacao } from './notificacao.entity';
 import { HistoricoStatus } from './historico-status.entity';
+import { Client } from 'src/clients/entities/client.entity';
 
 // O tipo de dado para o nosso campo JSON
 interface CardTag {
@@ -25,21 +26,15 @@ export class OrdemServico {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ApiProperty({ example: 'João da Silva' })
-  @Column({ name: 'customer_name', type: 'varchar', length: 255 })
-  customerName: string;
 
-  @ApiProperty({ example: '12345678900', required: false })
-  @Column({ name: 'customer_document', type: 'varchar', length: 20, nullable: true })
-  customerDocument: string;
+
+
 
   @ApiProperty({ example: 'Cliente preferencial', required: false })
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @ApiProperty({ example: '(11) 99999-8888' })
-  @Column({ name: 'contact', type: 'varchar', length: 255 })
-  contact: string;
+
 
   @ApiProperty({ example: 120.5, required: false })
   @Column({ name: 'service_value', type: 'decimal', precision: 10, scale: 2, nullable: true })
@@ -87,7 +82,7 @@ export class OrdemServico {
   @ApiProperty({ example: new Date().toISOString(), required: false, type: String })
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date;
-  
+
   // --- RELACIONAMENTOS ---
 
   @ApiProperty({ type: () => StatusKanban })
@@ -95,11 +90,16 @@ export class OrdemServico {
   @JoinColumn({ name: 'id_status' })
   status: StatusKanban;
 
-  @ApiProperty({ type: () => Funcionario, required: false })
-  @ManyToOne(() => Funcionario, (func) => func.ordensResponsavel, { nullable: true, eager: true })
-  @JoinColumn({ name: 'id_funcionario_responsavel' })
-  funcionarioResponsavel: Funcionario;
-  
+  @ApiProperty({ type: () => Client })
+  @ManyToOne(() => Client, { eager: true })
+  @JoinColumn({ name: 'id_cliente' })
+  client: Client;
+
+  @ApiProperty({ type: () => User, required: false })
+  @ManyToOne(() => User, (user) => user.ordensResponsavel, { nullable: true, eager: true })
+  @JoinColumn({ name: 'id_funcionario_responsavel' }) // Manter mesmo nome de coluna ou migrar? Manter por enquanto para facilitar
+  funcionarioResponsavel: User;
+
   @ApiProperty({ type: () => [Notificacao] })
   @OneToMany(() => Notificacao, (notificacao) => notificacao.ordem)
   notificacoes: Notificacao[];

@@ -34,20 +34,14 @@ class ServicesDto {
 }
 
 export class CreateOrdemDto {
-  @ApiProperty({ description: 'Nome do cliente.', example: 'Maria Souza' })
+  @ApiProperty({ description: 'ID do cliente.', example: 'uuid-v4' })
   @IsString()
   @IsNotEmpty()
-  customerName: string;
+  clientId: string;
 
-  @ApiProperty({ description: 'Documento do cliente (CPF).', example: '123.456.789-00', required: false })
-  @IsOptional()
-  @IsString()
-  customerDocument?: string;
 
-  @ApiProperty({ description: 'Telefone ou e-mail do cliente.', example: '11987654321' })
-  @IsString()
-  @IsNotEmpty()
-  contact: string;
+
+
 
   @ApiProperty({ description: 'Observações sobre o serviço.', example: 'Não usar amaciante.', required: false })
   @IsOptional()
@@ -87,7 +81,7 @@ export class CreateOrdemDto {
   @Type(() => ServicesDto)
   services?: ServicesDto;
 
-  @ApiProperty({ description: 'ID do funcionário responsável.', example: 1, required: false })
+  @ApiProperty({ description: 'ID do usuário responsável.', example: 1, required: false })
   @IsOptional()
   @IsInt()
   idFuncionarioResponsavel?: number;

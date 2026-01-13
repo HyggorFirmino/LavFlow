@@ -8,6 +8,8 @@ import { OrdemServico } from './entities/ordem-servico.entity';
 import { StatusKanban } from './entities/status-kanban.entity';
 import { HistoricoStatus } from './entities/historico-status.entity';
 import { Notificacao } from './entities/notificacao.entity';
+import { Client } from 'src/clients/entities/client.entity';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -20,9 +22,11 @@ import { Notificacao } from './entities/notificacao.entity';
       StatusKanban,
       HistoricoStatus,
       Notificacao,
+      Client,
     ]),
+    UsersModule,
   ],
   controllers: [OrdensController],
   providers: [OrdensService],
 })
-export class OrdensModule {}
+export class OrdensModule { }

@@ -4,11 +4,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrdensModule } from './ordens/ordens.module';
-import { FuncionariosModule } from './funcionarios/funcionarios.module';
 import { StatusKanbanModule } from './status-kanban/status-kanban.module';
 import { TagsModule } from './tags/tags.module';
 import { UsersModule } from './users/users.module';
 import { StoresModule } from './stores/stores.module';
+import { ClientsModule } from './clients/clients.module';
 
 @Module({
   imports: [
@@ -40,13 +40,13 @@ import { StoresModule } from './stores/stores.module';
 
     // Seus outros módulos
     OrdensModule,
-    FuncionariosModule,
     StatusKanbanModule,
     TagsModule,
     UsersModule,
     StoresModule,
+    ClientsModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

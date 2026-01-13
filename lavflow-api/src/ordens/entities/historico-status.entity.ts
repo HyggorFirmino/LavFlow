@@ -29,7 +29,7 @@ export class HistoricoStatus {
   @Column({ type: 'varchar', length: 255 })
   toListTitle: string;
 
-  @ApiProperty({ example: 3, required: false, nullable: true })
+  @ApiProperty({ description: 'ID do usuário que realizou a ação', example: 3, required: false, nullable: true })
   @Column({ name: 'id_funcionario_acao', type: 'int', nullable: true })
   idFuncionarioAcao: number;
 

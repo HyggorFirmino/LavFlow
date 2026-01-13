@@ -1,28 +1,5 @@
 import { Card, List } from '../types';
-
-const API_URL = 'http://localhost:3001';
-
-// Helper para centralizar as chamadas fetch e o tratamento de erros
-async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || 'Ocorreu um erro na API');
-  }
-
-  if (response.status === 204) { // No Content
-    return null as T;
-  }
-
-  return response.json();
-}
+import { apiFetch } from './api';
 
 // --- Funções da API para Ordens (Cards) ---
 
@@ -31,12 +8,12 @@ export const getOrdens = (): Promise<any[]> => {
 };
 
 export const createOrdem = (data: Partial<Card>): Promise<any> => {
-    // O backend espera um `id_status` no corpo
-    const payload = {
-        ...data,
-        id_status: Number(data.listId),
-    };
-    return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
+  // O backend espera um `id_status` no corpo
+  const payload = {
+    ...data,
+    id_status: Number(data.listId),
+  };
+  return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
 };
 
 export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promise<any> => {
@@ -53,12 +30,12 @@ export const getStatusKanban = (): Promise<any[]> => {
 };
 
 export const createList = (data: Partial<List>): Promise<any> => {
-    const payload = {
-        titulo: data.title,
-        ordem: data.order,
-        // ... outros campos que o DTO do backend espera
-    };
-    return apiFetch('/status-kanban', { method: 'POST', body: JSON.stringify(payload) });
+  const payload = {
+    titulo: data.title,
+    ordem: data.order,
+    // ... outros campos que o DTO do backend espera
+  };
+  return apiFetch('/status-kanban', { method: 'POST', body: JSON.stringify(payload) });
 };
 
 export const updateList = (id: string, data: Partial<List>): Promise<any> => {

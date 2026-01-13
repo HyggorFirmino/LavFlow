@@ -14,10 +14,10 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Store)
     private readonly storeRepository: Repository<Store>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { name, email, password, storeIds } = createUserDto;
+    const { name, email, password, storeIds, role } = createUserDto;
 
     const existingUser = await this.userRepository.findOne({ where: { email } });
     if (existingUser) {
@@ -28,10 +28,10 @@ export class UsersService {
 
     let stores: Store[] = [];
     if (storeIds && storeIds.length > 0) {
-        stores = await this.storeRepository.findByIds(storeIds);
-        if (stores.length !== storeIds.length) {
-            throw new NotFoundException('Uma ou mais lojas não foram encontradas');
-        }
+      stores = await this.storeRepository.findByIds(storeIds);
+      if (stores.length !== storeIds.length) {
+        throw new NotFoundException('Uma ou mais lojas não foram encontradas');
+      }
     }
 
     const user = this.userRepository.create({
@@ -39,6 +39,7 @@ export class UsersService {
       email,
       password: hashedPassword,
       stores,
+      role,
     });
 
     return this.userRepository.save(user);
@@ -60,23 +61,23 @@ export class UsersService {
     const { storeIds, password, ...rest } = updateUserDto;
 
     const user = await this.userRepository.preload({
-        id,
-        ...rest,
+      id,
+      ...rest,
     });
 
     if (!user) {
-        throw new NotFoundException(`Usuário com ID ${id} não encontrado`);
+      throw new NotFoundException(`Usuário com ID ${id} não encontrado`);
     }
 
     if (password) {
-        user.password = await bcrypt.hash(password, 10);
+      user.password = await bcrypt.hash(password, 10);
     }
 
     if (storeIds) {
-        user.stores = await this.storeRepository.findByIds(storeIds);
-        if (user.stores.length !== storeIds.length) {
-            throw new NotFoundException('Uma ou mais lojas não foram encontradas para atualização');
-        }
+      user.stores = await this.storeRepository.findByIds(storeIds);
+      if (user.stores.length !== storeIds.length) {
+        throw new NotFoundException('Uma ou mais lojas não foram encontradas para atualização');
+      }
     }
 
     return this.userRepository.save(user);

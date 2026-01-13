@@ -10,6 +10,8 @@ export interface Client {
   name: string;
   document: string;
   phone: string;
+  birthDate?: string;
+  address?: string;
   saldo: number;
 }
 
@@ -69,7 +71,7 @@ export interface TagDefinition {
 }
 
 export interface User {
-  id:string;
+  id: string;
   name: string;
   email: string;
   password: string;
@@ -93,4 +95,12 @@ export interface ToastNotification {
   id: number;
   message: string;
   type: 'error' | 'success' | 'info';
+}
+
+export interface Store {
+  id: number;
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
 }
