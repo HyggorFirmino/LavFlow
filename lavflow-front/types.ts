@@ -75,7 +75,7 @@ export interface User {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'employee';
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
   theme: 'claro' | 'escuro';
 }
 
@@ -103,4 +103,5 @@ export interface Store {
   description: string;
   address: string;
   phone: string;
+  cnpj?: string;
 }

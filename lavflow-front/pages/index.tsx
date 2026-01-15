@@ -79,15 +79,15 @@ interface ToastContainerProps {
 const ToastContainer: React.FC<ToastContainerProps> = ({ notifications, removeNotification }) => {
   return (
     <div aria-live="assertive" className="fixed inset-0 flex items-end justify-end px-4 py-6 pointer-events-none z-[100] sm:p-6 sm:items-start">
-        <div className="w-full max-w-sm space-y-4 pt-24">
-            {notifications.map(notification => (
-                <ToastMessage
-                    key={notification.id}
-                    notification={notification}
-                    onDismiss={removeNotification}
-                />
-            ))}
-        </div>
+      <div className="w-full max-w-sm space-y-4 pt-24">
+        {notifications.map(notification => (
+          <ToastMessage
+            key={notification.id}
+            notification={notification}
+            onDismiss={removeNotification}
+          />
+        ))}
+      </div>
     </div>
   );
 };
@@ -106,10 +106,10 @@ const Home: React.FC = () => {
   const [listToEdit, setListToEdit] = useState<List | null>(null);
   const [currentView, setCurrentView] = useState<View>('board');
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
-  
+
   const [users, setUsers] = useState<User[]>([
-    { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'admin', theme: 'claro' },
-    { id: 'user-employee', name: 'Funcionário Teste', email: 'func@lavanderia.com', password: 'func123', role: 'employee', theme: 'claro' }
+    { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
+    { id: 'user-employee', name: 'Funcionário Teste', email: 'func@lavanderia.com', password: 'func123', role: 'EMPLOYEE', theme: 'claro' }
   ]);
   const [laundryProfile, setLaundryProfile] = useState<LaundryProfile>({
     name: 'Lavanderia Inteligente',
@@ -193,14 +193,14 @@ const Home: React.FC = () => {
 
             // Processar tags do cartão
             card.tags.forEach(tag => {
-                if (!newTagMap.has(tag.name)) {
-                    const colorIndex = newTagMap.size % TAG_COLORS.length;
-                    newTagMap.set(tag.name, { name: tag.name, color: TAG_COLORS[colorIndex].classes, type: 'texto' });
-                }
+              if (!newTagMap.has(tag.name)) {
+                const colorIndex = newTagMap.size % TAG_COLORS.length;
+                newTagMap.set(tag.name, { name: tag.name, color: TAG_COLORS[colorIndex].classes, type: 'texto' });
+              }
             });
           }
         });
-        
+
         // Ordenar listas
         const fetchedListOrder = statuses.map(s => String(s.id));
         setListOrder(fetchedListOrder);
@@ -238,19 +238,19 @@ const Home: React.FC = () => {
   const removeNotification = (id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
-  
+
   // Login and Profile handlers
-  const handleLogin = (email: string, password: string): boolean => {
+  const handleLogin = async (email: string, password: string): Promise<boolean> => {
     const user = users.find(u => u.email === email && u.password === password);
     if (user) {
       setCurrentUser(user);
       // Redirect based on role
-      setCurrentView(user.role === 'admin' ? 'dashboard' : 'board');
+      setCurrentView(user.role === 'ADMIN' ? 'dashboard' : 'board');
       return true;
     }
     return false;
   };
-  
+
   const handleLogout = () => {
     setCurrentUser(null);
   };
@@ -258,7 +258,7 @@ const Home: React.FC = () => {
   const handleUpdateProfile = (profile: LaundryProfile) => {
     setLaundryProfile(profile);
   };
-  
+
   const handleUpdateUserTheme = (theme: 'claro' | 'escuro') => {
     if (!currentUser) return;
 
@@ -279,10 +279,10 @@ const Home: React.FC = () => {
     setUsers(prevUsers => [...prevUsers, userWithId]);
     return true;
   };
-  
+
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
     }
   };
 
@@ -327,19 +327,19 @@ const Home: React.FC = () => {
     // A proper implementation would call createList from apiService
     // and then reload the board data or update the state.
   };
-  
+
   const handleOpenListSettings = (listId: string) => {
     setListToEdit(boardData[listId]);
     setIsListSettingsModalOpen(true);
   };
-  
+
   const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => {
-     // This function will now likely need to call the API to update a list
-     console.log("Saving list settings (local state):", listId);
-     // A proper implementation would call updateList from apiService
-     // and then reload the board data or update the state.
+    // This function will now likely need to call the API to update a list
+    console.log("Saving list settings (local state):", listId);
+    // A proper implementation would call updateList from apiService
+    // and then reload the board data or update the state.
   };
-  
+
   const handleDeleteList = (listId: string) => {
     // This function will now likely need to call the API to delete a list
     console.log("Deleting list (local state):", listId);
@@ -349,33 +349,33 @@ const Home: React.FC = () => {
 
   // Tag handlers
   const handleSaveTag = (tagToSave: TagDefinition) => {
-      // This might need an API endpoint in the future
-      setTags(prevTags => {
-          const existingIndex = prevTags.findIndex(t => t.name === tagToSave.name);
-          if (existingIndex > -1) {
-              const newTags = [...prevTags];
-              newTags[existingIndex] = tagToSave;
-              return newTags;
-          }
-          return [...prevTags, tagToSave];
-      });
-  };
-  
-  const handleDeleteTag = (tagName: string) => {
-      // This might need an API endpoint in the future
-      if (window.confirm(`Tem certeza de que deseja excluir a etiqueta "${tagName}"? Isso a removerá de todos os cartões.`)) {
-          setTags(prevTags => prevTags.filter(t => t.name !== tagName));
-          setBoardData(prevData => {
-              const newData = { ...prevData };
-              Object.keys(newData).forEach(listId => {
-                  newData[listId].cards = newData[listId].cards.map(card => ({
-                      ...card,
-                      tags: card.tags.filter(tag => tag.name !== tagName)
-                  }));
-              });
-              return newData;
-          });
+    // This might need an API endpoint in the future
+    setTags(prevTags => {
+      const existingIndex = prevTags.findIndex(t => t.name === tagToSave.name);
+      if (existingIndex > -1) {
+        const newTags = [...prevTags];
+        newTags[existingIndex] = tagToSave;
+        return newTags;
       }
+      return [...prevTags, tagToSave];
+    });
+  };
+
+  const handleDeleteTag = (tagName: string) => {
+    // This might need an API endpoint in the future
+    if (window.confirm(`Tem certeza de que deseja excluir a etiqueta "${tagName}"? Isso a removerá de todos os cartões.`)) {
+      setTags(prevTags => prevTags.filter(t => t.name !== tagName));
+      setBoardData(prevData => {
+        const newData = { ...prevData };
+        Object.keys(newData).forEach(listId => {
+          newData[listId].cards = newData[listId].cards.map(card => ({
+            ...card,
+            tags: card.tags.filter(tag => tag.name !== tagName)
+          }));
+        });
+        return newData;
+      });
+    }
   };
 
   // Drag and Drop handlers
@@ -385,8 +385,8 @@ const Home: React.FC = () => {
   };
 
   const onListDragStart = (e: React.DragEvent<HTMLDivElement>, listId: string) => {
-      draggedItem.current = { listId };
-      e.dataTransfer.effectAllowed = 'move';
+    draggedItem.current = { listId };
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const onDrop = (e: React.DragEvent, targetListId: string, targetCardId?: string) => {
@@ -399,21 +399,21 @@ const Home: React.FC = () => {
   const handleNavigate = (view: View) => {
     setCurrentView(view);
   };
-  
+
   const getActiveCards = () => {
-      let activeCards: Card[] = [];
-      listOrder.forEach(listId => {
-          const list = boardData[listId];
-          // Assuming list '5' is 'Finalizado' based on previous logic
-          if (list && list.title !== 'Finalizado') { 
-              activeCards = activeCards.concat(list.cards);
-          }
-      });
-      return activeCards;
+    let activeCards: Card[] = [];
+    listOrder.forEach(listId => {
+      const list = boardData[listId];
+      // Assuming list '5' is 'Finalizado' based on previous logic
+      if (list && list.title !== 'Finalizado') {
+        activeCards = activeCards.concat(list.cards);
+      }
+    });
+    return activeCards;
   };
-  
+
   const getAllCardsSorted = (): Card[] => {
-    const allCards = listOrder.flatMap(listId => 
+    const allCards = listOrder.flatMap(listId =>
       boardData[listId] ? boardData[listId].cards : []
     );
     return allCards.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -425,20 +425,20 @@ const Home: React.FC = () => {
         return <DashboardPage boardData={boardData} />;
       case 'list':
         return <ListView
-                  cards={getAllCardsSorted()}
-                  boardData={boardData}
-                  tagsMap={tagsMap}
-                  onEditCard={handleOpenEditCardModal}
-                  onDeleteCard={handleDeleteCard}
-                  currentUser={currentUser!}
-               />;
+          cards={getAllCardsSorted()}
+          boardData={boardData}
+          tagsMap={tagsMap}
+          onEditCard={handleOpenEditCardModal}
+          onDeleteCard={handleDeleteCard}
+          currentUser={currentUser!}
+        />;
       case 'history':
         return <HistoryPage cards={getAllCardsSorted()} />;
       case 'clients':
-        return <ClientsPage 
-                  onAddCard={handleAddCard}
-                  onOpenAddCardModal={handleOpenAddCardModal}
-               />;
+        return <ClientsPage
+          onAddCard={handleAddCard}
+          onOpenAddCardModal={handleOpenAddCardModal}
+        />;
       case 'tags':
         return <TagsPage boardData={boardData} tags={tags} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} currentUser={currentUser!} />;
       case 'profile':
@@ -489,7 +489,7 @@ const Home: React.FC = () => {
         <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={handleLogout} currentUser={currentUser} currentView={currentView} />
         <ToastContainer notifications={notifications} removeNotification={removeNotification} />
         {renderContent()}
-        
+
         <AddCardModal
           isOpen={isCardModalOpen}
           onClose={() => setIsCardModalOpen(false)}
@@ -504,7 +504,7 @@ const Home: React.FC = () => {
           onClose={() => setIsAddListModalOpen(false)}
           onSave={handleAddList}
         />
-        <ListSettingsModal 
+        <ListSettingsModal
           isOpen={isListSettingsModalOpen}
           onClose={() => setIsListSettingsModalOpen(false)}
           onSave={handleSaveListSettings}

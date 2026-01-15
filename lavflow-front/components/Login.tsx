@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { WashingMachineIcon } from './icons';
 
 interface LoginProps {
@@ -30,13 +31,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-t-4 border-laundry-teal-400 m-4">
         <div className="text-center">
-            <WashingMachineIcon className="w-16 h-16 mx-auto text-laundry-blue-600 dark:text-laundry-blue-400 animate-[spin_5s_linear_infinite]"/>
-            <h1 className="mt-4 text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">
-                Lavanderia Inteligente
-            </h1>
-            <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
-                Bem-vindo! Faça login para continuar.
-            </p>
+          <WashingMachineIcon className="w-16 h-16 mx-auto text-laundry-blue-600 dark:text-laundry-blue-400 animate-[spin_5s_linear_infinite]" />
+          <h1 className="mt-4 text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">
+            Lavanderia Inteligente
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
+            Bem-vindo! Faça login para continuar.
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -69,10 +70,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               />
             </div>
           </div>
-          
+
           {error && (
             <div className="text-center text-sm font-medium text-red-600 bg-red-100 dark:text-red-300 dark:bg-red-500/20 p-3 rounded-lg border border-red-200 dark:border-red-500/30">
-                {error}
+              {error}
             </div>
           )}
 
@@ -84,6 +85,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             >
               {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
+          </div>
+
+          <div className="flex flex-col space-y-2 text-center text-sm">
+            <Link href="/register/store" className="text-laundry-teal-600 hover:text-laundry-teal-800 dark:text-laundry-teal-400 dark:hover:text-laundry-teal-300 font-medium transition-colors">
+              Cadastrar Nova Loja
+            </Link>
+            <Link href="/register/user" className="text-laundry-teal-600 hover:text-laundry-teal-800 dark:text-laundry-teal-400 dark:hover:text-laundry-teal-300 font-medium transition-colors">
+              Cadastrar Novo Usuário
+            </Link>
           </div>
         </form>
       </div>
