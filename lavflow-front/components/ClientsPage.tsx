@@ -156,6 +156,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       customerName: client.name,
       customerDocument: client.document,
       contact: client.phone,
+      client: client, // Pass the full client object to link it
     });
   };
 

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StatusKanban } from '../ordens/entities/status-kanban.entity';
+import { Store } from '../stores/entities/store.entity';
 import { CreateStatusKanbanDto } from './dto/create-status-kanban.dto';
 import { UpdateStatusKanbanDto } from './dto/update-status-kanban.dto';
 import { OrdemServico } from '../ordens/entities/ordem-servico.entity';
@@ -14,16 +15,28 @@ export class StatusKanbanService {
     // Injetamos o repositório de OrdemServico para verificar se um status está em uso
     @InjectRepository(OrdemServico)
     private readonly ordemRepository: Repository<OrdemServico>,
-  ) {}
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
+  ) { }
 
-  create(createStatusDto: CreateStatusKanbanDto): Promise<StatusKanban> {
-    const status = this.statusRepository.create(createStatusDto);
+  async create(createStatusDto: CreateStatusKanbanDto): Promise<StatusKanban> {
+    const { storeId, ...rest } = createStatusDto;
+    const store = await this.storeRepository.findOneBy({ id: storeId });
+    if (!store) {
+      throw new NotFoundException(`Loja com ID ${storeId} não encontrada.`);
+    }
+
+    const status = this.statusRepository.create({
+      ...rest,
+      store: store
+    });
     return this.statusRepository.save(status);
   }
 
   // É crucial ordenar os status para que o Kanban seja exibido corretamente
   findAll(): Promise<StatusKanban[]> {
     return this.statusRepository.find({
+      relations: ['store'],
       order: {
         ordem: 'ASC',
       },
@@ -57,7 +70,7 @@ export class StatusKanbanService {
         `Este status não pode ser removido pois está em uso por ${ordensComStatus} ordem(ns) de serviço.`,
       );
     }
-    
+
     const result = await this.statusRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Status com ID ${id} não encontrado.`);

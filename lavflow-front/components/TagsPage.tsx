@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BoardData, TagDefinition, Card, User } from '../types';
+import { BoardData, TagDefinition, Card, User, Store } from '../types';
 import { TagIcon, PencilIcon, TrashIcon } from './icons';
 import TagEditModal from './TagEditModal';
 
@@ -9,16 +9,23 @@ interface TagsPageProps {
   onSaveTag: (tag: TagDefinition) => void;
   onDeleteTag: (tagName: string) => void;
   currentUser: User;
+  stores: Store[];
+  selectedStoreId: string;
+  onSelectStore: (id: string) => void;
 }
 
-const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDeleteTag, currentUser }) => {
+const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDeleteTag, currentUser, stores, selectedStoreId, onSelectStore }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tagToEdit, setTagToEdit] = useState<Partial<TagDefinition> | null>(null);
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'admin';
 
   const tagUsage = useMemo(() => {
     const usageMap = new Map<string, number>();
     Object.values(boardData).forEach(list => {
+      // Filter list cards if store logic exists in list (though boardData is already filtered by index.tsx)
+      // Wait, boardData IS already filtered in index.tsx based on selectedStoreId.
+      // So if I change store here, I need to update index.tsx selectedStoreId.
+      // If index.tsx re-renders boardData based on store, then usageMap will automatically update!
       list.cards.forEach(card => {
         card.tags.forEach(tag => {
           usageMap.set(tag.name, (usageMap.get(tag.name) || 0) + 1);
@@ -27,17 +34,17 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
     });
     return usageMap;
   }, [boardData]);
-  
+
   const handleOpenAddModal = () => {
     setTagToEdit(null);
     setIsModalOpen(true);
   };
-  
+
   const handleOpenEditModal = (tag: TagDefinition) => {
     setTagToEdit(tag);
     setIsModalOpen(true);
   };
-  
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setTagToEdit(null);
@@ -53,9 +60,25 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
             <TagIcon className="w-8 h-8 text-laundry-teal-500 mr-3" />
             <h1 className="text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">Gerenciador de Etiquetas</h1>
           </div>
+
+          <div className="flex-1 mx-8">
+            <select
+              value={selectedStoreId}
+              onChange={(e) => onSelectStore(e.target.value)}
+              className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block w-full p-2.5 max-w-xs ml-auto"
+            >
+              <option value="">Selecione uma loja...</option>
+              {stores.map((store) => (
+                <option key={store.id} value={String(store.id)}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {isAdmin && (
-            <button 
-              onClick={handleOpenAddModal} 
+            <button
+              onClick={handleOpenAddModal}
               className="bg-laundry-teal-500 hover:bg-laundry-teal-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center space-x-2"
             >
               <span className="text-xl">+</span>
@@ -63,7 +86,7 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
             </button>
           )}
         </div>
-        
+
         {sortedTags.length > 0 ? (
           <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border border-laundry-blue-200 dark:border-slate-700">
             <div className="grid grid-cols-5 gap-4 font-bold text-laundry-blue-800 dark:text-slate-200 px-6 py-3 bg-laundry-blue-100/70 dark:bg-slate-900/70">
@@ -85,10 +108,10 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
                     {isAdmin && (
                       <>
                         <button onClick={() => handleOpenEditModal(tag)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-laundry-blue-600 dark:hover:text-laundry-blue-300 hover:bg-laundry-blue-200/70 dark:hover:bg-slate-600/70 rounded-full transition-colors" aria-label={`Editar etiqueta ${tag.name}`}>
-                          <PencilIcon className="w-5 h-5"/>
+                          <PencilIcon className="w-5 h-5" />
                         </button>
                         <button onClick={() => onDeleteTag(tag.name)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-full transition-colors" aria-label={`Excluir etiqueta ${tag.name}`}>
-                          <TrashIcon className="w-5 h-5"/>
+                          <TrashIcon className="w-5 h-5" />
                         </button>
                       </>
                     )}
@@ -106,7 +129,7 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
         )}
       </div>
       {isAdmin && (
-        <TagEditModal 
+        <TagEditModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={onSaveTag}

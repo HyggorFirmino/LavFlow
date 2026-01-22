@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { OrdemServico } from './entities/ordem-servico.entity';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
+import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { StatusKanban } from './entities/status-kanban.entity';
 import { HistoricoStatus } from './entities/historico-status.entity';
 import { MudarStatusOrdemDto } from './dto/mudar-status-ordem.dto';
@@ -74,6 +75,39 @@ export class OrdensService {
       throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
     }
     return ordem;
+  }
+
+  async update(id: number, updateOrdemDto: UpdateOrdemDto): Promise<OrdemServico> {
+    const ordem = await this.ordemServicoRepository.findOneBy({ id });
+    if (!ordem) {
+      throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
+    }
+
+    // Se houver atualização de cliente
+    if (updateOrdemDto.clientId) {
+      const client = await this.clientRepository.findOneBy({ id: updateOrdemDto.clientId });
+      if (!client) {
+        throw new NotFoundException(`Cliente com ID ${updateOrdemDto.clientId} não encontrado.`);
+      }
+      ordem.client = client;
+    }
+
+    // Se houver atualização de responsável
+    if (updateOrdemDto.idFuncionarioResponsavel) {
+      ordem.funcionarioResponsavel = { id: updateOrdemDto.idFuncionarioResponsavel } as User;
+    }
+
+    // Merge dos outros dados
+    // Ignoramos idStatusInicial pois status deve ser mudado via 'mudarStatus' ou logica com historico
+    // Mas se quiser permitir mudar status por aqui sem historico (edit simples), pode. 
+    // Por enquanto, vamos ignorar idStatusInicial no update generico para evitar inconsistencia de historico
+    // ou tratar se for diferente.
+    // O ideal é usar 'mudarStatus' para trocas de coluna.
+    const { idStatusInicial, clientId, idFuncionarioResponsavel, ...dadosAtualizaveis } = updateOrdemDto;
+
+    this.ordemServicoRepository.merge(ordem, dadosAtualizaveis);
+
+    return this.ordemServicoRepository.save(ordem);
   }
 
   async mudarStatus(id: number, mudarStatusDto: MudarStatusOrdemDto): Promise<OrdemServico> {

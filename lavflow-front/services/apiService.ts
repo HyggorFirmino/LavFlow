@@ -12,8 +12,17 @@ export const createOrdem = (data: Partial<Card>): Promise<any> => {
   const payload = {
     ...data,
     id_status: Number(data.listId),
+    clientId: data.client?.id, // Ensure clientId is populated from the client object
   };
   return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
+};
+
+export const updateOrdem = (id: string, data: Partial<Card>): Promise<any> => {
+  const payload = {
+    ...data,
+    clientId: data.client?.id,
+  };
+  return apiFetch(`/ordens/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
 };
 
 export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promise<any> => {
@@ -29,11 +38,15 @@ export const getStatusKanban = (): Promise<any[]> => {
   return apiFetch('/status-kanban');
 };
 
-export const createList = (data: Partial<List>): Promise<any> => {
+export const createList = (data: Partial<List> & { storeId: number }): Promise<any> => {
   const payload = {
     titulo: data.title,
     ordem: data.order,
-    // ... outros campos que o DTO do backend espera
+    storeId: data.storeId,
+    limiteCartoes: data.cardLimit,
+    tipo: data.type,
+    tempoSecagemTotal: data.totalDryingTime,
+    intervaloLeitura: data.reminderInterval,
   };
   return apiFetch('/status-kanban', { method: 'POST', body: JSON.stringify(payload) });
 };

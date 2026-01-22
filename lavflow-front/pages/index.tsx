@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
-import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, Client } from '../types';
+import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, Client, Store } from '../types';
 import { TAG_COLORS } from '../constants';
 import Header from '../components/Header';
 import KanbanBoard from '../components/KanbanBoard';
 import AddCardModal from '../components/AddCardModal';
+import EditCardModal from '../components/EditCardModal';
 import AddListModal from '../components/AddListModal';
 import ListSettingsModal from '../components/ListSettingsModal';
 import TagsPage from '../components/TagsPage';
@@ -17,7 +18,9 @@ import HistoryPage from '../components/HistoryPage';
 import ClientsPage from '../components/ClientsPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
-import { getOrdens, getStatusKanban } from '../services/apiService';
+import { getOrdens, getStatusKanban, createList, createOrdem, updateOrdem } from '../services/apiService';
+import { getStores } from '../services/storeService';
+import { login } from '../services/userService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
 
 // --- Toast Notification Components ---
@@ -100,12 +103,15 @@ const Home: React.FC = () => {
   const [tags, setTags] = useState<TagDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isEditCardModalOpen, setIsEditCardModalOpen] = useState(false);
   const [isAddListModalOpen, setIsAddListModalOpen] = useState(false);
   const [isListSettingsModalOpen, setIsListSettingsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [listToEdit, setListToEdit] = useState<List | null>(null);
   const [currentView, setCurrentView] = useState<View>('board');
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
 
   const [users, setUsers] = useState<User[]>([
     { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
@@ -131,96 +137,145 @@ const Home: React.FC = () => {
     setNotifications(prev => [...prev, { id, message, type }]);
   };
 
-  useEffect(() => {
-    const loadBoardData = async () => {
-      try {
-        setIsLoading(true);
-        const [statuses, ordens] = await Promise.all([
-          getStatusKanban(),
-          getOrdens(),
-        ]);
+  const loadBoardData = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [statuses, ordens, storesData] = await Promise.all([
+        getStatusKanban(),
+        getOrdens(),
+        getStores(),
+      ]);
 
-        const newBoardData: BoardData = {};
-        const newTagMap = new Map<string, TagDefinition>();
+      setStores(storesData);
 
-        // 1. Processar Status (Listas)
-        statuses.forEach(status => {
-          const listId = String(status.id);
-          newBoardData[listId] = {
-            id: listId,
-            title: status.titulo,
-            order: status.ordem,
-            cardLimit: status.limiteCartoes,
-            type: status.tipo,
-            totalDryingTime: status.tempoSecagemTotal,
-            reminderInterval: status.intervaloLeitura,
-            cards: [],
-          };
-        });
-
-        // 2. Processar Ordens (Cartões) e Tags
-        ordens.forEach(ordem => {
-          if (!ordem.status) {
-            console.warn(`Ordem ${ordem.id} não tem um status definido e será ignorada.`);
-            return;
-          }
-          const listId = String(ordem.status.id);
-          if (newBoardData[listId]) {
-            const card: Card = {
-              id: String(ordem.id),
-              listId: listId,
-              customerName: ordem.customerName,
-              customerDocument: ordem.customerDocument,
-              notes: ordem.notes,
-              contact: ordem.contact,
-              serviceValue: Number(ordem.serviceValue),
-              paymentMethod: ordem.paymentMethod,
-              tags: ordem.tags || [],
-              basketIdentifier: ordem.basketIdentifier,
-              notifiedAt: ordem.notifiedAt ? new Date(ordem.notifiedAt).toISOString() : undefined,
-              services: ordem.services,
-              createdAt: new Date(ordem.createdAt).toISOString(),
-              completedAt: ordem.completedAt ? new Date(ordem.completedAt).toISOString() : undefined,
-              history: (ordem.historico || []).map((h: any) => ({
-                timestamp: new Date(h.timestamp).toISOString(),
-                fromListId: String(h.de_status_id),
-                toListId: String(h.para_status_id),
-                fromListTitle: h.de_status_titulo,
-                toListTitle: h.para_status_titulo,
-              })),
-            };
-            newBoardData[listId].cards.push(card);
-
-            // Processar tags do cartão
-            card.tags.forEach(tag => {
-              if (!newTagMap.has(tag.name)) {
-                const colorIndex = newTagMap.size % TAG_COLORS.length;
-                newTagMap.set(tag.name, { name: tag.name, color: TAG_COLORS[colorIndex].classes, type: 'texto' });
-              }
-            });
-          }
-        });
-
-        // Ordenar listas
-        const fetchedListOrder = statuses.map(s => String(s.id));
-        setListOrder(fetchedListOrder);
-
-        setBoardData(newBoardData);
-        setTags(Array.from(newTagMap.values()));
-
-      } catch (error) {
-        console.error("Erro ao carregar dados do quadro:", error);
-        addNotification("Falha ao carregar os dados do quadro. Tente recarregar a página.", "error");
-      } finally {
-        setIsLoading(false);
+      // Select first store if none selected
+      let currentStoreId = selectedStoreId;
+      if (!currentStoreId && storesData.length > 0) {
+        currentStoreId = String(storesData[0].id);
+        setSelectedStoreId(currentStoreId);
       }
-    };
 
+      const newBoardData: BoardData = {};
+      const newTagMap = new Map<string, TagDefinition>();
+
+      // 1. Processar Status (Listas)
+      statuses.forEach((status: any) => {
+        // Filter by store if selected
+        if (currentStoreId && status.store && String(status.store.id) !== currentStoreId) {
+          return;
+        }
+        const listId = String(status.id);
+        newBoardData[listId] = {
+          id: listId,
+          title: status.titulo,
+          order: status.ordem,
+          cardLimit: status.limiteCartoes,
+          type: status.tipo,
+          totalDryingTime: status.tempoSecagemTotal,
+          reminderInterval: status.intervaloLeitura,
+          cards: [],
+        };
+      });
+
+      // 2. Processar Ordens (Cartões) e Tags
+      ordens.forEach((ordem: any) => {
+        if (!ordem.status) {
+          console.warn(`Ordem ${ordem.id} não tem um status definido e será ignorada.`);
+          return;
+        }
+        const listId = String(ordem.status.id);
+        if (newBoardData[listId]) {
+          const card: Card = {
+            id: String(ordem.id),
+            client: ordem.client,
+            listId: listId,
+            customerName: ordem.customerName,
+            customerDocument: ordem.customerDocument,
+            notes: ordem.notes,
+            contact: ordem.contact,
+            serviceValue: Number(ordem.serviceValue),
+            paymentMethod: ordem.paymentMethod,
+            tags: ordem.tags || [],
+            basketIdentifier: ordem.basketIdentifier,
+            notifiedAt: ordem.notifiedAt ? new Date(ordem.notifiedAt).toISOString() : undefined,
+            services: ordem.services,
+            createdAt: new Date(ordem.createdAt).toISOString(),
+            completedAt: ordem.completedAt ? new Date(ordem.completedAt).toISOString() : undefined,
+            history: (ordem.historico || []).map((h: any) => ({
+              timestamp: new Date(h.timestamp).toISOString(),
+              fromListId: String(h.de_status_id),
+              toListId: String(h.para_status_id),
+              fromListTitle: h.de_status_titulo,
+              toListTitle: h.para_status_titulo,
+            })),
+          };
+          newBoardData[listId].cards.push(card);
+
+          // Processar tags do cartão
+          card.tags.forEach((tag: any) => {
+            if (!newTagMap.has(tag.name)) {
+              const colorIndex = newTagMap.size % TAG_COLORS.length;
+              newTagMap.set(tag.name, { name: tag.name, color: TAG_COLORS[colorIndex].classes, type: 'texto' });
+            }
+          });
+        }
+      });
+
+      // Ordenar listas
+      const fetchedListOrder = statuses.map((s: any) => String(s.id));
+      setListOrder(fetchedListOrder);
+
+      setBoardData(newBoardData);
+      setTags(Array.from(newTagMap.values()));
+
+    } catch (error) {
+      console.error("Erro ao carregar dados do quadro:", error);
+      addNotification("Falha ao carregar os dados do quadro. Tente recarregar a página.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedStoreId]);
+
+  useEffect(() => {
     loadBoardData();
+  }, [loadBoardData]); // Reload when loadBoardData changes (which depends on selectedStoreId)
 
-    // Fetch clients on app load
-    fetchClients().then(setClients);
+  // Initial load of stores from currentUser
+  useEffect(() => {
+    if (currentUser && currentUser.stores && currentUser.stores.length > 0) {
+      setStores(currentUser.stores);
+      if (!selectedStoreId) {
+        setSelectedStoreId(String(currentUser.stores[0].id));
+      }
+    } else {
+      setStores([]);
+    }
+  }, [currentUser]);
+
+  // Load user from local storage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('lavflow_user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user) {
+          setCurrentUser(user);
+          // Redirect based on role if needed, but usually just staying on current page is fine
+          // setCurrentView(user.role === 'ADMIN' ? 'dashboard' : 'board');
+        }
+      } catch (e) {
+        console.error("Failed to parse stored user", e);
+        localStorage.removeItem('lavflow_user');
+      }
+    }
   }, []);
+
+  // Fetch clients separately
+  useEffect(() => {
+    fetchClients().then(setClients).catch(e => console.error("Error fetching clients", e));
+  }, []);
+
+
 
   // Dark mode handler
   useEffect(() => {
@@ -241,18 +296,26 @@ const Home: React.FC = () => {
 
   // Login and Profile handlers
   const handleLogin = async (email: string, password: string): Promise<boolean> => {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      // Redirect based on role
-      setCurrentView(user.role === 'ADMIN' ? 'dashboard' : 'board');
-      return true;
+    try {
+      const user = await login({ email, password });
+      if (user) {
+        setCurrentUser(user);
+        localStorage.setItem('lavflow_user', JSON.stringify(user));
+        // Redirect based on role
+        setCurrentView(user.role === 'ADMIN' ? 'dashboard' : 'board');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
+      addNotification("Email ou senha inválidos", "error");
+      return false;
     }
-    return false;
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    localStorage.removeItem('lavflow_user');
   };
 
   const handleUpdateProfile = (profile: LaundryProfile) => {
@@ -288,12 +351,105 @@ const Home: React.FC = () => {
 
 
   // Card handlers
-  const handleAddCard = (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string }) => {
-    // This function will now likely need to call the API to create/update a card
-    // For now, it will update the local state for immediate feedback.
-    console.log("Saving card (local state):", newCardData);
-    // A proper implementation would call createOrdem or updateOrdem from apiService
-    // and then reload the board data or update the state based on the response.
+  const handleAddCard = async (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number }) => {
+    // Logic to properly add card with store context
+    // If storeId is provided (from AddCardModal for new cards), find the first list of that store.
+    let targetListId = '';
+
+    if (newCardData.storeId) {
+      // Find first list of the selected store
+      const storeFirstList = listOrder.find(id => {
+        const list = boardData[id]; // Assuming listOrder contains IDs from all lists, but wait.
+        // listOrder might only contain IDs filtered by current view?
+        // No, listOrder in index.tsx is set by `fetchedListOrder` which filters by `selectedStoreId` IF selected.
+        // But if we are in Client view, `boardData` has data.
+        // The `boardData` might only contain lists for the *current* selected store in view?
+        // Actually, `loadBoardData` filters based on `selectedStoreId`.
+        // So if I select Store B in modal, but I am viewing Store A, `boardData` won't have Store B's lists?
+        // CRITICAL: `boardData` depends on `selectedStoreId`. If I want to add to another store, I might need to fetch that store's lists or switch view?
+        // User requirement: "qual quadro quero adicionar ... adicione sempre na primeira lista do quadro."
+        // If the board data is not loaded for that store, we can't easily find the list ID without backend logic.
+        // However, `loadBoardData` fetches ALL statuses then filters. 
+        // WAIT! `statuses` are fetched then filtered.
+        // The `boardData` state ONLY has filtered lists.
+        // So I cannot find a list from another store in `boardData`.
+
+        // OPTION 1: Use `createOrdem` API and let Backend assign default status? 
+        // Backend `createOrdem` usually takes `statusId`.
+
+        // OPTION 2: Fetch lists for that store specifically here?
+        // That seems robust.
+
+        // Let's implement robust logic:
+        // 1. Get StatusKanban filtering by storeId via API? Or assume we have them cached?
+        // We don't have them cached if filtered.
+        // Let's simply fetch all lists for that store or pick the first one.
+        // Actually, we can assume the user selects the *current* store most of the time?
+        // But they asked to select the board.
+        return false; // placeholder logic for now
+      });
+    }
+
+    // Since `boardData` is filtered, we must query the API to get the first list of the target store if it's not the current one.
+    // Or, we can modify `createOrdem` in API to accept `storeId` and find the default list there.
+    // That would be cleaner backend logic.
+    // But failing that, frontend needs to find `listId`.
+
+    // Let's do a quick fetch of lists for that store?
+    // `getStatusKanban` returns all? No, `status-kanban.service` returns all.
+    // But validation in frontend filters it.
+    // So we can re-call `getStatusKanban` and find the first one for that store.
+
+    try {
+      let finalListId = '';
+      if (newCardData.storeId) {
+        const allStatuses = await getStatusKanban();
+        const storeStatuses = allStatuses.filter((s: any) => s.store && s.store.id === newCardData.storeId);
+        storeStatuses.sort((a: any, b: any) => a.ordem - b.ordem);
+        if (storeStatuses.length > 0) {
+          finalListId = String(storeStatuses[0].id);
+        } else {
+          addNotification("A loja selecionada não possui listas.", "error");
+          return;
+        }
+      }
+
+      const cardToSave = {
+        ...newCardData,
+        listId: finalListId,
+      };
+
+      if (newCardData.id) {
+        console.log("Updating card:", newCardData.id, cardToSave);
+        await updateOrdem(newCardData.id, cardToSave);
+        addNotification("Cartão atualizado com sucesso!", "success");
+      } else {
+        console.log("Creating card in list:", finalListId, newCardData);
+        await createOrdem(cardToSave);
+        addNotification("Cartão criado com sucesso!", "success");
+      }
+
+      setIsCardModalOpen(false);
+      loadBoardData();
+
+    } catch (e) {
+      console.error("Erro ao salvar cartão:", e);
+      addNotification("Erro ao salvar cartão. Verifique o console.", "error");
+    }
+  };
+
+  const handleUpdateCard = async (cardId: string, updates: Partial<Card>) => {
+    try {
+      console.log("Updating card:", cardId, updates);
+      await updateOrdem(cardId, updates);
+      addNotification("Cartão atualizado com sucesso!", "success");
+      setIsEditCardModalOpen(false);
+      setCardToEdit(null);
+      loadBoardData();
+    } catch (e) {
+      console.error("Erro ao atualizar cartão:", e);
+      addNotification("Erro ao atualizar cartão.", "error");
+    }
   };
 
   const handleOpenAddCardModal = (initialData?: Partial<Card>) => {
@@ -306,7 +462,7 @@ const Home: React.FC = () => {
 
   const handleOpenEditCardModal = (card: Card) => {
     setCardToEdit(card);
-    setIsCardModalOpen(true);
+    setIsEditCardModalOpen(true);
   };
 
   const handleDeleteCard = (cardId: string, listId: string) => {
@@ -321,11 +477,37 @@ const Home: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => {
-    // This function will now likely need to call the API to create a list
-    console.log("Adding list (local state):", title);
-    // A proper implementation would call createList from apiService
-    // and then reload the board data or update the state.
+  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
+    try {
+      if (!storeId) {
+        addNotification("Loja não selecionada.", "error");
+        return;
+      }
+
+      await createList({
+        title,
+        order: listOrder.length + 1, // Simple append logic
+        storeId: storeId,
+        cardLimit: limit,
+        type,
+        totalDryingTime,
+        reminderInterval
+      });
+      addNotification("Lista criada com sucesso!", "success");
+      setIsAddListModalOpen(false);
+      // Reload data - simplistic way, ideally we'd just fetch the new list or update state locally
+      // But since we wrapped the loader in useEffect, we can just toggle a "refresh" state or call the loader if extracted.
+      // For now, let's force a reload by creating a refresh trigger or extracting load function.
+      // Since extracting is cleaner but changes more code, I'll allow the reload by re-triggering the fetch
+      // A simple way is to define loadBoardData outside.
+      // Ideally we would just call loadBoardData() but since it's wrapped in useEffect heavily, 
+      // let's try to convert it to useCallback to be callable.
+      // Now that loadBoardData is a useCallback, we can call it:
+      loadBoardData();
+    } catch (error) {
+      console.error("Erro ao criar lista:", error);
+      addNotification("Erro ao criar lista.", "error");
+    }
   };
 
   const handleOpenListSettings = (listId: string) => {
@@ -440,7 +622,16 @@ const Home: React.FC = () => {
           onOpenAddCardModal={handleOpenAddCardModal}
         />;
       case 'tags':
-        return <TagsPage boardData={boardData} tags={tags} onSaveTag={handleSaveTag} onDeleteTag={handleDeleteTag} currentUser={currentUser!} />;
+        return <TagsPage
+          boardData={boardData}
+          tags={tags}
+          onSaveTag={handleSaveTag}
+          onDeleteTag={handleDeleteTag}
+          currentUser={currentUser!}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+        />;
       case 'profile':
         return <ProfilePage profile={laundryProfile} currentUser={currentUser!} onUpdateProfile={handleUpdateProfile} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
@@ -460,6 +651,9 @@ const Home: React.FC = () => {
             onListDragStart={onListDragStart}
             onDrop={onDrop}
             currentUser={currentUser!}
+            stores={stores}
+            selectedStoreId={selectedStoreId}
+            onSelectStore={setSelectedStoreId}
           />
         );
     }
@@ -498,11 +692,28 @@ const Home: React.FC = () => {
           allTags={tags}
           tagsMap={tagsMap}
           currentUser={currentUser!}
+          stores={stores}
         />
+        {cardToEdit && (
+          <EditCardModal
+            isOpen={isEditCardModalOpen}
+            onClose={() => {
+              setIsEditCardModalOpen(false);
+              setCardToEdit(null);
+            }}
+            onSave={handleUpdateCard}
+            card={cardToEdit}
+            allTags={tags}
+            tagsMap={tagsMap}
+            currentUser={currentUser!}
+          />
+        )}
         <AddListModal
           isOpen={isAddListModalOpen}
           onClose={() => setIsAddListModalOpen(false)}
           onSave={handleAddList}
+          stores={stores}
+          currentStoreId={selectedStoreId}
         />
         <ListSettingsModal
           isOpen={isListSettingsModalOpen}

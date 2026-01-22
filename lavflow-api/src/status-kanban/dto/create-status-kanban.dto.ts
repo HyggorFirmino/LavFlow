@@ -57,4 +57,13 @@ export class CreateStatusKanbanDto {
   @Min(1)
   @IsOptional()
   intervaloLeitura?: number;
+
+  @ApiProperty({
+    description: 'O ID da loja à qual esta lista pertence.',
+    example: 1,
+    required: true,
+  })
+  @IsInt()
+  @IsNotEmpty()
+  storeId: number;
 }

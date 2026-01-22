@@ -5,11 +5,11 @@ import { User } from '../types';
 type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
 
 interface HeaderProps {
-    onAddCard: () => void;
-    onNavigate: (view: ViewType) => void;
-    onLogout: () => void;
-    currentUser: User;
-    currentView: ViewType;
+  onAddCard: () => void;
+  onNavigate: (view: ViewType) => void;
+  onLogout: () => void;
+  currentUser: User;
+  currentView: ViewType;
 }
 
 const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, currentUser, currentView }) => {
@@ -34,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
 
         <div className="h-8 border-l border-laundry-blue-200 dark:border-slate-700 mx-1"></div>
 
-        {currentUser.role === 'admin' && (
+        {currentUser.role === 'ADMIN' && (
           <button
             onClick={() => onNavigate('dashboard')}
             className={currentView === 'dashboard' ? activeNavButtonClasses : navButtonClasses}
@@ -45,15 +45,15 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
             <span className="hidden md:inline">Dashboard</span>
           </button>
         )}
-        
+
         <button
           onClick={() => onNavigate('board')}
           className={currentView === 'board' ? activeNavButtonClasses : navButtonClasses}
           title="Quadro"
           aria-label="Ver Quadro Kanban"
         >
-            <ViewGridIcon className="w-5 h-5" />
-            <span className="hidden md:inline">Quadro</span>
+          <ViewGridIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Quadro</span>
         </button>
 
         <button
@@ -62,40 +62,40 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
           title="Lista"
           aria-label="Ver em modo Lista"
         >
-            <ListBulletIcon className="w-5 h-5" />
-            <span className="hidden md:inline">Lista</span>
+          <ListBulletIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Lista</span>
         </button>
-        
+
         <button
           onClick={() => onNavigate('clients')}
           className={currentView === 'clients' ? activeNavButtonClasses : navButtonClasses}
           title="Clientes"
           aria-label="Ver Clientes"
         >
-            <UserGroupIcon className="w-5 h-5" />
-            <span className="hidden md:inline">Clientes</span>
+          <UserGroupIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Clientes</span>
         </button>
-        
-        {currentUser.role === 'admin' && (
-            <button
-              onClick={() => onNavigate('history')}
-              className={currentView === 'history' ? activeNavButtonClasses : navButtonClasses}
-              title="Histórico"
-              aria-label="Ver histórico de movimentações"
-            >
-                <ArchiveBoxIcon className="w-5 h-5" />
-                <span className="hidden md:inline">Histórico</span>
-            </button>
+
+        {currentUser.role === 'ADMIN' && (
+          <button
+            onClick={() => onNavigate('history')}
+            className={currentView === 'history' ? activeNavButtonClasses : navButtonClasses}
+            title="Histórico"
+            aria-label="Ver histórico de movimentações"
+          >
+            <ArchiveBoxIcon className="w-5 h-5" />
+            <span className="hidden md:inline">Histórico</span>
+          </button>
         )}
-        
-        {currentUser.role === 'admin' && (
-            <button
-              onClick={() => onNavigate('tags')}
-              className={currentView === 'tags' ? activeNavButtonClasses : navButtonClasses}
-            >
-                <TagIcon className="w-5 h-5" />
-                <span className="hidden md:inline">Etiquetas</span>
-            </button>
+
+        {currentUser.role === 'ADMIN' && (
+          <button
+            onClick={() => onNavigate('tags')}
+            className={currentView === 'tags' ? activeNavButtonClasses : navButtonClasses}
+          >
+            <TagIcon className="w-5 h-5" />
+            <span className="hidden md:inline">Etiquetas</span>
+          </button>
         )}
 
         <button

@@ -89,4 +89,13 @@ export class UsersService {
       throw new NotFoundException(`Usuário com ID ${id} não encontrado`);
     }
   }
+
+  async validateUser(email: string, pass: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({ where: { email }, relations: ['stores'] });
+    if (user && await bcrypt.compare(pass, user.password)) {
+      const { password, ...result } = user;
+      return result as User;
+    }
+    return null;
+  }
 }

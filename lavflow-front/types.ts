@@ -8,7 +8,8 @@ export interface LoginCredentials {
 export interface Client {
   id: string;
   name: string;
-  document: string;
+  document: string; // Mantido para compatibilidade se usado em outro lugar
+  cpf?: string;     // Adicionado para alinhar com o backend entity
   phone: string;
   birthDate?: string;
   address?: string;
@@ -26,6 +27,7 @@ export interface CardHistoryEvent {
 // Conforme a entidade OrdemServico do backend
 export interface Card {
   id: string; // Convertido de number para string no frontend
+  client?: Client; // Cliente vinculado
   customerName: string;
   customerDocument?: string;
   notes: string;
@@ -75,8 +77,9 @@ export interface User {
   name: string;
   email: string;
   password: string;
-  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'admin';
   theme: 'claro' | 'escuro';
+  stores?: Store[];
 }
 
 export interface LaundryProfile {

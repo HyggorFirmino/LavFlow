@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { LoginDto } from './dto/login.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
 
@@ -17,6 +18,19 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Parâmetros inválidos.' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @Post('login')
+  @ApiOperation({ summary: 'Login de usuário' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ status: 200, description: 'Login realizado com sucesso.', type: User })
+  @ApiResponse({ status: 401, description: 'Credenciais inválidas.' })
+  async login(@Body() loginDto: LoginDto) {
+    const user = await this.usersService.validateUser(loginDto.email, loginDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Email ou senha inválidos');
+    }
+    return user;
   }
 
   @Get()

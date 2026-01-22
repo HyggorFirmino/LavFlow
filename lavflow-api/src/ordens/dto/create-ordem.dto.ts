@@ -39,10 +39,6 @@ export class CreateOrdemDto {
   @IsNotEmpty()
   clientId: string;
 
-
-
-
-
   @ApiProperty({ description: 'Observações sobre o serviço.', example: 'Não usar amaciante.', required: false })
   @IsOptional()
   @IsString()

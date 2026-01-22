@@ -2,13 +2,14 @@ import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch } from '@nestjs
 import { OrdensService } from './ordens.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { MudarStatusOrdemDto } from './dto/mudar-status-ordem.dto';
+import { UpdateOrdemDto } from './dto/update-ordem.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OrdemServico } from './entities/ordem-servico.entity';
 
 @ApiTags('ordens') // Agrupa todos os endpoints deste controller sob a tag 'ordens'
 @Controller('ordens')
 export class OrdensController {
-  constructor(private readonly ordensService: OrdensService) {}
+  constructor(private readonly ordensService: OrdensService) { }
 
   @Post()
   @ApiOperation({ summary: 'Cria uma nova ordem de serviço' })
@@ -31,6 +32,14 @@ export class OrdensController {
   @ApiResponse({ status: 404, description: 'Ordem não encontrada.' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ordensService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualiza os dados de uma ordem de serviço' })
+  @ApiResponse({ status: 200, description: 'Ordem atualizada com sucesso.', type: OrdemServico })
+  @ApiResponse({ status: 404, description: 'Ordem não encontrada.' })
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateOrdemDto: UpdateOrdemDto) {
+    return this.ordensService.update(id, updateOrdemDto);
   }
 
   @Patch(':id/mudar-status')
