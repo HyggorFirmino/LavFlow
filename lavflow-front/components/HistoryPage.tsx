@@ -92,9 +92,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ cards, onRefresh }) => {
                       {event.customerName} <span className="text-sm font-normal text-gray-500">- Ordem #{event.cardId}</span>
                     </p>
                     <div className="flex items-center mt-2 text-gray-700 dark:text-slate-300">
-                      <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300 mr-2">{event.fromListTitle || 'Início'}</span>
+                      <span className="bg-red-100 text-red-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300 mr-2">{event.fromListTitle || 'Início'}</span>
                       <span className="text-gray-400 mx-2">➔</span>
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300 ml-2">{event.toListTitle}</span>
+                      <span className="bg-green-100 text-green-800 text-md font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300 ml-2">{event.toListTitle}</span>
                     </div>
                   </div>
                   <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 flex-shrink-0 ml-4">

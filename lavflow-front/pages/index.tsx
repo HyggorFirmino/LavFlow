@@ -585,9 +585,37 @@ const Home: React.FC = () => {
     // Snapshot para rollback em caso de erro
     const previousBoardData = { ...boardData };
 
-    // Encontrar o cartão
+    // Encontrar o cartão e a lista de destino
     const cardToMove = boardData[sourceListId]?.cards.find(c => c.id === cardId);
-    if (!cardToMove) return;
+    const targetList = boardData[targetListId];
+
+    if (!cardToMove || !targetList) return;
+
+    // --- VALIDAÇÕES ---
+
+    // 1. Limite da coluna
+    if (typeof targetList.cardLimit === 'number' && targetList.cards.length >= targetList.cardLimit) {
+      addNotification(`A lista "${targetList.title}" atingiu o limite de ${targetList.cardLimit} cartões.`, "error");
+      return;
+    }
+
+    // 2. Tipo de serviço (Lavadora/Secadora)
+    if (targetList.type === 'lavadora') {
+      // Verifica se o cartão tem serviço de lavagem
+      if (!cardToMove.services || !cardToMove.services.washing) {
+        addNotification(`Este cartão não contém serviço de lavagem e não pode entrar na lista "${targetList.title}".`, "error");
+        return;
+      }
+    }
+
+    if (targetList.type === 'dryer') {
+      // Verifica se o cartão tem serviço de secagem
+      if (!cardToMove.services || !cardToMove.services.drying) {
+        addNotification(`Este cartão não contém serviço de secagem e não pode entrar na lista "${targetList.title}".`, "error");
+        return;
+      }
+    }
+
 
     const updatedCard = { ...cardToMove, listId: targetListId };
 
