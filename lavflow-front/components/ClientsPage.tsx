@@ -174,6 +174,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         contact: selectedClient.phone,
         basketIdentifier: `Cesto ${i + 1}/${quantity}`,
         services: { washing: true, drying: false }, // Sensible default
+        client: selectedClient,
       });
     }
     setIsMultiCardModalOpen(false);

@@ -25,11 +25,21 @@ export const updateOrdem = (id: string, data: Partial<Card>): Promise<any> => {
   return apiFetch(`/ordens/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
 };
 
-export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promise<any> => {
+// Update a card status (move column)
+export const mudarStatusOrdem = (ordemId: string, novoStatusId: string, idFuncionarioAcao?: string): Promise<any> => {
   return apiFetch(`/ordens/${ordemId}/mudar-status`, {
     method: 'PATCH',
-    body: JSON.stringify({ novoStatusId: Number(novoStatusId) }),
+    body: JSON.stringify({
+      novoStatusId: Number(novoStatusId),
+      idFuncionarioAcao
+    }),
   });
+};
+
+export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promise<any> => {
+  // Deprecated or fallback, mapping to the new specific endpoint if needed, or keeping for other uses if any.
+  // Ideally we consolidate to one.
+  return mudarStatusOrdem(ordemId, novoStatusId);
 };
 
 // --- Funções da API para Status (Lists) ---

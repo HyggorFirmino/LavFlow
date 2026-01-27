@@ -18,7 +18,7 @@ import HistoryPage from '../components/HistoryPage';
 import ClientsPage from '../components/ClientsPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
-import { getOrdens, getStatusKanban, createList, createOrdem, updateOrdem } from '../services/apiService';
+import { getOrdens, getStatusKanban, createList, createOrdem, updateOrdem, mudarStatusOrdem } from '../services/apiService';
 import { getStores } from '../services/storeService';
 import { login } from '../services/userService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
@@ -189,7 +189,7 @@ const Home: React.FC = () => {
             id: String(ordem.id),
             client: ordem.client,
             listId: listId,
-            customerName: ordem.customerName,
+            customerName: ordem.client?.name || ordem.customerName || 'Cliente sem nome',
             customerDocument: ordem.customerDocument,
             notes: ordem.notes,
             contact: ordem.contact,
@@ -203,10 +203,10 @@ const Home: React.FC = () => {
             completedAt: ordem.completedAt ? new Date(ordem.completedAt).toISOString() : undefined,
             history: (ordem.historico || []).map((h: any) => ({
               timestamp: new Date(h.timestamp).toISOString(),
-              fromListId: String(h.de_status_id),
-              toListId: String(h.para_status_id),
-              fromListTitle: h.de_status_titulo,
-              toListTitle: h.para_status_titulo,
+              fromListId: '', // Entity doesn't store IDs
+              toListId: '',
+              fromListTitle: h.fromListTitle,
+              toListTitle: h.toListTitle,
             })),
           };
           newBoardData[listId].cards.push(card);
@@ -571,11 +571,70 @@ const Home: React.FC = () => {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const onDrop = (e: React.DragEvent, targetListId: string, targetCardId?: string) => {
-    // This function will now need to call the API to update card/list positions
-    console.log("Drop event (local state):", draggedItem.current, targetListId);
-    // A proper implementation would call an API endpoint to update the card's status
-    // or the list's order, and then reload or update state.
+  const onDrop = async (e: React.DragEvent, targetListId: string, targetCardId?: string) => {
+    e.preventDefault();
+
+    const data = draggedItem.current;
+    if (!data || !('cardId' in data)) return;
+
+    const { cardId, sourceListId } = data;
+
+    // Se soltou na mesma lista, não faz nada
+    if (sourceListId === targetListId) return;
+
+    // Snapshot para rollback em caso de erro
+    const previousBoardData = { ...boardData };
+
+    // Encontrar o cartão
+    const cardToMove = boardData[sourceListId]?.cards.find(c => c.id === cardId);
+    if (!cardToMove) return;
+
+    const updatedCard = { ...cardToMove, listId: targetListId };
+
+    // Atualização Otimista
+    setBoardData(prev => {
+      const newData = { ...prev };
+
+      // Remover da origem
+      if (newData[sourceListId]) {
+        newData[sourceListId] = {
+          ...newData[sourceListId],
+          cards: newData[sourceListId].cards.filter(c => c.id !== cardId)
+        };
+      }
+
+      // Adicionar ao destino
+      if (newData[targetListId]) {
+        newData[targetListId] = {
+          ...newData[targetListId],
+          cards: [...newData[targetListId].cards, updatedCard]
+        };
+      }
+
+      return newData;
+    });
+
+    try {
+      // Passar o ID do usuário logado (assumindo que seja numérico ou convertível)
+      // Se id for "user-admin", o backend pode falhar se esperar int.
+      // O mock tem "user-admin". Vamos testar. Se precisar, usamos 1 para teste se não for numérico.
+      // Mas o correto é usar currentUser.id.
+      // Vamos assumir que em prod o ID é numérico. Para dev, se for string não numérico,
+      // a conversão via Number() vai dar NaN.
+      // Ajuste: verificar se é NaN.
+      let userIdToSend = Number(currentUser?.id);
+      if (isNaN(userIdToSend)) {
+        // Fallback para dev/mock se o ID não for numérico
+        // Se o usuário for admin mockado, enviamos 1 ou null
+        userIdToSend = 1; // Default to 1 for mocking purposes if string
+      }
+
+      await mudarStatusOrdem(cardId, targetListId, String(userIdToSend));
+    } catch (error) {
+      console.error("Erro ao mover cartão:", error);
+      addNotification("Falha ao mover cartão. Desfazendo alterações.", "error");
+      setBoardData(previousBoardData);
+    }
   };
 
   const handleNavigate = (view: View) => {
@@ -615,7 +674,7 @@ const Home: React.FC = () => {
           currentUser={currentUser!}
         />;
       case 'history':
-        return <HistoryPage cards={getAllCardsSorted()} />;
+        return <HistoryPage cards={getAllCardsSorted()} onRefresh={loadBoardData} />;
       case 'clients':
         return <ClientsPage
           onAddCard={handleAddCard}

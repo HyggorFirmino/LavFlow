@@ -66,11 +66,16 @@ export class OrdensService {
   }
 
   findAll(): Promise<OrdemServico[]> {
-    return this.ordemServicoRepository.find();
+    return this.ordemServicoRepository.find({
+      relations: ['historico'],
+    });
   }
 
   async findOne(id: number): Promise<OrdemServico> {
-    const ordem = await this.ordemServicoRepository.findOneBy({ id });
+    const ordem = await this.ordemServicoRepository.findOne({
+      where: { id },
+      relations: ['historico'],
+    });
     if (!ordem) {
       throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
     }

@@ -138,12 +138,10 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     setIsBeingDraggedOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    e.stopPropagation();
     setIsBeingDraggedOver(false);
   };
 
