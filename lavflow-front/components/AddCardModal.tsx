@@ -188,7 +188,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
 
           {/* Scrollable Content */}
           <div className="overflow-y-auto p-6 flex-grow">
-            {!cardToEdit && (
+            {(!cardToEdit || isCreatingFromTemplate) && (
               <div className="mb-4">
                 <label htmlFor="cardStore" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Loja</label>
                 <select

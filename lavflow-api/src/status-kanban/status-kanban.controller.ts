@@ -8,7 +8,7 @@ import { StatusKanban } from '../ordens/entities/status-kanban.entity';
 @ApiTags('Status (Kanban)') // Um nome de tag descritivo para o Swagger
 @Controller('status-kanban')
 export class StatusKanbanController {
-  constructor(private readonly statusKanbanService: StatusKanbanService) {}
+  constructor(private readonly statusKanbanService: StatusKanbanService) { }
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo status para o quadro Kanban' })
@@ -22,6 +22,13 @@ export class StatusKanbanController {
   @ApiResponse({ status: 200, description: 'Lista de status retornada.', type: [StatusKanban] })
   findAll() {
     return this.statusKanbanService.findAll();
+  }
+
+  @Get('store/:storeId')
+  @ApiOperation({ summary: 'Lista todos os status do Kanban de uma loja específica' })
+  @ApiResponse({ status: 200, description: 'Lista de status da loja retornada.', type: [StatusKanban] })
+  findByStore(@Param('storeId', ParseIntPipe) storeId: number) {
+    return this.statusKanbanService.findAllByStore(storeId);
   }
 
   @Get(':id')
@@ -45,8 +52,17 @@ export class StatusKanbanController {
   @ApiOperation({ summary: 'Remove um status' })
   @ApiResponse({ status: 204, description: 'Status removido com sucesso.' })
   @ApiResponse({ status: 404, description: 'Status não encontrado.' })
-  @ApiResponse({ status: 400, description: 'O status está em uso e não pode ser removido.'})
+  @ApiResponse({ status: 400, description: 'O status está em uso e não pode ser removido.' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.statusKanbanService.remove(id);
+  }
+
+  @Post('reorder')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reordena os status de um quadro' })
+  @ApiResponse({ status: 200, description: 'Status reordenados com sucesso.' })
+  async reorder(@Body() body: { storeId: number; orderedIds: number[] }) {
+    await this.statusKanbanService.reorder(body.storeId, body.orderedIds);
+    return { success: true };
   }
 }

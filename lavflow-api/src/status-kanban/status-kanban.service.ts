@@ -26,8 +26,18 @@ export class StatusKanbanService {
       throw new NotFoundException(`Loja com ID ${storeId} não encontrada.`);
     }
 
+    // Calcular a próxima ordem para esta loja
+    const maxOrderResult = await this.statusRepository
+      .createQueryBuilder('status')
+      .select('MAX(status.ordem)', 'max')
+      .where('status.storeId = :storeId', { storeId })
+      .getRawOne();
+
+    const nextOrder = (maxOrderResult?.max || 0) + 1;
+
     const status = this.statusRepository.create({
       ...rest,
+      ordem: nextOrder,
       store: store
     });
     return this.statusRepository.save(status);
@@ -37,6 +47,16 @@ export class StatusKanbanService {
   findAll(): Promise<StatusKanban[]> {
     return this.statusRepository.find({
       relations: ['store'],
+      order: {
+        ordem: 'ASC',
+      },
+    });
+  }
+
+  findAllByStore(storeId: number): Promise<StatusKanban[]> {
+    return this.statusRepository.find({
+      where: { store: { id: storeId } },
+      relations: ['store'], // Incluir a loja se necessário, ou remover se não for
       order: {
         ordem: 'ASC',
       },
@@ -75,5 +95,22 @@ export class StatusKanbanService {
     if (result.affected === 0) {
       throw new NotFoundException(`Status com ID ${id} não encontrado.`);
     }
+  }
+
+  async reorder(storeId: number, orderedIds: number[]): Promise<void> {
+    const store = await this.storeRepository.findOneBy({ id: storeId });
+    if (!store) {
+      throw new NotFoundException(`Loja com ID ${storeId} não encontrada.`);
+    }
+
+    // Validate that all IDs belong to the store to prevent cross-store tampering
+    // Not strictly necessary if we just update by ID, but good for safety.
+    // For performance, we'll just loop and update.
+    // Use transaction for safety
+    await this.statusRepository.manager.transaction(async (manager) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await manager.update(StatusKanban, { id: orderedIds[i], store: { id: storeId } }, { ordem: i + 1 });
+      }
+    });
   }
 }

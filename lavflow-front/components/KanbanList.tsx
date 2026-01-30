@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { List, Card, TagDefinition, User } from '../types';
 import KanbanCard from './KanbanCard';
-import { EllipsisHorizontalIcon, SunIcon, WashingMachineIcon } from './icons';
+import { EllipsisHorizontalIcon, SunIcon, WashingMachineIcon, WhatsAppIcon } from './icons';
 
 interface KanbanListProps {
   list: List;
@@ -54,6 +54,7 @@ const KanbanList: React.FC<KanbanListProps> = ({ list, onEditCard, onDeleteCard,
           <div className="flex items-center gap-2">
             {list.type === 'lavadora' && <span title="Lista do tipo Lavadora"><WashingMachineIcon className="w-5 h-5 text-laundry-blue-500 dark:text-laundry-blue-400" /></span>}
             {list.type === 'dryer' && <span title="Lista do tipo Secadora"><SunIcon className="w-5 h-5 text-orange-400 dark:text-orange-400" /></span>}
+            {list.type === 'whatsapp' && <span title="Lista de Mensagens WhatsApp"><WhatsAppIcon className="w-5 h-5 text-green-500 dark:text-green-400" /></span>}
             <h3 className="text-lg font-bold text-laundry-blue-900 dark:text-slate-100 px-1">
               {list.title}
               <span className={`text-base font-semibold ml-2 py-0.5 px-2 rounded-full ${isOverLimit ? 'text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-500/30' : 'text-laundry-blue-700 bg-laundry-blue-100 dark:text-slate-200 dark:bg-slate-700'}`}>

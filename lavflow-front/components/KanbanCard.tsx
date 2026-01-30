@@ -306,7 +306,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
           </p>
         )}
 
-        {card.listId === 'list-4' && (
+        {list.type === 'whatsapp' && (
           <div className="mt-4 pt-3 border-t border-laundry-blue-100 dark:border-slate-700">
             <button
               onClick={handleSendWhatsApp}

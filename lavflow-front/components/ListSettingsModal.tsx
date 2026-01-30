@@ -5,7 +5,7 @@ import { List } from '../types';
 interface ListSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => void;
+  onSave: (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', totalDryingTime?: number, reminderInterval?: number) => void;
   onDelete: (listId: string) => void;
   list: List | null;
 }
@@ -13,7 +13,7 @@ interface ListSettingsModalProps {
 const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, onSave, onDelete, list }) => {
   const [title, setTitle] = useState('');
   const [limit, setLimit] = useState<string>('');
-  const [type, setType] = useState<'default' | 'dryer' | 'lavadora'>('default');
+  const [type, setType] = useState<'default' | 'dryer' | 'lavadora' | 'whatsapp'>('default');
   const [totalDryingTime, setTotalDryingTime] = useState('');
   const [reminderInterval, setReminderInterval] = useState('');
 
@@ -41,23 +41,23 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
     const newLimit = limit === '' ? null : parseInt(limit, 10);
     const newTotalTime = totalDryingTime === '' ? undefined : parseInt(totalDryingTime, 10);
     const newReminderInterval = reminderInterval === '' ? undefined : parseInt(reminderInterval, 10);
-    
+
     if (limit !== '' && (isNaN(newLimit as number) || (newLimit as number) < 0)) {
-        alert("O limite de cartões deve ser um número positivo.");
-        return;
+      alert("O limite de cartões deve ser um número positivo.");
+      return;
     }
 
     if (type === 'dryer' && (newTotalTime === undefined || newTotalTime <= 0)) {
-        alert("O tempo total de secagem é obrigatório e deve ser positivo para listas do tipo Secadora.");
-        return;
+      alert("O tempo total de secagem é obrigatório e deve ser positivo para listas do tipo Secadora.");
+      return;
     }
-     if (type === 'dryer' && newReminderInterval !== undefined && newReminderInterval <= 0) {
-        alert("O intervalo de lembrete deve ser um número positivo.");
-        return;
+    if (type === 'dryer' && newReminderInterval !== undefined && newReminderInterval <= 0) {
+      alert("O intervalo de lembrete deve ser um número positivo.");
+      return;
     }
-     if (type === 'dryer' && newReminderInterval !== undefined && newTotalTime !== undefined && newReminderInterval >= newTotalTime) {
-        alert("O intervalo de lembrete deve ser menor que o tempo total.");
-        return;
+    if (type === 'dryer' && newReminderInterval !== undefined && newTotalTime !== undefined && newReminderInterval >= newTotalTime) {
+      alert("O intervalo de lembrete deve ser menor que o tempo total.");
+      return;
     }
 
     onSave(list.id, title, newLimit, type, newTotalTime, newReminderInterval);
@@ -74,7 +74,7 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md m-4 border-t-4 border-laundry-teal-400">
         <form onSubmit={handleSave}>
           <h2 className="text-2xl font-bold text-laundry-blue-900 dark:text-slate-100 mb-6">Configurações da Lista</h2>
-          
+
           <div className="mb-4">
             <label htmlFor="listTitle" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Título da Lista</label>
             <input
@@ -103,48 +103,49 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
           <div className="mb-4">
             <label htmlFor="listType" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Tipo de Lista</label>
             <select
-                id="listType"
-                value={type}
-                onChange={(e) => setType(e.target.value as 'default' | 'dryer' | 'lavadora')}
-                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
+              id="listType"
+              value={type}
+              onChange={(e) => setType(e.target.value as 'default' | 'dryer' | 'lavadora' | 'whatsapp')}
+              className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
             >
-                <option value="default">Padrão</option>
-                <option value="lavadora">Lavadora</option>
-                <option value="dryer">Secadora</option>
+              <option value="default">Padrão</option>
+              <option value="lavadora">Lavadora</option>
+              <option value="dryer">Secadora</option>
+              <option value="whatsapp">WhatsApp</option>
             </select>
           </div>
 
           {type === 'dryer' && (
-              <div className="p-4 bg-laundry-blue-50 dark:bg-slate-700/50 rounded-lg border border-laundry-blue-200 dark:border-slate-600 mb-6">
-                  <h3 className="font-semibold text-laundry-blue-900 dark:text-slate-100 mb-3">Configurações da Secadora</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                      <div>
-                          <label htmlFor="totalDryingTime" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Tempo Total (min)</label>
-                          <input
-                              id="totalDryingTime"
-                              type="number"
-                              value={totalDryingTime}
-                              onChange={(e) => setTotalDryingTime(e.target.value)}
-                              min="1"
-                              className="shadow-inner bg-white dark:bg-slate-700 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
-                              placeholder="Ex: 45"
-                              required
-                          />
-                      </div>
-                      <div>
-                          <label htmlFor="reminderInterval" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Lembrar a cada (min)</label>
-                          <input
-                              id="reminderInterval"
-                              type="number"
-                              value={reminderInterval}
-                              onChange={(e) => setReminderInterval(e.target.value)}
-                              min="1"
-                              className="shadow-inner bg-white dark:bg-slate-700 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
-                              placeholder="Ex: 15"
-                          />
-                      </div>
-                  </div>
+            <div className="p-4 bg-laundry-blue-50 dark:bg-slate-700/50 rounded-lg border border-laundry-blue-200 dark:border-slate-600 mb-6">
+              <h3 className="font-semibold text-laundry-blue-900 dark:text-slate-100 mb-3">Configurações da Secadora</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="totalDryingTime" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Tempo Total (min)</label>
+                  <input
+                    id="totalDryingTime"
+                    type="number"
+                    value={totalDryingTime}
+                    onChange={(e) => setTotalDryingTime(e.target.value)}
+                    min="1"
+                    className="shadow-inner bg-white dark:bg-slate-700 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                    placeholder="Ex: 45"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="reminderInterval" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Lembrar a cada (min)</label>
+                  <input
+                    id="reminderInterval"
+                    type="number"
+                    value={reminderInterval}
+                    onChange={(e) => setReminderInterval(e.target.value)}
+                    min="1"
+                    className="shadow-inner bg-white dark:bg-slate-700 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                    placeholder="Ex: 15"
+                  />
+                </div>
               </div>
+            </div>
           )}
 
 

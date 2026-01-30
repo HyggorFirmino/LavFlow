@@ -27,9 +27,25 @@ export class Store {
     @Column({ type: 'varchar', length: 20 })
     phone: string;
 
+    @ApiProperty({ description: 'Horário de funcionamento', example: 'Seg-Sex 08:00 - 18:00' })
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    operatingHours: string;
+
     @ApiProperty({ description: 'CNPJ da loja', example: '00.000.000/0000-00' })
     @Column({ type: 'varchar', length: 20, nullable: true })
     cnpj: string;
+
+    @ApiProperty({ description: 'Preço da lavagem', example: 20.00 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    washingPrice: number;
+
+    @ApiProperty({ description: 'Preço da secagem', example: 20.00 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    dryingPrice: number;
+
+    @ApiProperty({ description: 'Preço do combo (Lavagem + Secagem)', example: 35.00 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    comboPrice: number;
 
     @ManyToMany(() => User, (user) => user.stores)
     @JoinTable()

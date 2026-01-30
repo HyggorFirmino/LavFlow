@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Client, Card } from '../types';
+import { Client, Card, Store, TagDefinition } from '../types';
 import { UserGroupIcon, MagnifyingGlassIcon, PlusIcon, XMarkIcon, ArrowPathIcon } from './icons';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
 import { fetchClients } from '../services/maxpanApiService';
@@ -17,8 +17,10 @@ function formatCurrency(value: number | undefined): string {
 }
 
 interface ClientsPageProps {
-  onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>>) => void;
+  onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>> & { storeId?: number; listId?: string }) => void;
   onOpenAddCardModal: (initialData?: Partial<Card>) => void;
+  stores: Store[];
+  tags: TagDefinition[];
 }
 
 interface ActionsMenuProps {
@@ -108,7 +110,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
 };
 
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal, stores, tags }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMultiCardModalOpen, setIsMultiCardModalOpen] = useState(false);
@@ -165,21 +167,31 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsMultiCardModalOpen(true);
   };
 
-  const handleConfirmMultiple = (quantity: number) => {
+  const handleConfirmMultiple = (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string) => {
     if (!selectedClient) return;
     for (let i = 0; i < quantity; i++) {
+      // Calculate the part (e.g., "1/3")
+      const part = `${i + 1}/${quantity}`;
+
       onAddCard({
         customerName: selectedClient.name,
         customerDocument: selectedClient.document,
         contact: selectedClient.phone,
-        basketIdentifier: `Cesto ${i + 1}/${quantity}`,
-        services: { washing: true, drying: false }, // Sensible default
+        basketIdentifier: quantity > 1 ? `Cesto ${part}` : `Cesto`, // Improved identifier
+        services: services,
+        tags: tags,
+        notes: notes,
         client: selectedClient,
+        storeId: storeId,
       });
     }
     setIsMultiCardModalOpen(false);
     setSelectedClient(null);
   };
+
+  // ... (Rest of component functions remain roughly same, skipping for brevity of replacement chunk if possible but replace_file_content needs contiguity)
+  // Since I need a single contiguous block, I have to include everything between the start and end.
+  // I will include the rest of the file content up until `return (` to make sure.
 
   const toggleSensitiveData = (clientId: string) => {
     setVisibleSensitiveData(prev =>
@@ -392,6 +404,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         onClose={() => setIsMultiCardModalOpen(false)}
         onConfirm={handleConfirmMultiple}
         client={selectedClient}
+        stores={stores}
+        tags={tags}
       />
 
       {/* Create Client Modal */}

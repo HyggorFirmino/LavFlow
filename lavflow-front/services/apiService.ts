@@ -62,9 +62,23 @@ export const createList = (data: Partial<List> & { storeId: number }): Promise<a
 };
 
 export const updateList = (id: string, data: Partial<List>): Promise<any> => {
-  return apiFetch(`/status-kanban/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  const payload: any = {};
+  if (data.title !== undefined) payload.titulo = data.title;
+  if (data.cardLimit !== undefined) payload.limiteCartoes = data.cardLimit;
+  if (data.type !== undefined) payload.tipo = data.type;
+  if (data.totalDryingTime !== undefined) payload.tempoSecagemTotal = data.totalDryingTime;
+  if (data.reminderInterval !== undefined) payload.intervaloLeitura = data.reminderInterval;
+
+  return apiFetch(`/status-kanban/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
 };
 
 export const deleteList = (id: string): Promise<void> => {
   return apiFetch(`/status-kanban/${id}`, { method: 'DELETE' });
+};
+
+export const reorderStatusOrdem = (storeId: number, orderedIds: number[]): Promise<void> => {
+  return apiFetch('/status-kanban/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ storeId, orderedIds })
+  });
 };

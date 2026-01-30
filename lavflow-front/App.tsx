@@ -798,6 +798,8 @@ const App: React.FC = () => {
         return <ClientsPage
           onAddCard={handleAddCard}
           onOpenAddCardModal={handleOpenAddCardModal}
+          stores={stores}
+          tags={tags}
         />;
       case 'tags':
         return <TagsPage

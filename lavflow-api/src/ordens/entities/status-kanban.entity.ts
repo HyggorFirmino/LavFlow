@@ -21,9 +21,9 @@ export class StatusKanban {
   @Column({ name: 'limite_cartoes', type: 'int', nullable: true })
   limiteCartoes: number | null;
 
-  @ApiProperty({ example: 'default', enum: ['default', 'dryer', 'lavadora'] })
+  @ApiProperty({ example: 'default', enum: ['default', 'dryer', 'lavadora', 'whatsapp'] })
   @Column({ type: 'varchar', length: 50, default: 'default' })
-  tipo: 'default' | 'dryer' | 'lavadora';
+  tipo: 'default' | 'dryer' | 'lavadora' | 'whatsapp';
 
   @ApiProperty({ example: 3600, required: false, nullable: true })
   @Column({ name: 'tempo_secagem_total', type: 'int', nullable: true })

@@ -30,11 +30,32 @@ export class OrdensService {
   ) { }
 
   async create(createOrdemDto: CreateOrdemDto): Promise<OrdemServico> {
-    const { idStatusInicial, idFuncionarioResponsavel, clientId, ...dadosOrdem } = createOrdemDto;
+    const { idStatusInicial, idFuncionarioResponsavel, clientId, storeId, ...dadosOrdem } = createOrdemDto;
 
-    const statusInicial = await this.statusKanbanRepository.findOneBy({ id: idStatusInicial });
-    if (!statusInicial) {
-      throw new NotFoundException(`Status com ID ${idStatusInicial} não encontrado.`);
+    let statusInicial;
+
+    // Se storeId for fornecido, buscaremos o status com ordem 1 dessa loja
+    if (storeId) {
+      statusInicial = await this.statusKanbanRepository.findOne({
+        where: {
+          store: { id: storeId },
+          ordem: 1
+        }
+      });
+
+      if (!statusInicial) {
+        // Fallback opcional: se não achar status ordem 1, tenta usar o idStatusInicial se estivesse preenchido,
+        // mas a regra diz para "buscar o status que tem como ordem 1".
+        // Se não achar, é melhor lançar erro ou fallback?
+        // Vamos ser estritos conforme o pedido: "busque o status que tem como ordem 1".
+        throw new NotFoundException(`Não foi encontrado um status com ordem 1 para a loja ${storeId}.`);
+      }
+    } else {
+      // Comportamento legado / fallback
+      statusInicial = await this.statusKanbanRepository.findOneBy({ id: idStatusInicial });
+      if (!statusInicial) {
+        throw new NotFoundException(`Status com ID ${idStatusInicial} não encontrado.`);
+      }
     }
 
     const client = await this.clientRepository.findOneBy({ id: clientId });

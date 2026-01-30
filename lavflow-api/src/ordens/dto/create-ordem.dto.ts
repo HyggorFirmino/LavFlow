@@ -81,4 +81,9 @@ export class CreateOrdemDto {
   @IsOptional()
   @IsInt()
   idFuncionarioResponsavel?: number;
+
+  @ApiProperty({ description: 'ID da loja (para definir status inicial automaticamente).', example: 1, required: false })
+  @IsOptional()
+  @IsInt()
+  storeId?: number;
 }

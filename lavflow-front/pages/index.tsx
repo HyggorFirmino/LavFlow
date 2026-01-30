@@ -18,8 +18,8 @@ import HistoryPage from '../components/HistoryPage';
 import ClientsPage from '../components/ClientsPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
-import { getOrdens, getStatusKanban, createList, createOrdem, updateOrdem, mudarStatusOrdem } from '../services/apiService';
-import { getStores } from '../services/storeService';
+import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem } from '../services/apiService';
+import { getStores, updateStore } from '../services/storeService';
 import { login } from '../services/userService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
 
@@ -51,6 +51,12 @@ const ToastMessage: React.FC<ToastMessageProps> = ({ notification, onDismiss }) 
     info: 'border-blue-500',
   };
 
+  const TITLES = {
+    error: 'Ação não permitida',
+    success: 'Sucesso',
+    info: 'Informação',
+  };
+
   return (
     <div
       className={`relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 flex items-start w-full max-w-sm border-l-4 ${BORDER_COLORS[notification.type]} animate-toast-in`}
@@ -58,7 +64,7 @@ const ToastMessage: React.FC<ToastMessageProps> = ({ notification, onDismiss }) 
     >
       <div className="flex-shrink-0">{ICONS[notification.type]}</div>
       <div className="ml-3 flex-1">
-        <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Ação não permitida</p>
+        <p className="text-sm font-bold text-gray-900 dark:text-slate-100">{TITLES[notification.type]}</p>
         <p className="mt-1 text-sm text-gray-700 dark:text-slate-300">{notification.message}</p>
       </div>
       <div className="ml-4 flex-shrink-0 flex">
@@ -225,6 +231,23 @@ const Home: React.FC = () => {
       const fetchedListOrder = statuses.map((s: any) => String(s.id));
       setListOrder(fetchedListOrder);
 
+      // Ordenar todas as listas com ordem 1 pelo ID (crescente)
+      Object.keys(newBoardData).forEach(listId => {
+        const list = newBoardData[listId];
+        // Verifica se a ordem é 1 (comparando como número para garantir)
+        if (list && Number(list.order) === 1 && list.cards) {
+          list.cards.sort((a, b) => {
+            const idA = parseInt(a.id, 10);
+            const idB = parseInt(b.id, 10);
+            // Se o ID não for numérico, fall back para comparação de string ou manter ordem
+            if (isNaN(idA) || isNaN(idB)) {
+              return a.id.localeCompare(b.id, undefined, { numeric: true });
+            }
+            return idA - idB;
+          });
+        }
+      });
+
       setBoardData(newBoardData);
       setTags(Array.from(newTagMap.values()));
 
@@ -318,6 +341,25 @@ const Home: React.FC = () => {
     localStorage.removeItem('lavflow_user');
   };
 
+  const handleUpdateStore = async (storeId: string, data: Partial<Store>) => {
+    try {
+      const updatedStore = await updateStore(storeId, data);
+      setStores(prev => prev.map(s => s.id === updatedStore.id ? updatedStore : s));
+
+      // Update currentUser stores
+      if (currentUser && currentUser.stores) {
+        const newStores = currentUser.stores.map(s => s.id === updatedStore.id ? updatedStore : s);
+        const updatedUser = { ...currentUser, stores: newStores };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('lavflow_user', JSON.stringify(updatedUser));
+      }
+    } catch (e) {
+      console.error("Failed to update store", e);
+      addNotification("Erro ao atualizar loja", "error");
+      throw e;
+    }
+  };
+
   const handleUpdateProfile = (profile: LaundryProfile) => {
     setLaundryProfile(profile);
   };
@@ -351,66 +393,41 @@ const Home: React.FC = () => {
 
 
   // Card handlers
-  const handleAddCard = async (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number }) => {
+  const handleAddCard = async (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number; listId?: string }) => {
     // Logic to properly add card with store context
     // If storeId is provided (from AddCardModal for new cards), find the first list of that store.
-    let targetListId = '';
-
-    if (newCardData.storeId) {
-      // Find first list of the selected store
-      const storeFirstList = listOrder.find(id => {
-        const list = boardData[id]; // Assuming listOrder contains IDs from all lists, but wait.
-        // listOrder might only contain IDs filtered by current view?
-        // No, listOrder in index.tsx is set by `fetchedListOrder` which filters by `selectedStoreId` IF selected.
-        // But if we are in Client view, `boardData` has data.
-        // The `boardData` might only contain lists for the *current* selected store in view?
-        // Actually, `loadBoardData` filters based on `selectedStoreId`.
-        // So if I select Store B in modal, but I am viewing Store A, `boardData` won't have Store B's lists?
-        // CRITICAL: `boardData` depends on `selectedStoreId`. If I want to add to another store, I might need to fetch that store's lists or switch view?
-        // User requirement: "qual quadro quero adicionar ... adicione sempre na primeira lista do quadro."
-        // If the board data is not loaded for that store, we can't easily find the list ID without backend logic.
-        // However, `loadBoardData` fetches ALL statuses then filters. 
-        // WAIT! `statuses` are fetched then filtered.
-        // The `boardData` state ONLY has filtered lists.
-        // So I cannot find a list from another store in `boardData`.
-
-        // OPTION 1: Use `createOrdem` API and let Backend assign default status? 
-        // Backend `createOrdem` usually takes `statusId`.
-
-        // OPTION 2: Fetch lists for that store specifically here?
-        // That seems robust.
-
-        // Let's implement robust logic:
-        // 1. Get StatusKanban filtering by storeId via API? Or assume we have them cached?
-        // We don't have them cached if filtered.
-        // Let's simply fetch all lists for that store or pick the first one.
-        // Actually, we can assume the user selects the *current* store most of the time?
-        // But they asked to select the board.
-        return false; // placeholder logic for now
-      });
-    }
-
-    // Since `boardData` is filtered, we must query the API to get the first list of the target store if it's not the current one.
-    // Or, we can modify `createOrdem` in API to accept `storeId` and find the default list there.
-    // That would be cleaner backend logic.
-    // But failing that, frontend needs to find `listId`.
-
-    // Let's do a quick fetch of lists for that store?
-    // `getStatusKanban` returns all? No, `status-kanban.service` returns all.
-    // But validation in frontend filters it.
-    // So we can re-call `getStatusKanban` and find the first one for that store.
 
     try {
       let finalListId = '';
-      if (newCardData.storeId) {
+
+      if (newCardData.listId) {
+        finalListId = newCardData.listId;
+      } else if (newCardData.storeId) {
+        // Fetch all statuses to find the correct one for the target store
         const allStatuses = await getStatusKanban();
-        const storeStatuses = allStatuses.filter((s: any) => s.store && s.store.id === newCardData.storeId);
+        console.log("Searching for status in store:", newCardData.storeId);
+
+        // Filter statuses by store taking type safety into account
+        const storeStatuses = allStatuses.filter((s: any) =>
+          s.store && String(s.store.id) === String(newCardData.storeId)
+        );
+
+        // Sort by order
         storeStatuses.sort((a: any, b: any) => a.ordem - b.ordem);
+
         if (storeStatuses.length > 0) {
           finalListId = String(storeStatuses[0].id);
+          console.log("Found target list:", finalListId, "for store:", newCardData.storeId);
         } else {
-          addNotification("A loja selecionada não possui listas.", "error");
+          console.warn("No lists found for store:", newCardData.storeId);
+          addNotification("A loja selecionada não possui listas. Verifique as configurações.", "error");
           return;
+        }
+      } else {
+        // Fallback logic if storeId is missing
+        if (listOrder.length > 0) {
+          finalListId = listOrder[0];
+          console.log("Defaulting to first list of current view:", finalListId);
         }
       }
 
@@ -477,7 +494,7 @@ const Home: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
+  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
     try {
       if (!storeId) {
         addNotification("Loja não selecionada.", "error");
@@ -486,7 +503,7 @@ const Home: React.FC = () => {
 
       await createList({
         title,
-        order: listOrder.length + 1, // Simple append logic
+        order: undefined, // Backend manages order
         storeId: storeId,
         cardLimit: limit,
         type,
@@ -515,18 +532,40 @@ const Home: React.FC = () => {
     setIsListSettingsModalOpen(true);
   };
 
-  const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => {
-    // This function will now likely need to call the API to update a list
-    console.log("Saving list settings (local state):", listId);
-    // A proper implementation would call updateList from apiService
-    // and then reload the board data or update the state.
+  const handleSaveListSettings = async (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', totalDryingTime?: number, reminderInterval?: number) => {
+    try {
+      await updateList(listId, {
+        title,
+        cardLimit: limit,
+        type,
+        totalDryingTime,
+        reminderInterval
+      });
+      addNotification("Lista atualizada com sucesso!", "success");
+      setIsListSettingsModalOpen(false);
+      setListToEdit(null);
+      loadBoardData();
+    } catch (e) {
+      console.error("Erro ao atualizar lista:", e);
+      addNotification("Erro ao atualizar lista.", "error");
+    }
   };
 
-  const handleDeleteList = (listId: string) => {
-    // This function will now likely need to call the API to delete a list
-    console.log("Deleting list (local state):", listId);
-    // A proper implementation would call deleteList from apiService
-    // and then reload the board data or update the state.
+  const handleDeleteList = async (listId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta lista?')) {
+      try {
+        await deleteList(listId);
+        addNotification("Lista excluída com sucesso!", "success");
+        setIsListSettingsModalOpen(false);
+        setListToEdit(null);
+        loadBoardData();
+      } catch (e) {
+        console.error("Erro ao excluir lista:", e);
+        // Backend likely validates if it has cards, but let's see if we get a specific error message.
+        // Assuming 'e' might be an error object or response.
+        addNotification("Erro ao excluir lista. Verifique se ela está vazia.", "error");
+      }
+    }
   };
 
   // Tag handlers
@@ -575,9 +614,50 @@ const Home: React.FC = () => {
     e.preventDefault();
 
     const data = draggedItem.current;
+
+    // --- REORDENAÇÃO DE LISTAS ---
+    if (data && 'listId' in data && !('cardId' in data)) {
+      const sourceListId = (data as { listId: string }).listId;
+      if (sourceListId === targetListId) return;
+
+      const previousListOrder = [...listOrder];
+      // Move list in local state
+      const newListOrder = [...listOrder];
+      const sourceIndex = newListOrder.indexOf(sourceListId);
+      const targetIndex = newListOrder.indexOf(targetListId);
+
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      newListOrder.splice(sourceIndex, 1);
+      newListOrder.splice(targetIndex, 0, sourceListId);
+
+      setListOrder(newListOrder);
+
+      const storeIdNumber = parseInt(selectedStoreId, 10);
+      if (isNaN(storeIdNumber)) {
+        console.error("Tentativa de reordenar sem loja selecionada válida:", selectedStoreId);
+        addNotification("Erro interno: Loja não definida.", "error");
+        setListOrder(previousListOrder);
+        return;
+      }
+
+      try {
+        const orderedIds = newListOrder.map(id => parseInt(id, 10));
+        await reorderStatusOrdem(storeIdNumber, orderedIds);
+        // Recarregar os dados do backend para garantir consistência
+        await loadBoardData();
+      } catch (error) {
+        console.error("Erro ao reordenar listas:", error);
+        addNotification("Falha ao reordenar listas. Desfazendo.", "error");
+        setListOrder(previousListOrder);
+      }
+      return;
+    }
+
     if (!data || !('cardId' in data)) return;
 
-    const { cardId, sourceListId } = data;
+    // Explicit cast since we know it has cardId
+    const { cardId, sourceListId } = data as { cardId: string; sourceListId: string };
 
     // Se soltou na mesma lista, não faz nada
     if (sourceListId === targetListId) return;
@@ -707,6 +787,8 @@ const Home: React.FC = () => {
         return <ClientsPage
           onAddCard={handleAddCard}
           onOpenAddCardModal={handleOpenAddCardModal}
+          stores={stores}
+          tags={tags}
         />;
       case 'tags':
         return <TagsPage
@@ -720,7 +802,7 @@ const Home: React.FC = () => {
           onSelectStore={setSelectedStoreId}
         />;
       case 'profile':
-        return <ProfilePage profile={laundryProfile} currentUser={currentUser!} onUpdateProfile={handleUpdateProfile} onUpdateUserTheme={handleUpdateUserTheme} />;
+        return <ProfilePage stores={stores} currentUser={currentUser!} onUpdateStore={handleUpdateStore} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
         return <PrintLabelsPage cards={getActiveCards()} />;
       case 'board':
