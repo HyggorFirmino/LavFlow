@@ -33,6 +33,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
           washingPrice: store.washingPrice || 0,
           dryingPrice: store.dryingPrice || 0,
           comboPrice: store.comboPrice || 0,
+          maxpanId: store.maxpanId,
         });
       }
     }
@@ -89,8 +90,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
               <button
                 onClick={() => onUpdateUserTheme('claro')}
                 className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg border-2 transition-all ${currentUser.theme === 'claro'
-                    ? 'bg-laundry-blue-100 dark:bg-laundry-blue-500/20 border-laundry-blue-500 dark:border-laundry-blue-400'
-                    : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 hover:border-laundry-blue-400 dark:hover:border-laundry-blue-500'
+                  ? 'bg-laundry-blue-100 dark:bg-laundry-blue-500/20 border-laundry-blue-500 dark:border-laundry-blue-400'
+                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 hover:border-laundry-blue-400 dark:hover:border-laundry-blue-500'
                   }`}
               >
                 <SunIcon className="w-6 h-6 text-yellow-500" />
@@ -99,8 +100,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
               <button
                 onClick={() => onUpdateUserTheme('escuro')}
                 className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg border-2 transition-all ${currentUser.theme === 'escuro'
-                    ? 'bg-slate-700 border-laundry-teal-400'
-                    : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 hover:border-laundry-teal-500'
+                  ? 'bg-slate-700 border-laundry-teal-400'
+                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 hover:border-laundry-teal-500'
                   }`}
               >
                 <MoonIcon className="w-6 h-6 text-indigo-400" />
@@ -181,6 +182,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
                         <label htmlFor="comboPrice" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Combo (Lav+Sec) (R$)</label>
                         <input id="comboPrice" name="comboPrice" type="number" step="0.01" min="0" value={formData.comboPrice !== undefined ? formData.comboPrice : 0} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed" />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-laundry-blue-200 dark:border-slate-700 pt-4 mt-4">
+                    <h3 className="text-lg font-semibold text-laundry-blue-900 dark:text-slate-100 mb-4">Integrações</h3>
+                    <div>
+                      <label htmlFor="maxpanId" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">ID Maxpan</label>
+                      <input id="maxpanId" name="maxpanId" type="text" value={formData.maxpanId !== undefined ? formData.maxpanId : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed" />
+                      <p className="text-xs text-slate-500 mt-1">ID utilizado para integração com API Maxpan.</p>
                     </div>
                   </div>
                 </>

@@ -1,44 +1,25 @@
 import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { getAccessToken, refreshToken, login as apiLogin } from '../services/apiService';
+import { getAccessToken, refreshToken } from '../services/maxpanApiService';
+import { login as apiLogin } from '../services/userService';
 
+// This is a simplified example. In a real app, you'd fetch the user from the API.
 // This is a simplified example. In a real app, you'd fetch the user from the API.
 const fetchUser = async (): Promise<User | null> => {
   const token = getAccessToken();
   if (!token) return null;
 
-  // Here you would typically make an API call to get user data
-  // For now, we'll return a mock user if the token is valid
-  // You might need to adjust this based on your API
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-
-    // If the access token is expired, try to refresh it
-    const refreshed = await refreshToken();
-    if (refreshed) {
-      const newResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${getAccessToken()}`,
-        },
-      });
-      if (newResponse.ok) {
-        return await newResponse.json();
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Failed to fetch user', error);
-    return null;
-  }
+  // Returning a mock user as the backend auth/profile route does not exist
+  // and we are relying on MaxPan tokens.
+  return {
+    id: 'user-maxpan',
+    name: 'Usuário MaxPan',
+    email: 'usuario@maxpan.com',
+    password: '',
+    role: 'ADMIN',
+    theme: 'claro',
+    stores: []
+  };
 };
 
 export const useAuth = () => {

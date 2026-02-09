@@ -25,51 +25,80 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   const isAdmin = currentUser.role === 'admin';
 
   useEffect(() => {
-    // Timers should only run for cards in a 'dryer' list with a valid start time and duration.
-    if (list.type !== 'dryer' || !card.enteredDryerAt || !list.totalDryingTime) {
+    // Enhanced debug logging
+    console.log('[Timer Debug]', {
+      listId: list.id,
+      listType: list.type,
+      listTitle: list.title,
+      cardId: card.id,
+      cardName: card.customerName,
+      enteredDryerAt: card.enteredDryerAt,
+      totalDryingTime: list.totalDryingTime,
+      reminderInterval: list.reminderInterval,
+      willShowTimer: list.type === 'dryer' && !!card.enteredDryerAt && (!!list.totalDryingTime || !!list.reminderInterval)
+    });
+
+    // Timers should only run for cards in a 'dryer' list with a valid start time.
+    if (list.type !== 'dryer' || !card.enteredDryerAt) {
       setTimerStatus('none');
       return;
     }
 
-    // Declare the interval variable here so it is accessible within the entire useEffect scope,
-    // including the calculateTime function and the cleanup function.
+    // We need at least one time parameter to show a timer
+    if (!list.totalDryingTime && !list.reminderInterval) {
+      console.warn('[Timer] No time parameters configured for dryer list:', list.id);
+      setTimerStatus('none');
+      return;
+    }
+
+    // Declare the interval variable here so it is accessible within the entire useEffect scope
     let interval: ReturnType<typeof setInterval>;
 
     const calculateTime = () => {
       const startTime = new Date(card.enteredDryerAt!);
-      const totalDurationMs = list.totalDryingTime! * 60 * 1000;
-      const endTime = startTime.getTime() + totalDurationMs;
       const now = Date.now();
-      const remainingMs = endTime - now;
+      const elapsedMs = now - startTime.getTime();
 
-      if (remainingMs <= 0) {
-        setTimerStatus('done');
-        setRemainingTime('00:00');
-        // If the interval has been set, clear it to stop the timer.
-        // This check prevents a ReferenceError on the first run if the timer is already expired.
-        if (interval) {
-          clearInterval(interval);
+      // Check for total time expiration first, if applicable
+      if (list.totalDryingTime) {
+        const totalDurationMs = list.totalDryingTime * 60 * 1000;
+        if (elapsedMs >= totalDurationMs) {
+          setTimerStatus('done');
+          setRemainingTime('00:00');
+          if (interval) clearInterval(interval);
+          return;
         }
-        return;
       }
 
-      // New logic for interval reminder
+      let remainingMs = 0;
+      let isIntervalTimer = false;
+
+      // Determine which time to display
       if (list.reminderInterval && list.reminderInterval > 0) {
-        const elapsedMs = now - startTime.getTime();
-        const elapsedMinutes = elapsedMs / (60 * 1000);
-        const intervalMinutes = list.reminderInterval;
+        // Show time remaining until next pause/interval
+        const intervalMs = list.reminderInterval * 60 * 1000;
+        const msIntoCycle = elapsedMs % intervalMs;
+        remainingMs = intervalMs - msIntoCycle;
+        isIntervalTimer = true;
+      } else if (list.totalDryingTime) {
+        // Show total remaining time
+        const totalDurationMs = list.totalDryingTime * 60 * 1000;
+        remainingMs = (startTime.getTime() + totalDurationMs) - now;
+      }
 
-        // Check if we are in the last minute of any interval cycle
-        const timeIntoCurrentInterval = elapsedMinutes % intervalMinutes;
-        const reminderWindowMinutes = 1; // Pulse for 1 minute before the interval mark
+      // Logic for status/colors (approaching end of interval)
+      if (list.reminderInterval && list.reminderInterval > 0) {
+        const intervalMs = list.reminderInterval * 60 * 1000;
+        const msIntoCycle = elapsedMs % intervalMs;
+        const reminderWindowMs = 60 * 1000; // 1 minute warning
 
-        if (timeIntoCurrentInterval >= (intervalMinutes - reminderWindowMinutes)) {
+        if (intervalMs - msIntoCycle <= reminderWindowMs) {
           setTimerStatus('reminder');
         } else {
           setTimerStatus('normal');
         }
       } else {
-        setTimerStatus('normal'); // No interval, just normal countdown
+        setTimerStatus('normal');
       }
 
       const totalSeconds = Math.floor(remainingMs / 1000);
@@ -85,9 +114,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
     interval = setInterval(calculateTime, 1000);
 
     // The cleanup function is called when the component unmounts or dependencies change.
-    // This ensures no memory leaks from lingering intervals.
     return () => clearInterval(interval);
-  }, [card.enteredDryerAt, list.type, list.totalDryingTime, list.reminderInterval]);
+  }, [card.enteredDryerAt, list.type, list.totalDryingTime, list.reminderInterval, card.id, list.id, card.customerName, list.title]);
 
 
   const sanitizePhoneNumber = (phone: string) => {
@@ -172,7 +200,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       <div className={`flex items-center mt-3 p-2 rounded-lg border ${timerColorClasses} transition-colors`}>
         <ClockIcon className="w-5 h-5 mr-2" />
         <div className="text-sm flex-grow">
-          <span className="font-bold">Tempo Restante:</span>
+          <span className="font-bold">Tempo para Pausa:</span>
         </div>
         <span className="ml-2 font-mono text-base font-bold">{remainingTime}</span>
       </div>

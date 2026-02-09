@@ -27,4 +27,7 @@ export class CreateStoreDto {
 
     @ApiProperty({ description: 'Preço do combo', example: 35.00 })
     comboPrice: number;
+
+    @ApiProperty({ description: 'ID da loja externa (Maxpan)', example: 'STORE-123' })
+    maxpanId: string;
 }

@@ -66,6 +66,10 @@ export class OrdemServico {
   @Column({ name: 'notified_at', type: 'timestamp', nullable: true })
   notifiedAt: Date;
 
+  @ApiProperty({ example: new Date().toISOString(), required: false, type: String })
+  @Column({ name: 'entered_dryer_at', type: 'timestamp', nullable: true })
+  enteredDryerAt: Date | null;
+
   @ApiProperty({
     required: false,
     type: Object,

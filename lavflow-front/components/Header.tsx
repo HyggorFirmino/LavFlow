@@ -1,8 +1,6 @@
 import React from 'react';
-import { TagIcon, WashingMachineIcon, LogoutIcon, UserCircleIcon, ChartBarIcon, ViewGridIcon, PrinterIcon, ListBulletIcon, ArchiveBoxIcon, UserGroupIcon } from './icons';
-import { User } from '../types';
-
-type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
+import { TagIcon, WashingMachineIcon, LogoutIcon, UserCircleIcon, ChartBarIcon, ViewGridIcon, PrinterIcon, ListBulletIcon, ArchiveBoxIcon, UserGroupIcon, CurrencyDollarIcon, ArrowPathIcon } from './icons';
+import { User, ViewType } from '../types';
 
 interface HeaderProps {
   onAddCard: () => void;
@@ -13,6 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, currentUser, currentView }) => {
+  console.log('🏗️ [Header] Rendered with onNavigate:', onNavigate);
   const navButtonClasses = "flex items-center space-x-2 bg-laundry-blue-100 hover:bg-laundry-blue-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-laundry-blue-800 dark:text-slate-200 font-semibold py-2 px-3 md:px-4 rounded-lg shadow-sm hover:shadow-md transition-all";
   const activeNavButtonClasses = "flex items-center space-x-2 bg-laundry-teal-100 dark:bg-laundry-teal-500/20 border border-laundry-teal-300 dark:border-laundry-teal-500/30 text-laundry-teal-800 dark:text-laundry-teal-200 font-bold py-2 px-3 md:px-4 rounded-lg shadow-inner transition-all";
 
@@ -33,6 +32,48 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
         </button>
 
         <div className="h-8 border-l border-laundry-blue-200 dark:border-slate-700 mx-1"></div>
+
+        <button
+          type="button"
+          onClick={() => {
+            console.log('🔘 [Header] Recarga button clicked');
+            onNavigate('recarga');
+          }}
+          className={currentView === 'recarga' ? activeNavButtonClasses : navButtonClasses}
+          title="Recarga"
+          aria-label="Recarga de Crédito"
+        >
+          <CurrencyDollarIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Recarga</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            console.log('🔘 [Header] Movimentacoes button clicked');
+            onNavigate('movimentacoes');
+          }}
+          className={currentView === 'movimentacoes' ? activeNavButtonClasses : navButtonClasses}
+          title="Movimentações"
+          aria-label="Ver Movimentações"
+        >
+          <ArrowPathIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Movimentações</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            console.log('🔘 [Header] Machine Operation button clicked');
+            onNavigate('machine-operation');
+          }}
+          className={currentView === 'machine-operation' ? activeNavButtonClasses : navButtonClasses}
+          title="Operação de Máquinas"
+          aria-label="Operar Máquinas"
+        >
+          <WashingMachineIcon className="w-5 h-5" />
+          <span className="hidden md:inline">Operação</span>
+        </button>
 
         {currentUser.role === 'ADMIN' && (
           <button

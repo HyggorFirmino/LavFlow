@@ -9,6 +9,7 @@ import { TagsModule } from './tags/tags.module';
 import { UsersModule } from './users/users.module';
 import { StoresModule } from './stores/stores.module';
 import { ClientsModule } from './clients/clients.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ClientsModule } from './clients/clients.module';
     UsersModule,
     StoresModule,
     ClientsModule,
+    LogsModule,
   ],
   controllers: [],
   providers: [],

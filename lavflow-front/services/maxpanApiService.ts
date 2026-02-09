@@ -1,6 +1,7 @@
 import { Client, LoginCredentials } from '../types';
 
 const API_URL = process.env.NEXT_PUBLIC_MAXPAN_URL;
+const selectedStoreId = process.env.NEXT_PUBLIC_SELECTED_STORE_ID;
 
 let clientsCache: Client[] | null = null;
 let lastFetchTime: number | null = null;
@@ -154,5 +155,93 @@ export const fetchClients = async (): Promise<Client[]> => {
   } catch (error) {
     console.error('Erro ao buscar clientes:', error);
     return [];
+  }
+};
+
+/**
+ * Busca um cliente por CPF
+ * @param cpf CPF do cliente (apenas números)
+ * @returns Dados do cliente encontrado ou null
+ */
+export const searchCustomerByCpf = async (cpf: string): Promise<any> => {
+  try {
+    const response = await maxpanFetch(
+      `users/customer-stores?page=1&mask=true&showName=true&limit=1000&documentId=${cpf}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao buscar cliente.');
+    }
+
+    const data = await response.json();
+
+    if (data.results && data.results.length > 0) {
+      return data.results[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar cliente por CPF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cria uma recarga de crédito para um cliente
+ * @param rechargeData Dados da recarga
+ * @returns Resposta da API
+ */
+export const createRecharge = async (rechargeData: {
+  amount: number;
+  amountPay: number;
+  customer: any;
+  paymentType: string;
+  store: string;
+}): Promise<any> => {
+  try {
+    const response = await maxpanFetch('orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...rechargeData,
+        store: selectedStoreId,
+        isBalancePurchase: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao realizar a recarga.');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Erro ao criar recarga:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca os pedidos de hoje para uma loja específica
+ * @param storeId ID da loja
+ * @returns Lista de pedidos (orders)
+ */
+export const getStoreOrders = async (storeId: string): Promise<any> => {
+  try {
+    const url = `orders?page=1&limit=1000&mask=true&showName=true&storeId=${storeId}&period=today`;
+    console.log('Fetching orders from:', url);
+    const response = await maxpanFetch(url, { method: 'GET' });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar ordens da loja:', error);
+    throw error;
   }
 };

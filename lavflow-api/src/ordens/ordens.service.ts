@@ -86,10 +86,24 @@ export class OrdensService {
     return ordemSalva;
   }
 
-  findAll(): Promise<OrdemServico[]> {
-    return this.ordemServicoRepository.find({
+  async findAll(): Promise<OrdemServico[]> {
+    const ordens = await this.ordemServicoRepository.find({
       relations: ['historico'],
     });
+
+    // Debug: verificar se enteredDryerAt está sendo carregado
+    ordens.forEach(ordem => {
+      if (ordem.status?.tipo === 'dryer') {
+        console.log('[BACKEND DEBUG] Ordem in dryer:', {
+          id: ordem.id,
+          statusTipo: ordem.status.tipo,
+          enteredDryerAt: ordem.enteredDryerAt,
+          hasField: 'enteredDryerAt' in ordem
+        });
+      }
+    });
+
+    return ordens;
   }
 
   async findOne(id: number): Promise<OrdemServico> {
@@ -151,6 +165,13 @@ export class OrdensService {
       if (!novoStatus) throw new NotFoundException(`Status com ID ${novoStatusId} não encontrado.`);
 
       const statusAntigoTitulo = ordem.status.titulo;
+
+      // Check for type 'dryer'
+      if (novoStatus.tipo === 'dryer') {
+        ordem.enteredDryerAt = new Date();
+      } else {
+        ordem.enteredDryerAt = null;
+      }
 
       ordem.status = novoStatus;
       await ordemRepo.save(ordem);

@@ -129,16 +129,37 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [newClientBirthDate, setNewClientBirthDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const loadClients = async () => {
-      const fetchedClients = await fetchClients();
-      const localClients = await fetchLocalClients();
-      // Merge or prefer local? For now, let's just combine them visually or prioritize.
-      // Assuming we want to show ALL clients.
-      // Note: This might have duplicates if I don't handle IDs carefully, but for now it's fine.
-      setClients([...localClients, ...fetchedClients]);
+  const fetchAndSetClients = async () => {
+    const fetchedClients = await fetchClients();
+    const localClients = await fetchLocalClients();
+
+    const clientMap = new Map<string, Client>();
+
+    // Helper to generate a unique key: prefer CPF (digits only), fallback to ID with prefix
+    const getClientKey = (client: Client, prefix: string) => {
+      const doc = client.document ? client.document.replace(/\D/g, '') : '';
+      return doc || `${prefix}-${client.id}`;
     };
-    loadClients();
+
+    // Add fetched clients first (to establish order and ensure latest data)
+    fetchedClients.forEach(client => {
+      const key = getClientKey(client, 'maxpan');
+      if (key) clientMap.set(key, client);
+    });
+
+    // Add local clients (only if not already present)
+    localClients.forEach(client => {
+      const key = getClientKey(client, 'local');
+      if (!clientMap.has(key)) {
+        clientMap.set(key, client);
+      }
+    });
+
+    setClients(Array.from(clientMap.values()));
+  };
+
+  useEffect(() => {
+    fetchAndSetClients();
   }, []);
 
   const filteredClients = useMemo(() => {
@@ -244,9 +265,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         alert(`${createdCount} novos clientes importados com sucesso!`);
 
         // Refresh list
-        const updatedLocalClients = await fetchLocalClients();
-        const updatedExternalClients = await fetchClients();
-        setClients([...updatedLocalClients, ...updatedExternalClients]);
+        // Refresh list
+        await fetchAndSetClients();
       }
 
     } catch (error) {

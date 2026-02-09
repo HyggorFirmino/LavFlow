@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, CardHistoryEvent, Client } from './types';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { BoardData, Card, List, TagDefinition, User, ToastNotification, CardHistoryEvent, Client, Store, ViewType } from './types';
 import { getOrdens, updateOrdem, mudarStatusOrdem, getStatusKanban } from './services/apiService';
+import { getStores, updateStore } from './services/storeService';
 import { INITIAL_LIST_ORDER, INITIAL_LIST_TITLES, TAG_COLORS, DEFAULT_TAG_COLOR, WASHER_LIST_IDS, DRYER_LIST_IDS } from './constants';
 import Header from './components/Header';
 import KanbanBoard from './components/KanbanBoard';
@@ -15,6 +16,9 @@ import PrintLabelsPage from './components/PrintLabelsPage';
 import ListView from './components/ListView';
 import HistoryPage from './components/HistoryPage';
 import ClientsPage from './components/ClientsPage';
+import RecargaPage from './components/RecargaPage';
+import MovimentacoesPage from './components/MovimentacoesPage';
+import MachineOperationPage from './components/MachineOperationPage';
 import { ExclamationTriangleIcon, XMarkIcon } from './components/icons';
 import CreateMultipleCardsModal from './components/CreateMultipleCardsModal';
 import { useAuth } from './hooks/useAuth';
@@ -178,8 +182,6 @@ const buildInitialBoardData = (): BoardData => {
   return data;
 };
 
-type View = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
-
 const App: React.FC = () => {
   const { currentUser, loading, login, logout } = useAuth();
   const [boardData, setBoardData] = useState<BoardData>({});
@@ -190,100 +192,133 @@ const App: React.FC = () => {
   const [isListSettingsModalOpen, setIsListSettingsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [listToEdit, setListToEdit] = useState<List | null>(null);
-  const [currentView, setCurrentView] = useState<View>('board');
+  const [currentView, setCurrentView] = useState<ViewType>('board');
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
-  const [laundryProfile, setLaundryProfile] = useState<LaundryProfile>({
-    name: 'Lavanderia Inteligente',
-    address: 'Rua das Máquinas, 123 - Bairro Bolhas',
-    phone: '(11) 91234-5678',
-    operatingHours: 'Seg-Sáb: 8h às 17h, Dom: 8h às 16h',
-    servicePrices: {
-      washing: 20.00,
-      drying: 20.00,
-      washingAndDrying: 35.00,
-      // ... existing code ...
-    }
-  });
-
-  const [stores, setStores] = useState<any[]>([]); // Should use Store type
-  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '');
 
   const handleSelectStore = (storeId: string) => {
     setSelectedStoreId(storeId);
     // Logic to filter board by store can be added here
   };
 
+  const fetchData = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const [statuses, ordens, loadedStores] = await Promise.all([getStatusKanban(), getOrdens(), getStores()]);
+
+      // Debug: Log raw API response for dryer cards
+      console.log('🔍 RAW API RESPONSE - Sample ordem:', ordens.find((o: any) => o.status?.tipo === 'dryer'));
+
+      if (loadedStores && loadedStores.length > 0) {
+        setStores(loadedStores);
+        // Select the first store by default if none selected
+        if (!selectedStoreId) {
+          setSelectedStoreId(String(loadedStores[0].id));
+        }
+      }
+
+      const newBoardData: BoardData = {};
+      const newOrder: string[] = [];
+
+      // Process Statuses (Lists)
+      const sortedStatuses = statuses.sort((a, b) => a.ordem - b.ordem);
+      sortedStatuses.forEach(status => {
+        const listId = `list-${status.id}`;
+        newOrder.push(listId);
+        // Logic to detect dryer type by title if database has default
+        const isDryerByTitle = status.titulo.toLowerCase().includes('secadora');
+        const type = (status.tipo === 'default' && isDryerByTitle) ? 'dryer' : (status.tipo || 'default');
+
+        // Fallbacks for dryer lists if DB values are missing
+        let totalDryingTime = status.tempoSecagemTotal;
+        let reminderInterval = status.intervaloLeitura;
+
+        if (type === 'dryer') {
+          // Log para debug
+          console.log('[DEBUG] Dryer list detected:', {
+            title: status.titulo,
+            type: status.tipo,
+            tempoSecagemTotal: status.tempoSecagemTotal,
+            intervaloLeitura: status.intervaloLeitura
+          });
+
+          if (!totalDryingTime || totalDryingTime === 0) totalDryingTime = 40; // Default 40 min
+          if (!reminderInterval || reminderInterval === 0) reminderInterval = 15; // Default 15 min
+        }
+
+        newBoardData[listId] = {
+          id: listId,
+          title: status.titulo,
+          cards: [],
+          cardLimit: status.limiteCartoes,
+          type: type as any,
+          order: status.ordem,
+          totalDryingTime: totalDryingTime,
+          reminderInterval: reminderInterval
+        };
+      });
+
+      // Process Orders (Cards)
+      console.log('🚨 [CODE VERSION] Processing', ordens.length, 'ordens - TIMESTAMP:', Date.now());
+      ordens.forEach(ordem => {
+        const listId = `list-${ordem.status.id}`;
+        if (newBoardData[listId]) { // Check if list exists
+          const cardId = `card-${ordem.id}`;
+
+          const newCard: Card = {
+            id: cardId,
+            listId: listId,
+            customerName: ordem.client ? ordem.client.name : 'Cliente Não Identificado',
+            customerDocument: ordem.client ? (ordem.client.cpf || ordem.client.document) : '',
+            contact: ordem.client ? ordem.client.phone : '',
+            notes: ordem.observacoes || '',
+            tags: [], // TODO: Map tags if backend supports them or use local logic
+            serviceValue: Number(ordem.valorTotal),
+            // paymentMethod: ordem.metodoPagamento, // Assuming backend has this
+            services: { washing: true, drying: true }, // Placeholder, needs mapping
+            createdAt: ordem.createdAt,
+            completedAt: ordem.completedAt,
+            enteredDryerAt: ordem.enteredDryerAt, // ✅ FIX: Pass value directly from API
+            client: ordem.client
+          };
+
+          console.log('🔵 CARD CREATED:', { cardId, listType: newBoardData[listId].type, enteredDryerAt: newCard.enteredDryerAt });
+
+          // CRITICAL: Initialize enteredDryerAt for cards already in dryer lists
+          if (newBoardData[listId].type === 'dryer' && !newCard.enteredDryerAt) {
+            newCard.enteredDryerAt = new Date().toISOString();
+            console.log('✅ TIMER INITIALIZED for card:', cardId);
+          }
+
+          newBoardData[listId].cards.push(newCard);
+        }
+      });
+
+      // Sort cards by creation date (newest first)
+      Object.values(newBoardData).forEach(list => {
+        list.cards.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      });
+
+      setBoardData(newBoardData);
+      setListOrder(newOrder);
+
+    } catch (error) {
+      console.error("Failed to fetch initial data", error);
+      // Fallback to initial data if fetch fails? Or just show error?
+      // For now, let's keep the mock data as fallback or just log.
+      // setBoardData(buildInitialBoardData());
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     document.title = 'Lavanderia Kanban Inteligente';
 
     if (currentUser) {
-      const fetchData = async () => {
-        try {
-          const [statuses, ordens] = await Promise.all([getStatusKanban(), getOrdens()]);
-
-          const newBoardData: BoardData = {};
-          const newOrder: string[] = [];
-
-          // Process Statuses (Lists)
-          const sortedStatuses = statuses.sort((a, b) => a.ordem - b.ordem);
-          sortedStatuses.forEach(status => {
-            const listId = `list-${status.id}`;
-            newOrder.push(listId);
-            newBoardData[listId] = {
-              id: listId,
-              title: status.titulo,
-              cards: [],
-              cardLimit: status.limiteCartoes,
-              type: status.tipo || 'default',
-              order: status.ordem,
-              totalDryingTime: status.tempoSecagemTotal,
-              reminderInterval: status.intervaloLeitura
-            };
-          });
-
-          // Process Orders (Cards)
-          ordens.forEach(ordem => {
-            const listId = `list-${ordem.status.id}`;
-            if (newBoardData[listId]) { // Check if list exists
-              const cardId = `card-${ordem.id}`;
-              const newCard: Card = {
-                id: cardId,
-                listId: listId,
-                customerName: ordem.client ? ordem.client.name : 'Cliente Não Identificado',
-                customerDocument: ordem.client ? (ordem.client.cpf || ordem.client.document) : '',
-                contact: ordem.client ? ordem.client.phone : '',
-                notes: ordem.observacoes || '',
-                tags: [], // TODO: Map tags if backend supports them or use local logic
-                serviceValue: Number(ordem.valorTotal),
-                // paymentMethod: ordem.metodoPagamento, // Assuming backend has this
-                services: { washing: true, drying: true }, // Placeholder, needs mapping
-                createdAt: ordem.createdAt,
-                completedAt: ordem.completedAt,
-                client: ordem.client
-              };
-              newBoardData[listId].cards.push(newCard);
-            }
-          });
-
-          // Sort cards by creation date (newest first)
-          Object.values(newBoardData).forEach(list => {
-            list.cards.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          });
-
-          setBoardData(newBoardData);
-          setListOrder(newOrder);
-
-        } catch (error) {
-          console.error("Failed to fetch initial data", error);
-          // Fallback to initial data if fetch fails? Or just show error?
-          // For now, let's keep the mock data as fallback or just log.
-          // setBoardData(buildInitialBoardData());
-        }
-      };
       fetchData();
     }
-  }, [currentUser]);
+  }, [currentUser, fetchData]);
 
   // Dark mode handler
   useEffect(() => {
@@ -337,8 +372,14 @@ const App: React.FC = () => {
     return success;
   };
 
-  const handleUpdateProfile = (profile: LaundryProfile) => {
-    setLaundryProfile(profile);
+  const handleUpdateStore = async (storeId: string, data: Partial<Store>) => {
+    try {
+      const updatedStore = await updateStore(storeId, data);
+      setStores(prevStores => prevStores.map(store => String(store.id) === storeId ? updatedStore : store));
+    } catch (error) {
+      console.error("Failed to update store", error);
+      throw error;
+    }
   };
 
   const handleUpdateUserTheme = (theme: 'claro' | 'escuro') => {
@@ -358,14 +399,19 @@ const App: React.FC = () => {
       const isWashing = newCardData.services?.washing;
       const isDrying = newCardData.services?.drying;
 
-      if (isWashing && isDrying) {
-        calculatedValue = laundryProfile.servicePrices.washingAndDrying;
-      } else if (isWashing) {
-        calculatedValue = laundryProfile.servicePrices.washing;
-      } else if (isDrying) {
-        calculatedValue = laundryProfile.servicePrices.drying;
-      } else {
-        calculatedValue = 0;
+      if (selectedStoreId) {
+        const currentStore = stores.find(s => String(s.id) === selectedStoreId);
+        if (currentStore) {
+          if (isWashing && isDrying) {
+            calculatedValue = currentStore.comboPrice || 0;
+          } else if (isWashing) {
+            calculatedValue = currentStore.washingPrice || 0;
+          } else if (isDrying) {
+            calculatedValue = currentStore.dryingPrice || 0;
+          } else {
+            calculatedValue = 0;
+          }
+        }
       }
     }
 
@@ -458,7 +504,7 @@ const App: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => {
+  const handleAddList = (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
     const newListId = `list-user-${Date.now()}`;
     const newList: List = { id: newListId, title, cards: [], cardLimit: limit, type, order: listOrder.length };
 
@@ -485,7 +531,7 @@ const App: React.FC = () => {
     setIsListSettingsModalOpen(true);
   };
 
-  const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora', totalDryingTime?: number, reminderInterval?: number) => {
+  const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', totalDryingTime?: number, reminderInterval?: number) => {
     setBoardData(prevData => {
       const newData = { ...prevData };
       const list = newData[listId];
@@ -757,8 +803,10 @@ const App: React.FC = () => {
     draggedItem.current = null;
   };
 
-  const handleNavigate = (view: View) => {
+  const handleNavigate = (view: ViewType) => {
+    console.log('[DEBUG] handleNavigate called with:', view);
     setCurrentView(view);
+    console.log('[DEBUG] setCurrentView called with:', view);
   };
 
   const getActiveCards = () => {
@@ -780,6 +828,7 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    console.log('[DEBUG] renderContent called with currentView:', currentView);
     switch (currentView) {
       case 'dashboard':
         return <DashboardPage boardData={boardData} />;
@@ -793,7 +842,7 @@ const App: React.FC = () => {
           currentUser={currentUser!}
         />;
       case 'history':
-        return <HistoryPage cards={getAllCardsSorted()} />;
+        return <HistoryPage cards={getAllCardsSorted()} onRefresh={fetchData} />;
       case 'clients':
         return <ClientsPage
           onAddCard={handleAddCard}
@@ -813,9 +862,16 @@ const App: React.FC = () => {
           onSelectStore={handleSelectStore}
         />;
       case 'profile':
-        return <ProfilePage profile={laundryProfile} currentUser={currentUser!} onUpdateProfile={handleUpdateProfile} onUpdateUserTheme={handleUpdateUserTheme} />;
+        return <ProfilePage stores={stores} currentUser={currentUser!} onUpdateStore={handleUpdateStore} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
         return <PrintLabelsPage cards={getActiveCards()} />;
+      case 'recarga':
+        console.log('🔄 [App] Rendering RecargaPage');
+        return <RecargaPage stores={stores} selectedStoreId={selectedStoreId} />;
+      case 'movimentacoes':
+        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} />;
+      case 'machine-operation':
+        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} />;
       case 'board':
       default:
         return (
@@ -849,7 +905,16 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
-      <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={logout} currentUser={currentUser} currentView={currentView} />
+      <Header
+        onAddCard={() => handleOpenAddCardModal()}
+        onNavigate={(v) => {
+          console.error('🚀 [App] Inline onNavigate called with:', v);
+          handleNavigate(v);
+        }}
+        onLogout={logout}
+        currentUser={currentUser}
+        currentView={currentView}
+      />
       <ToastContainer notifications={notifications} removeNotification={removeNotification} />
       {renderContent()}
 

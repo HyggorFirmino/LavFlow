@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
-import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, Client, Store } from '../types';
+import { BoardData, Card, List, TagDefinition, User, LaundryProfile, ToastNotification, Client, Store, ViewType } from '../types';
 import { TAG_COLORS } from '../constants';
+
 import Header from '../components/Header';
 import KanbanBoard from '../components/KanbanBoard';
 import AddCardModal from '../components/AddCardModal';
@@ -16,6 +17,9 @@ import PrintLabelsPage from '../components/PrintLabelsPage';
 import ListView from '../components/ListView';
 import HistoryPage from '../components/HistoryPage';
 import ClientsPage from '../components/ClientsPage';
+import RecargaPage from '../components/RecargaPage';
+import MovimentacoesPage from '../components/MovimentacoesPage';
+import MachineOperationPage from '../components/MachineOperationPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
 import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem } from '../services/apiService';
@@ -101,7 +105,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ notifications, removeNo
   );
 };
 
-type View = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients';
+
 
 const Home: React.FC = () => {
   const [boardData, setBoardData] = useState<BoardData>({});
@@ -114,10 +118,10 @@ const Home: React.FC = () => {
   const [isListSettingsModalOpen, setIsListSettingsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [listToEdit, setListToEdit] = useState<List | null>(null);
-  const [currentView, setCurrentView] = useState<View>('board');
+  const [currentView, setCurrentView] = useState<ViewType>('board');
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '');
 
   const [users, setUsers] = useState<User[]>([
     { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
@@ -204,6 +208,7 @@ const Home: React.FC = () => {
             tags: ordem.tags || [],
             basketIdentifier: ordem.basketIdentifier,
             notifiedAt: ordem.notifiedAt ? new Date(ordem.notifiedAt).toISOString() : undefined,
+            enteredDryerAt: ordem.enteredDryerAt ? new Date(ordem.enteredDryerAt).toISOString() : undefined,
             services: ordem.services,
             createdAt: new Date(ordem.createdAt).toISOString(),
             completedAt: ordem.completedAt ? new Date(ordem.completedAt).toISOString() : undefined,
@@ -215,6 +220,7 @@ const Home: React.FC = () => {
               toListTitle: h.toListTitle,
             })),
           };
+
           newBoardData[listId].cards.push(card);
 
           // Processar tags do cartão
@@ -745,7 +751,7 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleNavigate = (view: View) => {
+  const handleNavigate = (view: ViewType) => {
     setCurrentView(view);
   };
 
@@ -799,8 +805,14 @@ const Home: React.FC = () => {
           currentUser={currentUser!}
           stores={stores}
           selectedStoreId={selectedStoreId}
-          onSelectStore={setSelectedStoreId}
+          onSelectStore={setSelectedStoreId} // Assuming handleSelectStore logic is simple or passed directly
         />;
+      case 'recarga':
+        return <RecargaPage stores={stores} selectedStoreId={selectedStoreId} />;
+      case 'movimentacoes':
+        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} />;
+      case 'machine-operation':
+        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} />;
       case 'profile':
         return <ProfilePage stores={stores} currentUser={currentUser!} onUpdateStore={handleUpdateStore} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':

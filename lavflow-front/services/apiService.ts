@@ -4,7 +4,8 @@ import { apiFetch } from './api';
 // --- Funções da API para Ordens (Cards) ---
 
 export const getOrdens = (): Promise<any[]> => {
-  return apiFetch('/ordens');
+  // Add timestamp to prevent aggressive browser caching
+  return apiFetch(`/ordens?_t=${Date.now()}`);
 };
 
 export const createOrdem = (data: Partial<Card>): Promise<any> => {

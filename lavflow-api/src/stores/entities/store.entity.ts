@@ -47,6 +47,10 @@ export class Store {
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
     comboPrice: number;
 
+    @ApiProperty({ description: 'ID da loja externa (Maxpan)', example: 'STORE-123' })
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    maxpanId: string;
+
     @ManyToMany(() => User, (user) => user.stores)
     @JoinTable()
     users: User[]

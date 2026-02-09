@@ -111,4 +111,7 @@ export interface Store {
   washingPrice?: number;
   dryingPrice?: number;
   comboPrice?: number;
+  maxpanId?: string;
 }
+
+export type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients' | 'recarga' | 'movimentacoes' | 'machine-operation';
