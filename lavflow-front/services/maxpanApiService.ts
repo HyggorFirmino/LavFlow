@@ -51,7 +51,7 @@ export const refreshToken = async (): Promise<boolean> => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/auth/refresh-tokens`, {
+    const response = await fetch(`${API_URL}auth/refresh-tokens`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,16 +116,30 @@ const maxpanFetch = async (endpoint: string, options: RequestInit = {}): Promise
  * Simula uma chamada de API para buscar a lista de clientes.
  * @returns Uma promessa que resolve para uma lista de clientes.
  */
-export const fetchClients = async (): Promise<Client[]> => {
+export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> => {
   const now = Date.now();
-  if (clientsCache && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
-    console.log('Retornando clientes do cache');
-    return clientsCache;
+  // Cache key could specific to store, but simplistic for now.
+  // Ideally, cache should be a map: storeId -> clients.
+  // For now, let's invalidate cache if storeId changes or just not use cache if storeId is provided?
+  // Or simple:
+  // if (clientsCache && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
+  //   console.log('Retornando clientes do cache');
+  //   return clientsCache;
+  // }
+  // Actually, since we are filtering by store now, a global cache is risky if we switch stores.
+  // Let's clear cache if we fetch for a specific store or just bypass for now to be safe.
+  // Or better, let's just fetch fresh.
+
+  if (!storeMaxpanId) {
+    console.warn('fetchClients: maxpanId não fornecido. Retornando lista vazia.');
+    return [];
   }
 
   try {
+    const url = `users/customer-stores?mask=false&showName=true&limit=3000&store=${storeMaxpanId}`;
+
     const response = await maxpanFetch(
-      `users/customer-stores?mask=false&showName=true&limit=1000`,
+      url,
       { method: 'GET' }
     );
 

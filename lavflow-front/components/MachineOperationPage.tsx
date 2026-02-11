@@ -253,10 +253,8 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
 
     const fetchLogs = async () => {
         const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
-        // Use Maxpan ID if available, otherwise selectedStoreId.
-        // If no Maxpan ID, we can still filter by storeId of LavFlow or handle it in backend.
-        // For now, let's pass the selectedStoreId as storeId to the logs endpoint.
-        const storeIdToFilter = selectedStoreId;
+        // User requested to use maxpanId as storeId for logs
+        const storeIdToFilter = selectedStore?.maxpanId || selectedStoreId;
 
         if (!storeIdToFilter) return;
 
@@ -305,7 +303,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
 
         setLoadingCustomers(true);
         const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}users/customer-stores?mask=false&showName=true&limit=1000&store=${targetStoreId}`;
+        const url = `${apiUrl}users/customer-stores?mask=false&showName=true&limit=3000&store=${targetStoreId}`;
 
         try {
             const response = await authenticatedFetch(url, { method: 'GET' });

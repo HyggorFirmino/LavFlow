@@ -301,8 +301,9 @@ const Home: React.FC = () => {
 
   // Fetch clients separately
   useEffect(() => {
-    fetchClients().then(setClients).catch(e => console.error("Error fetching clients", e));
-  }, []);
+    const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+    fetchClients(selectedStore?.maxpanId).then(setClients).catch(e => console.error("Error fetching clients", e));
+  }, [selectedStoreId, stores]);
 
 
 
@@ -795,6 +796,7 @@ const Home: React.FC = () => {
           onOpenAddCardModal={handleOpenAddCardModal}
           stores={stores}
           tags={tags}
+          selectedStoreMaxpanId={stores.find(s => String(s.id) === selectedStoreId)?.maxpanId}
         />;
       case 'tags':
         return <TagsPage

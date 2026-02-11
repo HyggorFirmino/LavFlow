@@ -21,6 +21,7 @@ interface ClientsPageProps {
   onOpenAddCardModal: (initialData?: Partial<Card>) => void;
   stores: Store[];
   tags: TagDefinition[];
+  selectedStoreMaxpanId?: string;
 }
 
 interface ActionsMenuProps {
@@ -110,7 +111,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
 };
 
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal, stores, tags }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal, stores, tags, selectedStoreMaxpanId }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMultiCardModalOpen, setIsMultiCardModalOpen] = useState(false);
@@ -130,7 +131,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAndSetClients = async () => {
-    const fetchedClients = await fetchClients();
+    const fetchedClients = await fetchClients(selectedStoreMaxpanId);
     const localClients = await fetchLocalClients();
 
     const clientMap = new Map<string, Client>();
@@ -160,7 +161,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
 
   useEffect(() => {
     fetchAndSetClients();
-  }, []);
+  }, [selectedStoreMaxpanId]);
 
   const filteredClients = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -238,7 +239,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsSyncing(true);
     try {
       const localClients = await fetchLocalClients();
-      const externalClients = await fetchClients(); // From maxpanApiService
+      const externalClients = await fetchClients(selectedStoreMaxpanId); // From maxpanApiService
 
       // Use Set for O(1) lookup of documents
       const localDocuments = new Set(localClients.map(c => c.document.replace(/\D/g, '')));
