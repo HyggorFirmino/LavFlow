@@ -5,6 +5,32 @@ import { createUser } from '../../services/userService';
 import { getStoreByCnpj } from '../../services/storeService';
 import { Store } from '../../types';
 
+const maskCnpj = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+};
+
+const validateCnpj = (value: string): boolean => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 14) return false;
+    if (/^(\d)\1+$/.test(digits)) return false;
+    const calc = (d: string, len: number) => {
+        let sum = 0;
+        let pos = len - 7;
+        for (let i = len; i >= 1; i--) {
+            sum += parseInt(d[len - i]) * pos--;
+            if (pos < 2) pos = 9;
+        }
+        const r = sum % 11;
+        return r < 2 ? 0 : 11 - r;
+    };
+    return calc(digits, 12) === parseInt(digits[12]) && calc(digits, 13) === parseInt(digits[13]);
+};
+
 const UserRegister: React.FC = () => {
     const router = useRouter();
     const [formData, setFormData] = useState({
@@ -31,9 +57,12 @@ const UserRegister: React.FC = () => {
     };
 
     const handleCnpjSearch = async () => {
-        const cnpj = cnpjInput.trim();
-        if (!cnpj) {
+        if (!cnpjInput.trim()) {
             setSearchError('Digite um CNPJ para pesquisar.');
+            return;
+        }
+        if (!validateCnpj(cnpjInput)) {
+            setSearchError('CNPJ inválido. Verifique os dígitos e tente novamente.');
             return;
         }
         setSearchLoading(true);
@@ -41,7 +70,7 @@ const UserRegister: React.FC = () => {
         setSearchError(null);
 
         try {
-            const store = await getStoreByCnpj(cnpj);
+            const store = await getStoreByCnpj(cnpjInput);
             if (!store) {
                 setFoundStore(null);
                 setSearchError('Nenhuma loja encontrada com esse CNPJ.');
@@ -204,10 +233,16 @@ const UserRegister: React.FC = () => {
                                 <input
                                     type="text"
                                     value={cnpjInput}
-                                    onChange={e => { setCnpjInput(e.target.value); setFoundStore(undefined); setSearchError(null); }}
+                                    maxLength={18}
+                                    onChange={e => { setCnpjInput(maskCnpj(e.target.value)); setFoundStore(undefined); setSearchError(null); }}
                                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCnpjSearch())}
                                     placeholder="00.000.000/0000-00"
-                                    className="flex-1 shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 transition-shadow font-mono"
+                                    className={`flex-1 shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border rounded-lg py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 transition-shadow font-mono ${cnpjInput.replace(/\D/g, '').length === 14
+                                        ? validateCnpj(cnpjInput)
+                                            ? 'border-green-400 dark:border-green-500 focus:ring-green-400'
+                                            : 'border-red-400 dark:border-red-500 focus:ring-red-400'
+                                        : 'border-laundry-blue-200 dark:border-slate-600 focus:ring-laundry-teal-400'
+                                        }`}
                                 />
                                 <button
                                     type="button"

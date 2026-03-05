@@ -2,13 +2,32 @@ import React, { useState } from 'react';
 import Head from 'next/head';
 import { createStore } from '../../services/storeService';
 import { useRouter } from 'next/router';
-import { ToastNotification } from '../../types';
-import { ExclamationTriangleIcon, XMarkIcon } from '../../components/icons';
 
-// Reuse Toast components locally or extract them to a common component later
-// For now, I'll implement a simple one for this page or minimal version since I can't easily import the internal ones from App.tsx/Home.
-// Actually, I should probably check if I can import them. They were defined in App.tsx/index.tsx locally.
-// I will create a simple version here.
+const maskCnpj = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+};
+
+const validateCnpj = (value: string): boolean => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 14) return false;
+    if (/^(\d)\1+$/.test(digits)) return false; // rejeita sequências iguais
+    const calc = (d: string, len: number) => {
+        let sum = 0;
+        let pos = len - 7;
+        for (let i = len; i >= 1; i--) {
+            sum += parseInt(d[len - i]) * pos--;
+            if (pos < 2) pos = 9;
+        }
+        const r = sum % 11;
+        return r < 2 ? 0 : 11 - r;
+    };
+    return calc(digits, 12) === parseInt(digits[12]) && calc(digits, 13) === parseInt(digits[13]);
+};
 
 const StoreRegister: React.FC = () => {
     const router = useRouter();
@@ -22,20 +41,37 @@ const StoreRegister: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
+    const [cnpjError, setCnpjError] = useState<string | null>(null);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        if (name === 'cnpj') {
+            const masked = maskCnpj(value);
+            setFormData(prev => ({ ...prev, cnpj: masked }));
+            const digits = masked.replace(/\D/g, '');
+            if (digits.length === 0) { setCnpjError(null); return; }
+            if (digits.length === 14) {
+                setCnpjError(validateCnpj(masked) ? null : 'CNPJ inválido.');
+            } else {
+                setCnpjError(null);
+            }
+            return;
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (formData.cnpj && !validateCnpj(formData.cnpj)) {
+            setCnpjError('CNPJ inválido. Verifique os dígitos e tente novamente.');
+            return;
+        }
         setLoading(true);
         setMessage(null);
 
         try {
             await createStore(formData);
             setMessage({ text: 'Loja cadastrada com sucesso!', type: 'success' });
-            // Optional: redirect after success
             setTimeout(() => {
                 router.push('/');
             }, 2000);
@@ -128,11 +164,23 @@ const StoreRegister: React.FC = () => {
                                 id="cnpj"
                                 name="cnpj"
                                 type="text"
-                                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 transition-shadow"
+                                maxLength={18}
+                                className={`shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 transition-shadow font-mono ${cnpjError
+                                        ? 'border-red-400 dark:border-red-500 focus:ring-red-400'
+                                        : formData.cnpj.replace(/\D/g, '').length === 14
+                                            ? 'border-green-400 dark:border-green-500 focus:ring-green-400'
+                                            : 'border-laundry-blue-200 dark:border-slate-600 focus:ring-laundry-teal-400'
+                                    }`}
                                 placeholder="00.000.000/0000-00"
                                 value={formData.cnpj}
                                 onChange={handleChange}
                             />
+                            {cnpjError && (
+                                <p className="mt-1 text-xs text-red-500 dark:text-red-400">{cnpjError}</p>
+                            )}
+                            {!cnpjError && formData.cnpj.replace(/\D/g, '').length === 14 && (
+                                <p className="mt-1 text-xs text-green-600 dark:text-green-400">✓ CNPJ válido</p>
+                            )}
                         </div>
                     </div>
 
