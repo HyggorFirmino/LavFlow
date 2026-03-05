@@ -9,15 +9,30 @@ interface KanbanListProps {
   onEditCard: (card: Card) => void;
   onDeleteCard: (cardId: string, listId: string) => void;
   onOpenSettings: (listId: string) => void;
-  // Drag and drop handlers
+  // Drag and drop handlers (mouse)
   onCardDragStart: (e: React.DragEvent<HTMLDivElement>, cardId: string, listId: string) => void;
   onListDragStart: (e: React.DragEvent<HTMLDivElement>, listId: string) => void;
   onDrop: (e: React.DragEvent, targetListId: string, targetCardId?: string) => void;
+  // Touch drag handlers (mobile)
+  onTouchDragStart: (cardId: string, sourceListId: string) => void;
+  onTouchDrop: (targetListId: string) => void;
   tagsMap: Map<string, TagDefinition>;
   currentUser: User;
 }
 
-const KanbanList: React.FC<KanbanListProps> = ({ list, onEditCard, onDeleteCard, onOpenSettings, onCardDragStart, onListDragStart, onDrop, tagsMap, currentUser }) => {
+const KanbanList: React.FC<KanbanListProps> = ({
+  list,
+  onEditCard,
+  onDeleteCard,
+  onOpenSettings,
+  onCardDragStart,
+  onListDragStart,
+  onDrop,
+  onTouchDragStart,
+  onTouchDrop,
+  tagsMap,
+  currentUser,
+}) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const isOverLimit = list.cardLimit != null && list.cards.length > list.cardLimit;
@@ -39,8 +54,9 @@ const KanbanList: React.FC<KanbanListProps> = ({ list, onEditCard, onDeleteCard,
   };
 
   return (
-    <div className="w-80 flex-shrink-0 flex flex-col">
+    <div className="w-[80vw] md:w-80 flex-shrink-0 flex flex-col snap-start">
       <div
+        data-list-id={list.id}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDropOnList}
@@ -76,6 +92,8 @@ const KanbanList: React.FC<KanbanListProps> = ({ list, onEditCard, onDeleteCard,
               onDeleteCard={onDeleteCard}
               onDragStart={onCardDragStart}
               onDrop={onDrop}
+              onTouchDragStart={onTouchDragStart}
+              onTouchDrop={onTouchDrop}
               tagsMap={tagsMap}
               currentUser={currentUser}
             />

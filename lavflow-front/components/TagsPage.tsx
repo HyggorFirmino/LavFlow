@@ -67,7 +67,6 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
               onChange={(e) => onSelectStore(e.target.value)}
               className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block w-full p-2.5 max-w-xs ml-auto"
             >
-              <option value="">Selecione uma loja...</option>
               {stores.map((store) => (
                 <option key={store.id} value={String(store.id)}>
                   {store.name}

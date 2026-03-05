@@ -2,9 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  overflow-x: hidden;
+}
+
 html, body {
   font-family: 'Poppins', sans-serif;
 }
+
+/* Smooth snap scrolling for kanban on mobile */
+@media (max-width: 767px) {
+  .snap-x {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 
 body {
   background-color: #f0f9ff; /* laundry-blue-50 */

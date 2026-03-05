@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { getStoreOrders, getAccessToken, refreshToken } from "../services/maxpanApiService";
+import { maxpanFetch } from "../services/maxpanApiService";
 import { WashingMachineIcon, ExclamationTriangleIcon } from "./icons"; // Using existing icon
 import { Store } from "../types";
+import StoreSelector from "./StoreSelector";
 
 interface Machine {
     id: string;
@@ -80,52 +81,16 @@ const MachineComponent = ({ machine }: { machine: Machine }) => {
 interface MovimentacoesPageProps {
     stores: Store[];
     selectedStoreId: string;
+    onSelectStore: (storeId: string) => void;
 }
 
-const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedStoreId }) => {
+const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedStoreId, onSelectStore }) => {
     const { currentUser } = useAuth();
     const [machines, setMachines] = useState<Machine[]>(initialMachines);
     const [storeName, setStoreName] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-        const token = getAccessToken();
-        if (!token) {
-            return null;
-        }
-
-        const makeRequest = (token: string) => {
-            return fetch(url, {
-                ...options,
-                headers: {
-                    ...options.headers,
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-        };
-
-        let response = await makeRequest(token);
-
-        if (response.status === 401) {
-            try {
-                const refreshed = await refreshToken();
-                if (refreshed) {
-                    const newToken = getAccessToken();
-                    if (!newToken) {
-                        throw new Error('Sessão expirada.');
-                    }
-                    response = await makeRequest(newToken);
-                }
-            } catch (error) {
-                console.error("Falha ao renovar token", error);
-                return null;
-            }
-        }
-
-        return response;
-    };
 
     useEffect(() => {
         const fetchMachineData = async () => {
@@ -133,21 +98,20 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
             // Find the selected store object to get maxpanId
             const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
             const targetStoreId = selectedStore?.maxpanId || selectedStoreId || process.env.NEXT_PUBLIC_STORE_ID || process.env.NEXT_PUBLIC_SELECTED_STORE_ID;
-            const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
 
-            if (!targetStoreId || !apiUrl) {
-                console.warn("Store ID (Maxpan ID) or API URL missing");
+            if (!targetStoreId) {
+                console.warn("Store ID (Maxpan ID) missing");
                 return;
             }
 
             setLoading(true);
             setError(null);
             try {
-                const url = `${apiUrl}orders?page=1&limit=1000&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
-                const response = await authenticatedFetch(url);
+                const endpoint = `orders?page=1&limit=1000&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
+                const response = await maxpanFetch(endpoint);
 
-                if (!response || !response.ok) {
-                    throw new Error(response ? `HTTP error! status: ${response.status}` : 'Erro na requisição');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -217,20 +181,23 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
                     </div>
                 )}
 
-                <div className="flex flex-col items-center mb-10 text-center">
-                    <div className="bg-laundry-teal-100 dark:bg-laundry-teal-500/20 rounded-full p-5 mb-4 shadow-lg ring-4 ring-white dark:ring-slate-800">
-                        <WashingMachineIcon className="text-laundry-teal-600 dark:text-laundry-teal-400 w-12 h-12" />
+                <div className="flex flex-col items-center mb-6 md:mb-10 text-center">
+                    <div className="bg-laundry-teal-100 dark:bg-laundry-teal-500/20 rounded-full p-3 md:p-5 mb-3 md:mb-4 shadow-lg ring-4 ring-white dark:ring-slate-800">
+                        <WashingMachineIcon className="text-laundry-teal-600 dark:text-laundry-teal-400 w-8 h-8 md:w-12 md:h-12" />
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-laundry-blue-800 dark:text-slate-100 mb-2 drop-shadow-sm">
-                        Movimentações da Loja <span className="text-laundry-teal-600 dark:text-laundry-teal-400">- {storeName}</span>
+                    <h1 className="text-xl md:text-3xl lg:text-4xl font-extrabold text-laundry-blue-800 dark:text-slate-100 mb-1 md:mb-2 drop-shadow-sm">
+                        Movimentações <span className="text-laundry-teal-600 dark:text-laundry-teal-400">- {storeName}</span>
                     </h1>
-                    <p className="text-gray-600 dark:text-slate-400 text-lg max-w-2xl">Acompanhe o status e as últimas utilizações das máquinas em tempo real.</p>
+                    <div className="mt-2 text-left">
+                        <StoreSelector stores={stores} selectedStoreId={selectedStoreId} onSelectStore={onSelectStore} />
+                    </div>
+                    <p className="text-gray-600 dark:text-slate-400 text-sm md:text-lg max-w-2xl">Acompanhe o status das máquinas em tempo real.</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Dryers Section */}
-                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-xl p-6 md:p-8 border-t-4 border-orange-400">
-                        <h2 className="text-2xl font-bold text-center text-orange-700 dark:text-orange-400 mb-8 flex items-center justify-center gap-2">
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8 border-t-4 border-orange-400">
+                        <h2 className="text-lg md:text-2xl font-bold text-center text-orange-700 dark:text-orange-400 mb-4 md:mb-8 flex items-center justify-center gap-2">
                             <span>Máquinas de Secar</span>
                         </h2>
                         {loading ? (
@@ -247,8 +214,8 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
                     </div>
 
                     {/* Washers Section */}
-                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-xl p-6 md:p-8 border-t-4 border-laundry-blue-500">
-                        <h2 className="text-2xl font-bold text-center text-laundry-blue-700 dark:text-laundry-blue-400 mb-8 flex items-center justify-center gap-2">
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8 border-t-4 border-laundry-blue-500">
+                        <h2 className="text-lg md:text-2xl font-bold text-center text-laundry-blue-700 dark:text-laundry-blue-400 mb-4 md:mb-8 flex items-center justify-center gap-2">
                             <span>Máquinas de Lavar</span>
                         </h2>
                         {loading ? (

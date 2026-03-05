@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { getAccessToken, refreshToken } from '../services/maxpanApiService';
 import { Store } from '../types';
 import { WashingMachineIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from './icons';
+import StoreSelector from './StoreSelector';
 
 // --- UI Components ---
 
@@ -176,9 +177,10 @@ const MachineCard = ({ machine, onRelease, onSendPulse, onToggle, getStatusBadge
 interface MachineOperationPageProps {
     stores: Store[];
     selectedStoreId: string;
+    onSelectStore: (storeId: string) => void;
 }
 
-const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, selectedStoreId }) => {
+const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, selectedStoreId, onSelectStore }) => {
     const { currentUser } = useAuth();
     const [machineStatuses, setMachineStatuses] = useState<Record<string, any[]>>({ lavadora: [], secadora: [] });
     const [customers, setCustomers] = useState<any[]>([]);
@@ -268,7 +270,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
         // I need to point to the local LavFlow API (NestJS).
         // Let's create a specific fetch for LavFlow API.
 
-        const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' || process.env.NEXT_PUBLIC_API_URL2;
 
         try {
             const response = await fetch(`${lavflowApiUrl}/logs?storeId=${storeIdToFilter}`);
@@ -357,7 +359,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
             // timestamp is created by backend
         };
 
-        const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' || process.env.NEXT_PUBLIC_API_URL2;
 
         try {
             await fetch(`${lavflowApiUrl}/logs`, {
@@ -423,14 +425,17 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                     <div className="bg-laundry-teal-100 dark:bg-laundry-teal-500/20 rounded-full p-4 mb-2 shadow ring-4 ring-white dark:ring-slate-800">
                         <WashingMachineIcon className="text-laundry-teal-600 dark:text-laundry-teal-400 w-10 h-10" />
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-laundry-blue-800 dark:text-slate-100 mb-1">
-                        Operação de Máquinas - <span className="text-laundry-teal-600 dark:text-laundry-teal-400">{currentStoreName}</span>
+                    <h1 className="text-lg md:text-2xl lg:text-3xl font-extrabold text-laundry-blue-800 dark:text-slate-100 mb-1 text-center">
+                        Operação - <span className="text-laundry-teal-600 dark:text-laundry-teal-400">{currentStoreName}</span>
                     </h1>
+                    <div className="mt-2">
+                        <StoreSelector stores={stores} selectedStoreId={selectedStoreId} onSelectStore={onSelectStore} />
+                    </div>
                     <p className="text-gray-500 dark:text-slate-400 text-sm">Controle e status das máquinas em tempo real</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 space-y-4 border-t-4 border-laundry-blue-500">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-3 md:p-6 space-y-3 md:space-y-4 border-t-4 border-laundry-blue-500">
                         <h2 className="text-xl font-bold text-center text-laundry-blue-700 dark:text-laundry-blue-400 border-b-2 border-laundry-blue-100 dark:border-laundry-blue-900/50 pb-2">Máquinas de Lavar</h2>
                         <div className="grid gap-4">
                             {machineStatuses.lavadora.length === 0 && <p className="text-center text-gray-400 py-4">Nenhuma máquina encontrada.</p>}
@@ -440,7 +445,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 space-y-4 border-t-4 border-orange-400">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-3 md:p-6 space-y-3 md:space-y-4 border-t-4 border-orange-400">
                         <h2 className="text-xl font-bold text-center text-orange-700 dark:text-orange-400 border-b-2 border-orange-100 dark:border-orange-900/50 pb-2">Máquinas de Secar</h2>
                         <div className="grid gap-4">
                             {machineStatuses.secadora.length === 0 && <p className="text-center text-gray-400 py-4">Nenhuma máquina encontrada.</p>}
@@ -465,12 +470,12 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                     </h2>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse text-sm md:text-base">
                                 <thead className="bg-gray-50 dark:bg-slate-700">
                                     <tr>
-                                        <th className="p-4 font-semibold text-gray-600 dark:text-slate-300">Cliente</th>
-                                        <th className="p-4 font-semibold text-gray-600 dark:text-slate-300">Máquina</th>
-                                        <th className="p-4 font-semibold text-gray-600 dark:text-slate-300">Data/Hora</th>
+                                        <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300">Cliente</th>
+                                        <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300">Máquina</th>
+                                        <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300 hidden sm:table-cell">Data/Hora</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -479,14 +484,14 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                                             const isDryer = log.machineType === 'dryer';
                                             return (
                                                 <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                                                    <td className="p-4 text-gray-800 dark:text-slate-200 font-medium">{log.customerName}</td>
-                                                    <td className="p-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isDryer ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200' : 'bg-laundry-blue-100 text-laundry-blue-800 dark:bg-laundry-blue-900/30 dark:text-laundry-blue-200'
+                                                    <td className="p-2 md:p-4 text-gray-800 dark:text-slate-200 font-medium">{log.customerName}</td>
+                                                    <td className="p-2 md:p-4">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isDryer ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200' : 'bg-laundry-blue-100 text-laundry-blue-800 dark:bg-laundry-blue-900/30 dark:text-laundry-blue-200'
                                                             }`}>
                                                             {log.machineName}
                                                         </span>
                                                     </td>
-                                                    <td className="p-4 text-gray-600 dark:text-slate-400 text-sm">{new Date(log.timestamp).toLocaleString()}</td>
+                                                    <td className="p-2 md:p-4 text-gray-600 dark:text-slate-400 text-sm hidden sm:table-cell">{new Date(log.timestamp).toLocaleString()}</td>
                                                 </tr>
                                             );
                                         })

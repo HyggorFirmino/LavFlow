@@ -24,6 +24,13 @@ export class StoresController {
     return this.storesService.findAll();
   }
 
+  @Get('cnpj/:cnpj')
+  @ApiOperation({ summary: 'Buscar loja por CNPJ' })
+  @ApiResponse({ status: 200, description: 'Retorna a loja encontrada ou null.', type: Store })
+  findByCnpj(@Param('cnpj') cnpj: string) {
+    return this.storesService.findByCnpj(cnpj);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar loja por ID' })
   @ApiResponse({ status: 200, description: 'Retorna a loja.', type: Store })

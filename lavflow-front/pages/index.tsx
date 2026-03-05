@@ -606,7 +606,7 @@ const Home: React.FC = () => {
     }
   };
 
-  // Drag and Drop handlers
+  // Drag and Drop handlers (mouse - desktop)
   const onCardDragStart = (e: React.DragEvent<HTMLDivElement>, cardId: string, sourceListId: string) => {
     draggedItem.current = { cardId, sourceListId };
     e.dataTransfer.effectAllowed = 'move';
@@ -615,6 +615,11 @@ const Home: React.FC = () => {
   const onListDragStart = (e: React.DragEvent<HTMLDivElement>, listId: string) => {
     draggedItem.current = { listId };
     e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // Touch drag handler (mobile) — set dragged item, same ref as mouse handlers
+  const onTouchCardDragStart = (cardId: string, sourceListId: string) => {
+    draggedItem.current = { cardId, sourceListId };
   };
 
   const onDrop = async (e: React.DragEvent, targetListId: string, targetCardId?: string) => {
@@ -752,6 +757,12 @@ const Home: React.FC = () => {
     }
   };
 
+  // Touch drop handler (mobile) — placed after onDrop so the reference is safe
+  const onTouchDrop = async (targetListId: string) => {
+    const fakeEvent = { preventDefault: () => { } } as React.DragEvent;
+    await onDrop(fakeEvent, targetListId);
+  };
+
   const handleNavigate = (view: ViewType) => {
     setCurrentView(view);
   };
@@ -775,10 +786,22 @@ const Home: React.FC = () => {
     return allCards.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   };
 
+  const [rechargeCpf, setRechargeCpf] = useState<string>('');
+
+  const handleNavigateToRecharge = (cpf: string) => {
+    setRechargeCpf(cpf);
+    setCurrentView('recarga');
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <DashboardPage boardData={boardData} />;
+        return <DashboardPage
+          boardData={boardData}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+        />;
       case 'list':
         return <ListView
           cards={getAllCardsSorted()}
@@ -787,16 +810,27 @@ const Home: React.FC = () => {
           onEditCard={handleOpenEditCardModal}
           onDeleteCard={handleDeleteCard}
           currentUser={currentUser!}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
         />;
       case 'history':
-        return <HistoryPage cards={getAllCardsSorted()} onRefresh={loadBoardData} />;
+        return <HistoryPage
+          cards={getAllCardsSorted()}
+          onRefresh={loadBoardData}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+        />;
       case 'clients':
         return <ClientsPage
           onAddCard={handleAddCard}
           onOpenAddCardModal={handleOpenAddCardModal}
           stores={stores}
           tags={tags}
-          selectedStoreMaxpanId={stores.find(s => String(s.id) === selectedStoreId)?.maxpanId}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+          onNavigateToRecharge={handleNavigateToRecharge}
         />;
       case 'tags':
         return <TagsPage
@@ -810,15 +844,20 @@ const Home: React.FC = () => {
           onSelectStore={setSelectedStoreId} // Assuming handleSelectStore logic is simple or passed directly
         />;
       case 'recarga':
-        return <RecargaPage stores={stores} selectedStoreId={selectedStoreId} />;
+        return <RecargaPage stores={stores} selectedStoreId={selectedStoreId} onSelectStore={setSelectedStoreId} initialCpf={rechargeCpf} />;
       case 'movimentacoes':
-        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} />;
+        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} onSelectStore={setSelectedStoreId} />;
       case 'machine-operation':
-        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} />;
+        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} onSelectStore={setSelectedStoreId} />;
       case 'profile':
         return <ProfilePage stores={stores} currentUser={currentUser!} onUpdateStore={handleUpdateStore} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
-        return <PrintLabelsPage cards={getActiveCards()} />;
+        return <PrintLabelsPage
+          cards={getActiveCards()}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={setSelectedStoreId}
+        />;
       case 'board':
       default:
         return (
@@ -833,6 +872,8 @@ const Home: React.FC = () => {
             onCardDragStart={onCardDragStart}
             onListDragStart={onListDragStart}
             onDrop={onDrop}
+            onTouchDragStart={onTouchCardDragStart}
+            onTouchDrop={onTouchDrop}
             currentUser={currentUser!}
             stores={stores}
             selectedStoreId={selectedStoreId}

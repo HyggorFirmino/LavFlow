@@ -197,6 +197,20 @@ const App: React.FC = () => {
 
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<string>(process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '');
+  const [initialRechargeCpf, setInitialRechargeCpf] = useState<string | undefined>(undefined);
+
+  // Initialize selected store
+  useEffect(() => {
+    if (stores.length > 0 && !selectedStoreId) {
+      // Revert: Use internal ID
+      setSelectedStoreId(String(stores[0].id));
+    }
+  }, [stores, selectedStoreId]);
+
+  const handleNavigateToRecharge = (cpf: string) => {
+    setInitialRechargeCpf(cpf);
+    setCurrentView('recarga');
+  };
 
   const handleSelectStore = (storeId: string) => {
     setSelectedStoreId(storeId);
@@ -215,7 +229,9 @@ const App: React.FC = () => {
         setStores(loadedStores);
         // Select the first store by default if none selected
         if (!selectedStoreId) {
-          setSelectedStoreId(String(loadedStores[0].id));
+          // PROPOSED CHANGE: Use maxpanId as the primary ID
+          const firstStore = loadedStores[0];
+          setSelectedStoreId(firstStore.maxpanId || String(firstStore.id));
         }
       }
 
@@ -400,7 +416,8 @@ const App: React.FC = () => {
       const isDrying = newCardData.services?.drying;
 
       if (selectedStoreId) {
-        const currentStore = stores.find(s => String(s.id) === selectedStoreId);
+        // PROPOSED CHANGE: Find store by maxpanId
+        const currentStore = stores.find(s => s.maxpanId === selectedStoreId || String(s.id) === selectedStoreId);
         if (currentStore) {
           if (isWashing && isDrying) {
             calculatedValue = currentStore.comboPrice || 0;
@@ -831,7 +848,7 @@ const App: React.FC = () => {
     console.log('[DEBUG] renderContent called with currentView:', currentView);
     switch (currentView) {
       case 'dashboard':
-        return <DashboardPage boardData={boardData} />;
+        return <DashboardPage boardData={boardData} stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
       case 'list':
         return <ListView
           cards={getAllCardsSorted()}
@@ -840,15 +857,21 @@ const App: React.FC = () => {
           onEditCard={handleOpenEditCardModal}
           onDeleteCard={handleDeleteCard}
           currentUser={currentUser!}
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={handleSelectStore}
         />;
       case 'history':
-        return <HistoryPage cards={getAllCardsSorted()} onRefresh={fetchData} />;
+        return <HistoryPage cards={getAllCardsSorted()} onRefresh={fetchData} stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
       case 'clients':
         return <ClientsPage
           onAddCard={handleAddCard}
           onOpenAddCardModal={handleOpenAddCardModal}
           stores={stores}
           tags={tags}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={handleSelectStore}
+          onNavigateToRecharge={handleNavigateToRecharge}
         />;
       case 'tags':
         return <TagsPage
@@ -864,14 +887,19 @@ const App: React.FC = () => {
       case 'profile':
         return <ProfilePage stores={stores} currentUser={currentUser!} onUpdateStore={handleUpdateStore} onUpdateUserTheme={handleUpdateUserTheme} />;
       case 'print-labels':
-        return <PrintLabelsPage cards={getActiveCards()} />;
+        return <PrintLabelsPage cards={getActiveCards()} stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
       case 'recarga':
-        console.log('🔄 [App] Rendering RecargaPage');
-        return <RecargaPage stores={stores} selectedStoreId={selectedStoreId} />;
+        console.log('🔄 [App] Rendering RecargaPage', { initialRechargeCpf });
+        return <RecargaPage
+          stores={stores}
+          selectedStoreId={selectedStoreId}
+          onSelectStore={handleSelectStore}
+          initialCpf={initialRechargeCpf}
+        />;
       case 'movimentacoes':
-        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} />;
+        return <MovimentacoesPage stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
       case 'machine-operation':
-        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} />;
+        return <MachineOperationPage stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
       case 'board':
       default:
         return (

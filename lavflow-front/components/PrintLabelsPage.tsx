@@ -2,9 +2,14 @@
 import React from 'react';
 import { Card } from '../types';
 import { UserIcon, BasketIcon, WashingMachineIcon, SunIcon, PrinterIcon, IdentificationIcon } from './icons';
+import { Store } from '../types';
+import StoreSelector from './StoreSelector';
 
 interface PrintLabelsPageProps {
   cards: Card[];
+  stores: Store[];
+  selectedStoreId: string;
+  onSelectStore: (storeId: string) => void;
 }
 
 const Label: React.FC<{ card: Card }> = ({ card }) => (
@@ -12,42 +17,42 @@ const Label: React.FC<{ card: Card }> = ({ card }) => (
     <div>
       <div className="flex justify-between items-start border-b border-gray-300 pb-2 mb-2">
         <div className="flex items-center">
-            <UserIcon className="w-6 h-6 mr-2 text-gray-700"/>
-            <h3 className="font-bold text-lg">{card.customerName}</h3>
+          <UserIcon className="w-6 h-6 mr-2 text-gray-700" />
+          <h3 className="font-bold text-lg">{card.customerName}</h3>
         </div>
         <div className="text-right">
-            <p className="text-xs text-gray-500">ID Pedido</p>
-            <p className="font-mono font-bold text-sm">{card.id.substring(0, 8).toUpperCase()}</p>
+          <p className="text-xs text-gray-500">ID Pedido</p>
+          <p className="font-mono font-bold text-sm">{card.id.substring(0, 8).toUpperCase()}</p>
         </div>
       </div>
       {card.customerDocument && (
         <div className="flex items-center text-gray-800 mt-2">
-            <IdentificationIcon className="w-5 h-5 mr-2"/>
-            <span className="text-base font-semibold">{card.customerDocument}</span>
+          <IdentificationIcon className="w-5 h-5 mr-2" />
+          <span className="text-base font-semibold">{card.customerDocument}</span>
         </div>
       )}
       {card.basketIdentifier && (
         <div className="flex items-center text-gray-800 mt-2">
-            <BasketIcon className="w-5 h-5 mr-2"/>
-            <span className="text-base font-semibold">{card.basketIdentifier}</span>
+          <BasketIcon className="w-5 h-5 mr-2" />
+          <span className="text-base font-semibold">{card.basketIdentifier}</span>
         </div>
       )}
     </div>
 
     <div className="flex justify-between items-end">
-        <div className="flex items-center space-x-3">
-            {card.services?.washing && <div title="Lavagem"><WashingMachineIcon className="w-8 h-8 text-gray-700" /></div>}
-            {card.services?.drying && <div title="Secagem"><SunIcon className="w-8 h-8 text-gray-700" /></div>}
-        </div>
-        <div className="text-right">
-             <p className="text-xs text-gray-500">Data de Entrada</p>
-             <p className="font-semibold">{new Date(card.createdAt).toLocaleDateString('pt-BR')}</p>
-        </div>
+      <div className="flex items-center space-x-3">
+        {card.services?.washing && <div title="Lavagem"><WashingMachineIcon className="w-8 h-8 text-gray-700" /></div>}
+        {card.services?.drying && <div title="Secagem"><SunIcon className="w-8 h-8 text-gray-700" /></div>}
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-gray-500">Data de Entrada</p>
+        <p className="font-semibold">{new Date(card.createdAt).toLocaleDateString('pt-BR')}</p>
+      </div>
     </div>
   </div>
 );
 
-const PrintLabelsPage: React.FC<PrintLabelsPageProps> = ({ cards }) => {
+const PrintLabelsPage: React.FC<PrintLabelsPageProps> = ({ cards, stores, selectedStoreId, onSelectStore }) => {
   const handlePrint = () => {
     window.print();
   };
@@ -90,6 +95,9 @@ const PrintLabelsPage: React.FC<PrintLabelsPageProps> = ({ cards }) => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-laundry-blue-900">Imprimir Etiquetas</h1>
+              <div className="mt-2 text-left print:hidden">
+                <StoreSelector stores={stores} selectedStoreId={selectedStoreId} onSelectStore={onSelectStore} />
+              </div>
               <p className="text-laundry-blue-700 mt-1">
                 Aqui estão todas as etiquetas para os pedidos ativos. Use o botão abaixo para imprimir.
               </p>
@@ -103,13 +111,13 @@ const PrintLabelsPage: React.FC<PrintLabelsPageProps> = ({ cards }) => {
             </button>
           </div>
         </div>
-        
+
         <div id="print-area" className="flex flex-wrap gap-4 justify-center">
           {cards.length > 0 ? (
             cards.map(card => <div key={card.id} className="label-container"><Label card={card} /></div>)
           ) : (
             <div className="text-center py-16 col-span-full print:hidden">
-                <p className="text-xl text-gray-500">Nenhum pedido ativo para gerar etiquetas.</p>
+              <p className="text-xl text-gray-500">Nenhum pedido ativo para gerar etiquetas.</p>
             </div>
           )}
         </div>

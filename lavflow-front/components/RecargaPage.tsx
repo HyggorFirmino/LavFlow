@@ -1,7 +1,9 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { CurrencyDollarIcon } from './icons';
 import { searchCustomerByCpf, createRecharge } from '../services/maxpanApiService';
 import { Store } from '../types';
+import StoreSelector from './StoreSelector';
+
 
 interface Customer {
     customer: any;
@@ -14,11 +16,13 @@ interface Customer {
 interface RecargaPageProps {
     stores: Store[];
     selectedStoreId: string;
+    onSelectStore: (storeId: string) => void;
+    initialCpf?: string;
 }
 
-const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId }) => {
-    console.log('📱 [RecargaPage] Component Mounted', { storesCount: stores.length, selectedStoreId });
-    const [cpf, setCpf] = useState<string>('');
+const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId, onSelectStore, initialCpf }) => {
+    console.log('📱 [RecargaPage] Component Mounted', { storesCount: stores.length, selectedStoreId, initialCpf });
+    const [cpf, setCpf] = useState<string>(initialCpf || '');
     const [amount, setAmount] = useState<string>('');
     const [amountPay, setAmountPay] = useState<string>('');
     const [paymentMethod, setPaymentMethod] = useState<string>('permuta');
@@ -37,7 +41,12 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId }) =>
         const cpfOnlyNumbers = searchCpf.replace(/\D/g, '');
 
         try {
-            const customerData = await searchCustomerByCpf(cpfOnlyNumbers);
+            const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+            const storeMaxpanId = selectedStore?.maxpanId;
+
+            console.log('🔍 Buscando cliente no Maxpan', { cpf: cpfOnlyNumbers, storeMaxpanId, selectedStoreId });
+
+            const customerData = await searchCustomerByCpf(cpfOnlyNumbers, storeMaxpanId);
             if (customerData) {
                 setCustomer(customerData);
             } else {
@@ -50,6 +59,12 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId }) =>
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (initialCpf) {
+            searchCustomer(initialCpf);
+        }
+    }, [initialCpf]);
 
     const handleSearch = async (e: FormEvent) => {
         e.preventDefault();
@@ -77,12 +92,23 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId }) =>
         }
 
         try {
+            const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+            const storeMaxpanId = selectedStore?.maxpanId;
+
+            if (!storeMaxpanId) {
+                setError('Loja não possui maxpanId configurado.');
+                setLoading(false);
+                return;
+            }
+
+            console.log('💰 Criando recarga no Maxpan', { storeMaxpanId, selectedStoreId });
+
             await createRecharge({
                 amount: amountInCents,
                 amountPay: amountPayInCents,
                 customer: customer?.customer,
                 paymentType: paymentMethod,
-                store: selectedStoreId,
+                store: storeMaxpanId,
             });
 
             setSuccess(
@@ -132,17 +158,20 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId }) =>
     };
 
     return (
-        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-gradient-to-br from-laundry-blue-50 via-laundry-teal-50 to-laundry-blue-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="flex-grow p-2 md:p-6 lg:p-8 overflow-y-auto bg-gradient-to-br from-laundry-blue-50 via-laundry-teal-50 to-laundry-blue-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
             <div className="max-w-2xl mx-auto">
-                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 border border-laundry-blue-200 dark:border-slate-700">
+                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-4 md:p-8 border border-laundry-blue-200 dark:border-slate-700">
                     <div className="flex flex-col items-center mb-8">
                         <div className="bg-laundry-teal-100 dark:bg-laundry-teal-500/20 rounded-full p-4 mb-4 shadow-lg">
                             <CurrencyDollarIcon className="text-laundry-teal-600 dark:text-laundry-teal-400 w-10 h-10" />
                         </div>
-                        <h1 className="text-3xl font-bold text-laundry-blue-800 dark:text-slate-100 mb-2">
+                        <h1 className="text-xl md:text-3xl font-bold text-laundry-blue-800 dark:text-slate-100 mb-2">
                             Recarga de Crédito
                         </h1>
-                        <p className="text-gray-600 dark:text-slate-400 text-sm">Adicione saldo à carteira do cliente</p>
+                        <div className="mt-2 text-left w-full max-w-xs">
+                            <StoreSelector stores={stores} selectedStoreId={selectedStoreId} onSelectStore={onSelectStore} />
+                        </div>
+                        <p className="text-gray-600 dark:text-slate-400 text-sm mt-2">Adicione saldo à carteira do cliente</p>
                     </div>
 
                     {!customer ? (

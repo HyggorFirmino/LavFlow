@@ -9,6 +9,10 @@ export const getStoreById = (id: string): Promise<Store> => {
     return apiFetch<Store>(`/stores/${id}`);
 };
 
+export const getStoreByCnpj = (cnpj: string): Promise<Store | null> => {
+    return apiFetch<Store | null>(`/stores/cnpj/${encodeURIComponent(cnpj)}`);
+};
+
 export const createStore = (data: Partial<Store>): Promise<Store> => {
     return apiFetch<Store>('/stores', {
         method: 'POST',

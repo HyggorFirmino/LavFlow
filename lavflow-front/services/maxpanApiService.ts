@@ -81,7 +81,7 @@ export const refreshToken = async (): Promise<boolean> => {
   }
 };
 
-const maxpanFetch = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+export const maxpanFetch = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
   const token = getAccessToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -95,17 +95,26 @@ const maxpanFetch = async (endpoint: string, options: RequestInit = {}): Promise
   });
 
   if (response.status === 401) {
+    // Step 2: try refreshing the token
     const refreshed = await refreshToken();
     if (refreshed) {
       const newToken = getAccessToken();
-      const newHeaders = {
-        ...headers,
-        'Authorization': `Bearer ${newToken}`,
-      };
-      response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers: newHeaders,
-      });
+      const refreshedHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
+      response = await fetch(`${API_URL}${endpoint}`, { ...options, headers: refreshedHeaders });
+    }
+
+    // Step 3: if still 401 (or refresh failed), fall back to the raw .env bearer token
+    if (response.status === 401 || !refreshed) {
+      const envToken = process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN;
+      if (envToken && envToken !== token) {
+        console.warn('maxpanFetch: refresh falhou, tentando com token do .env como fallback.');
+        const envHeaders = { ...headers, 'Authorization': `Bearer ${envToken}` };
+        response = await fetch(`${API_URL}${endpoint}`, { ...options, headers: envHeaders });
+        // If the env token worked, persist it for next calls
+        if (response.ok) {
+          localStorage.setItem('accessToken', envToken);
+        }
+      }
     }
   }
 
@@ -155,11 +164,14 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
     console.log('Array de clientes:', clientsArray);
 
     const mappedClients = clientsArray.map((item: any) => ({
-      id: item.customer || item.id || '',
+      id: item.customer || item._id || item.id || '',
       name: item.fullName || item.name || '',
-      document: item.documentId || item.document || '',
-      phone: item.cellphone || item.phone || '',
-      saldo: item.rechargeBalance || 0,
+      document: item.documentId || item.cpf || item.document || '',
+      phone: item.cellphone || item.phone || item.phoneNumber || '',
+      email: item.email || '',
+      birthDate: item.birthDate || item.birthday || item.dataNascimento || '',
+      address: item.address || item.endereco || '',
+      saldo: typeof item.rechargeBalance === 'number' ? item.rechargeBalance : 0,
     }));
 
     clientsCache = mappedClients;
@@ -175,12 +187,19 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
 /**
  * Busca um cliente por CPF
  * @param cpf CPF do cliente (apenas números)
+ * @param storeMaxpanId ID da loja no Maxpan (opcional)
  * @returns Dados do cliente encontrado ou null
  */
-export const searchCustomerByCpf = async (cpf: string): Promise<any> => {
+export const searchCustomerByCpf = async (cpf: string, storeMaxpanId?: string): Promise<any> => {
   try {
+    let url = `users/customer-stores?page=1&mask=true&showName=true&limit=1000&documentId=${cpf}`;
+
+    if (storeMaxpanId) {
+      url += `&store=${storeMaxpanId}`;
+    }
+
     const response = await maxpanFetch(
-      `users/customer-stores?page=1&mask=true&showName=true&limit=1000&documentId=${cpf}`,
+      url,
       { method: 'GET' }
     );
 
@@ -219,7 +238,7 @@ export const createRecharge = async (rechargeData: {
       method: 'POST',
       body: JSON.stringify({
         ...rechargeData,
-        store: selectedStoreId,
+        store: rechargeData.store || selectedStoreId,
         isBalancePurchase: true,
       }),
     });

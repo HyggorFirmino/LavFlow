@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, TagDefinition, List, User } from '../types';
 import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon, MapPinIcon } from './icons';
 import { generateWhatsAppMessage } from '../services/geminiService';
@@ -12,32 +12,28 @@ interface KanbanCardProps {
   onDeleteCard: (cardId: string, listId: string) => void;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, cardId: string, listId: string) => void;
   onDrop: (e: React.DragEvent, targetListId: string, targetCardId?: string) => void;
+  onTouchDragStart: (cardId: string, sourceListId: string) => void;
+  onTouchDrop: (targetListId: string) => void;
   tagsMap: Map<string, TagDefinition>;
   currentUser: User;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, tagsMap, currentUser }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, onTouchDragStart, onTouchDrop, tagsMap, currentUser }) => {
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [isBeingDraggedOver, setIsBeingDraggedOver] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
   const [timerStatus, setTimerStatus] = useState<'normal' | 'reminder' | 'done' | 'none'>('none');
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  const touchStarted = useRef(false);
+  const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDragging = useRef(false);
+  const scrollAnimFrame = useRef<number | null>(null);
+
   const isAdmin = currentUser.role === 'admin';
 
   useEffect(() => {
-    // Enhanced debug logging
-    console.log('[Timer Debug]', {
-      listId: list.id,
-      listType: list.type,
-      listTitle: list.title,
-      cardId: card.id,
-      cardName: card.customerName,
-      enteredDryerAt: card.enteredDryerAt,
-      totalDryingTime: list.totalDryingTime,
-      reminderInterval: list.reminderInterval,
-      willShowTimer: list.type === 'dryer' && !!card.enteredDryerAt && (!!list.totalDryingTime || !!list.reminderInterval)
-    });
-
     // Timers should only run for cards in a 'dryer' list with a valid start time.
     if (list.type !== 'dryer' || !card.enteredDryerAt) {
       setTimerStatus('none');
@@ -71,7 +67,6 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       }
 
       let remainingMs = 0;
-      let isIntervalTimer = false;
 
       // Determine which time to display
       if (list.reminderInterval && list.reminderInterval > 0) {
@@ -79,7 +74,6 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         const intervalMs = list.reminderInterval * 60 * 1000;
         const msIntoCycle = elapsedMs % intervalMs;
         remainingMs = intervalMs - msIntoCycle;
-        isIntervalTimer = true;
       } else if (list.totalDryingTime) {
         // Show total remaining time
         const totalDurationMs = list.totalDryingTime * 60 * 1000;
@@ -180,6 +174,195 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
     setIsBeingDraggedOver(false);
   };
 
+  // ── Touch Drag Handlers ──────────────────────────────────────────────────────
+
+  const createGhost = () => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const ghost = cardRef.current.cloneNode(true) as HTMLDivElement;
+    ghost.style.position = 'fixed';
+    ghost.style.top = `${rect.top}px`;
+    ghost.style.left = `${rect.left}px`;
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.opacity = '0.75';
+    ghost.style.zIndex = '9999';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.transform = 'rotate(2deg) scale(1.03)';
+    ghost.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)';
+    ghost.style.transition = 'none';
+    ghost.style.borderRadius = '12px';
+    document.body.appendChild(ghost);
+    ghostRef.current = ghost;
+  };
+
+  const moveGhost = (clientX: number, clientY: number) => {
+    if (!ghostRef.current || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    ghostRef.current.style.top = `${clientY - rect.height / 2}px`;
+    ghostRef.current.style.left = `${clientX - rect.width / 2}px`;
+  };
+
+  const removeGhost = () => {
+    if (ghostRef.current) {
+      ghostRef.current.remove();
+      ghostRef.current = null;
+    }
+  };
+
+  const getListIdAtPoint = (x: number, y: number): string | null => {
+    // Temporarily hide ghost so elementFromPoint can find the list below
+    if (ghostRef.current) ghostRef.current.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (ghostRef.current) ghostRef.current.style.display = '';
+
+    if (!el) return null;
+    const listEl = (el as HTMLElement).closest('[data-list-id]');
+    return listEl ? listEl.getAttribute('data-list-id') : null;
+  };
+
+  const getScrollContainer = (): HTMLElement | null =>
+    document.querySelector('[data-kanban-scroll]');
+
+  const startEdgeScroll = (clientX: number) => {
+    const EDGE_ZONE = 50;  // px from edge that triggers scroll
+    const SPEED = 5;        // px per frame
+    const container = getScrollContainer();
+    if (!container) return;
+
+    const vw = window.innerWidth;
+
+    if (clientX > vw - EDGE_ZONE) {
+      // Near right edge → scroll right
+      if (scrollAnimFrame.current !== null) return; // already scrolling
+      const step = () => {
+        container.scrollLeft += SPEED;
+        scrollAnimFrame.current = requestAnimationFrame(step);
+      };
+      scrollAnimFrame.current = requestAnimationFrame(step);
+    } else if (clientX < EDGE_ZONE) {
+      // Near left edge → scroll left
+      if (scrollAnimFrame.current !== null) return; // already scrolling
+      const step = () => {
+        container.scrollLeft -= SPEED;
+        scrollAnimFrame.current = requestAnimationFrame(step);
+      };
+      scrollAnimFrame.current = requestAnimationFrame(step);
+    } else {
+      // Finger in center zone → stop any ongoing scroll
+      stopEdgeScroll();
+    }
+  };
+
+  const stopEdgeScroll = () => {
+    if (scrollAnimFrame.current !== null) {
+      cancelAnimationFrame(scrollAnimFrame.current);
+      scrollAnimFrame.current = null;
+    }
+  };
+
+  const disableSnap = () => {
+    const el = getScrollContainer();
+    if (el) {
+      el.classList.remove('snap-x', 'snap-mandatory');
+      el.style.scrollSnapType = 'none';
+    }
+  };
+
+  const restoreSnap = () => {
+    const el = getScrollContainer();
+    if (el) {
+      el.classList.add('snap-x', 'snap-mandatory');
+      el.style.scrollSnapType = '';
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    // Ignore touches on action buttons (edit, delete, whatsapp)
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) return;
+
+    touchStarted.current = true;
+    isDragging.current = false;
+
+    // Start long-press detection (300ms)
+    longPressTimeout.current = setTimeout(() => {
+      if (!touchStarted.current) return;
+      isDragging.current = true;
+      onTouchDragStart(card.id, card.listId);
+      createGhost();
+      disableSnap();
+      // Provide haptic feedback if available
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 300);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStarted.current) return;
+
+    // Cancel long-press if the finger moved before the threshold
+    if (!isDragging.current) {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+      touchStarted.current = false;
+      return;
+    }
+
+    e.preventDefault(); // Prevent scroll while dragging
+    const touch = e.touches[0];
+    moveGhost(touch.clientX, touch.clientY);
+
+    // Auto-scroll the board when near the screen edges
+    startEdgeScroll(touch.clientX);
+
+    // Highlight target list
+    const targetListId = getListIdAtPoint(touch.clientX, touch.clientY);
+    document.querySelectorAll('[data-list-id]').forEach((el) => {
+      (el as HTMLElement).style.outline = '';
+    });
+    if (targetListId) {
+      const targetEl = document.querySelector(`[data-list-id="${targetListId}"]`);
+      if (targetEl) {
+        (targetEl as HTMLElement).style.outline = '2px solid #60a5fa';
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+
+    stopEdgeScroll();
+
+    if (!isDragging.current) {
+      touchStarted.current = false;
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const targetListId = getListIdAtPoint(touch.clientX, touch.clientY);
+
+    // Remove highlights
+    document.querySelectorAll('[data-list-id]').forEach((el) => {
+      (el as HTMLElement).style.outline = '';
+    });
+
+    removeGhost();
+    restoreSnap();
+
+    if (targetListId && targetListId !== card.listId) {
+      onTouchDrop(targetListId);
+    }
+
+    touchStarted.current = false;
+    isDragging.current = false;
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   const renderTimer = () => {
     if (timerStatus === 'none') return null;
 
@@ -211,12 +394,16 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
     <>
       {isBeingDraggedOver && <div className="h-1.5 bg-laundry-teal-400 rounded-lg animate-pulse" />}
       <div
+        ref={cardRef}
         draggable="true"
         onDragStart={(e) => onDragStart(e, card.id, card.listId)}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-4 mb-4 cursor-grab active:cursor-grabbing border-t-4 border-laundry-blue-400 dark:border-laundry-teal-500"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-4 mb-4 cursor-grab active:cursor-grabbing border-t-4 border-laundry-blue-400 dark:border-laundry-teal-500 select-none"
       >
         <div className="flex justify-between items-start">
           <h4 className="font-bold text-lg text-laundry-blue-900 dark:text-slate-100 break-words">

@@ -39,6 +39,7 @@ const config = {
       },
       animation: {
         'toast-in': 'toast-in-right 0.5s ease-out forwards',
+        'slide-down': 'slide-down 0.25s ease-out forwards',
       },
       keyframes: {
         'toast-in-right': {
@@ -48,6 +49,16 @@ const config = {
           },
           to: {
             transform: 'translateX(0)',
+            opacity: '1',
+          },
+        },
+        'slide-down': {
+          from: {
+            transform: 'translateY(-100%)',
+            opacity: '0',
+          },
+          to: {
+            transform: 'translateY(0)',
             opacity: '1',
           },
         },

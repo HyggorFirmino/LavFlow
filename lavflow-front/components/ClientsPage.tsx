@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Client, Card, Store, TagDefinition } from '../types';
 import { UserGroupIcon, MagnifyingGlassIcon, PlusIcon, XMarkIcon, ArrowPathIcon } from './icons';
+import StoreSelector from './StoreSelector';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
 import { fetchClients } from '../services/maxpanApiService';
 import { createClient, fetchLocalClients, updateClient } from '../services/clientService';
@@ -21,7 +22,9 @@ interface ClientsPageProps {
   onOpenAddCardModal: (initialData?: Partial<Card>) => void;
   stores: Store[];
   tags: TagDefinition[];
-  selectedStoreMaxpanId?: string;
+  selectedStoreId?: string;
+  onSelectStore: (storeId: string) => void;
+  onNavigateToRecharge: (cpf: string) => void;
 }
 
 interface ActionsMenuProps {
@@ -30,10 +33,11 @@ interface ActionsMenuProps {
   onOpenCreateMultiple: (client: Client) => void;
   onToggleSensitiveData: (clientId: string) => void;
   onEdit: (client: Client) => void;
+  onRecharge: (cpf: string) => void;
   isSensitiveDataVisible: boolean;
 }
 
-const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, onToggleSensitiveData, onEdit, isSensitiveDataVisible }) => {
+const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, onToggleSensitiveData, onEdit, onRecharge, isSensitiveDataVisible }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +67,13 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
     e.preventDefault();
     onEdit(client);
     setIsOpen(false);
-  }
+  };
+
+  const handleRechargeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onRecharge(client.document);
+    setIsOpen(false);
+  };
 
 
   return (
@@ -90,6 +100,9 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
             <button onClick={handleSingleClick} className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700" role="menuitem">
               Criar Pedido Único
             </button>
+            <button onClick={handleRechargeClick} className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700" role="menuitem">
+              Recarregar
+            </button>
             <button onClick={handleMultipleClick} className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700" role="menuitem">
               Criar Múltiplos Pedidos
             </button>
@@ -111,7 +124,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
 };
 
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal, stores, tags, selectedStoreMaxpanId }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal, stores, tags, selectedStoreId, onSelectStore, onNavigateToRecharge }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMultiCardModalOpen, setIsMultiCardModalOpen] = useState(false);
@@ -131,7 +144,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAndSetClients = async () => {
-    const fetchedClients = await fetchClients(selectedStoreMaxpanId);
+    // Lookup maxpanId from selectedStoreId (internal)
+    const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+    const storeMaxpanId = selectedStore?.maxpanId;
+
+    const fetchedClients = await fetchClients(storeMaxpanId);
     const localClients = await fetchLocalClients();
 
     const clientMap = new Map<string, Client>();
@@ -161,7 +178,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
 
   useEffect(() => {
     fetchAndSetClients();
-  }, [selectedStoreMaxpanId]);
+  }, [selectedStoreId, stores]); // Re-run if store selection or stores list changes
 
   const filteredClients = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -239,7 +256,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsSyncing(true);
     try {
       const localClients = await fetchLocalClients();
-      const externalClients = await fetchClients(selectedStoreMaxpanId); // From maxpanApiService
+      const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+      const storeMaxpanId = selectedStore?.maxpanId;
+      const externalClients = await fetchClients(storeMaxpanId); // From maxpanApiService
 
       // Use Set for O(1) lookup of documents
       const localDocuments = new Set(localClients.map(c => c.document.replace(/\D/g, '')));
@@ -326,52 +345,111 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     <>
       <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-6 pb-4">
-            <div className="flex items-center">
-              <UserGroupIcon className="w-8 h-8 text-laundry-teal-500 mr-3" />
-              <h1 className="text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">Clientes Cadastrados</h1>
+          <div className="flex flex-col gap-3 mb-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <UserGroupIcon className="w-6 h-6 md:w-8 md:h-8 text-laundry-teal-500 mr-2 md:mr-3" />
+                <h1 className="text-xl md:text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">Clientes</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <StoreSelector stores={stores} selectedStoreId={selectedStoreId || ''} onSelectStore={onSelectStore} />
+                <button
+                  onClick={handleSyncClients}
+                  disabled={isSyncing}
+                  className="flex items-center justify-center p-2 md:px-4 md:py-2 border border-laundry-blue-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-laundry-blue-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-laundry-blue-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-laundry-teal-500 disabled:opacity-50"
+                >
+                  <ArrowPathIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span className="hidden md:inline ml-2">{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+                </button>
+                <button
+                  onClick={() => { resetForm(); setIsCreateClientModalOpen(true); }}
+                  className="flex items-center justify-center p-2 md:px-4 md:py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-laundry-teal-600 hover:bg-laundry-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-laundry-teal-500"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  <span className="hidden md:inline ml-2">Novo Cliente</span>
+                </button>
+              </div>
             </div>
-            <div className="relative">
+            <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Buscar cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-72 py-2 pl-10 pr-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 pl-10 pr-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 dark:text-slate-500" />
               </div>
             </div>
-            <button
-              onClick={handleSyncClients}
-              disabled={isSyncing}
-              className={`flex items-center justify-center px-4 py-2 border border-laundry-blue-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-laundry-blue-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-laundry-blue-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-laundry-teal-500 disabled:opacity-50 mr-2`}
-            >
-              <ArrowPathIcon className={`w-5 h-5 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-            </button>
-            <button
-              onClick={() => { resetForm(); setIsCreateClientModalOpen(true); }}
-              className="ml-4 flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-laundry-teal-600 hover:bg-laundry-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-laundry-teal-500"
-            >
-              <PlusIcon className="w-5 h-5 mr-2" />
-              Novo Cliente
-            </button>
           </div>
 
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700 overflow-hidden">
+          {/* Mobile: card layout */}
+          <div className="md:hidden space-y-3">
+            {filteredClients.length > 0 ? filteredClients.map(client => {
+              const isVisible = visibleSensitiveData.includes(client.id);
+              return (
+                <div key={client.id} className="bg-white/90 dark:bg-slate-800/90 rounded-xl shadow border border-laundry-blue-200 dark:border-slate-700 p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-bold text-laundry-blue-900 dark:text-slate-100 text-base leading-tight">{client.name}</p>
+                      <p className="text-xs text-laundry-teal-600 dark:text-laundry-teal-400 font-mono font-semibold mt-0.5">{formatCurrency(client.saldo)}</p>
+                    </div>
+                    <ActionsMenu
+                      client={client}
+                      onOpenCreateSingle={handleOpenCreateSingle}
+                      onOpenCreateMultiple={handleOpenCreateMultiple}
+                      onToggleSensitiveData={toggleSensitiveData}
+                      onEdit={handleOpenEditModal}
+                      onRecharge={onNavigateToRecharge}
+                      isSensitiveDataVisible={isVisible}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                      <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">CPF</span>
+                      <p className="text-gray-700 dark:text-slate-200 font-mono text-xs mt-0.5">
+                        {isVisible ? maskVisibleCpf(client.document) : maskCpf(client.document)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Telefone</span>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5">
+                        {isVisible ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Nascimento</span>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5">{formatDate(client.birthDate) || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Endereço</span>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5 truncate">{client.address || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="text-center py-16 bg-white/80 dark:bg-slate-900/80 rounded-xl">
+                <p className="text-lg text-gray-500 dark:text-slate-400">Nenhum cliente encontrado.</p>
+                <p className="text-sm text-gray-400 dark:text-slate-500 mt-1">{searchTerm ? 'Tente ajustar sua busca.' : 'Os clientes cadastrados aparecerão aqui.'}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: table layout */}
+          <div className="hidden md:block bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700 overflow-hidden">
             <div className="w-full overflow-x-auto">
-              <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700 text-xs md:text-sm">
+              <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700 text-sm">
                 <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                   <tr>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nome</th>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Documento</th>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Nascimento</th>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Telefone</th>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Endereço</th>
-                    <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Saldo</th>
-                    <th scope="col" className="relative px-2 py-2 md:px-6 md:py-3 text-right font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Ações</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nome</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Documento</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nascimento</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Telefone</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Endereço</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Saldo</th>
+                    <th scope="col" className="relative px-6 py-3 text-right font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-laundry-blue-100 dark:divide-slate-700">
@@ -383,13 +461,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {visibleSensitiveData.includes(client.id) ? maskVisibleCpf(client.document) : maskCpf(client.document)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 hidden sm:table-cell">
-                        {formatDate(client.birthDate)}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
+                        {formatDate(client.birthDate) || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {visibleSensitiveData.includes(client.id) ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 hidden md:table-cell">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {client.address || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 font-mono">
@@ -402,13 +480,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                           onOpenCreateMultiple={handleOpenCreateMultiple}
                           onToggleSensitiveData={toggleSensitiveData}
                           onEdit={handleOpenEditModal}
+                          onRecharge={onNavigateToRecharge}
                           isSensitiveDataVisible={visibleSensitiveData.includes(client.id)}
                         />
                       </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={5} className="text-center py-16">
+                      <td colSpan={7} className="text-center py-16">
                         <p className="text-xl text-gray-500 dark:text-slate-400">Nenhum cliente encontrado.</p>
                         <p className="text-base text-gray-400 dark:text-slate-500 mt-2">{searchTerm ? 'Tente ajustar sua busca.' : 'Os clientes cadastrados aparecerão aqui.'}</p>
                       </td>

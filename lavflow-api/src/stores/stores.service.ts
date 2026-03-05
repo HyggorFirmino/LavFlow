@@ -29,6 +29,11 @@ export class StoresService {
     return store;
   }
 
+  async findByCnpj(cnpj: string): Promise<Store | null> {
+    const store = await this.storeRepository.findOne({ where: { cnpj } });
+    return store || null;
+  }
+
   async update(id: number, updateStoreDto: UpdateStoreDto): Promise<Store> {
     const store = await this.storeRepository.preload({
       id: id,

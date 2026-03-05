@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { createUser } from '../../services/userService';
-import { getStores } from '../../services/storeService';
-import { Store, User } from '../../types';
+import { getStoreByCnpj } from '../../services/storeService';
+import { Store } from '../../types';
 
 const UserRegister: React.FC = () => {
     const router = useRouter();
@@ -14,31 +14,69 @@ const UserRegister: React.FC = () => {
         role: 'EMPLOYEE',
         storeIds: [] as number[]
     });
-    const [stores, setStores] = useState<Store[]>([]);
+
+    // CNPJ search states
+    const [cnpjInput, setCnpjInput] = useState('');
+    const [foundStore, setFoundStore] = useState<Store | null | undefined>(undefined);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [selectedStores, setSelectedStores] = useState<Store[]>([]);
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
-
-    useEffect(() => {
-        const fetchStores = async () => {
-            try {
-                const fetchedStores = await getStores();
-                setStores(fetchedStores);
-            } catch (error) {
-                console.error("Erro ao buscar lojas", error);
-            }
-        };
-        fetchStores();
-    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleValidStoreIds = (selectedOptions: HTMLCollectionOf<HTMLOptionElement>) => {
-        const values = Array.from(selectedOptions, option => Number(option.value));
-        setFormData(prev => ({ ...prev, storeIds: values }));
-    }
+    const handleCnpjSearch = async () => {
+        const cnpj = cnpjInput.trim();
+        if (!cnpj) {
+            setSearchError('Digite um CNPJ para pesquisar.');
+            return;
+        }
+        setSearchLoading(true);
+        setFoundStore(undefined);
+        setSearchError(null);
+
+        try {
+            const store = await getStoreByCnpj(cnpj);
+            if (!store) {
+                setFoundStore(null);
+                setSearchError('Nenhuma loja encontrada com esse CNPJ.');
+            } else {
+                setFoundStore(store);
+                setSearchError(null);
+            }
+        } catch {
+            setFoundStore(null);
+            setSearchError('Erro ao buscar loja. Verifique o CNPJ e tente novamente.');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleAddStore = () => {
+        if (!foundStore) return;
+        const alreadyAdded = selectedStores.some(s => s.id === foundStore.id);
+        if (alreadyAdded) {
+            setSearchError('Esta loja já foi adicionada.');
+            return;
+        }
+        const updated = [...selectedStores, foundStore];
+        setSelectedStores(updated);
+        setFormData(prev => ({ ...prev, storeIds: updated.map(s => s.id) }));
+        setCnpjInput('');
+        setFoundStore(undefined);
+        setSearchError(null);
+    };
+
+    const handleRemoveStore = (storeId: number) => {
+        const updated = selectedStores.filter(s => s.id !== storeId);
+        setSelectedStores(updated);
+        setFormData(prev => ({ ...prev, storeIds: updated.map(s => s.id) }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,13 +84,9 @@ const UserRegister: React.FC = () => {
         setMessage(null);
 
         try {
-            // Cast to exact type needed by backend if strict, but Partial<User> in service should handle it.
-            // Note: storeIds logic might need adjustment if backend expects a specific format 
-            // but CreateUserDto says number[].
             await createUser({
                 ...formData,
                 role: formData.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
-                // storeIds is already number[]
             });
             setMessage({ text: 'Usuário cadastrado com sucesso!', type: 'success' });
             setTimeout(() => {
@@ -89,6 +123,7 @@ const UserRegister: React.FC = () => {
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4">
+                        {/* Nome */}
                         <div>
                             <label htmlFor="name" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Nome Completo</label>
                             <input
@@ -102,6 +137,8 @@ const UserRegister: React.FC = () => {
                                 onChange={handleChange}
                             />
                         </div>
+
+                        {/* Email */}
                         <div>
                             <label htmlFor="email" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Email</label>
                             <input
@@ -115,6 +152,8 @@ const UserRegister: React.FC = () => {
                                 onChange={handleChange}
                             />
                         </div>
+
+                        {/* Senha */}
                         <div>
                             <label htmlFor="password" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Senha</label>
                             <input
@@ -129,6 +168,8 @@ const UserRegister: React.FC = () => {
                                 onChange={handleChange}
                             />
                         </div>
+
+                        {/* Cargo */}
                         <div>
                             <label htmlFor="role" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Cargo</label>
                             <div className="relative">
@@ -148,23 +189,92 @@ const UserRegister: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Busca por CNPJ */}
                         <div>
-                            <label htmlFor="storeIds" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Lojas (Múltipla Escolha)</label>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplas.</p>
-                            <select
-                                id="storeIds"
-                                name="storeIds"
-                                multiple
-                                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 transition-shadow h-32"
-                                value={formData.storeIds.map(String)}
-                                onChange={(e) => handleValidStoreIds(e.target.selectedOptions)}
-                            >
-                                {stores.map(store => (
-                                    <option key={store.id} value={store.id} className="p-2">
-                                        {store.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <label className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">
+                                Lojas Vinculadas
+                            </label>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                Digite o CNPJ exato da loja para buscá-la e adicioná-la.
+                            </p>
+
+                            {/* Input de CNPJ + Botão Buscar */}
+                            <div className="flex gap-2 mb-3">
+                                <input
+                                    type="text"
+                                    value={cnpjInput}
+                                    onChange={e => { setCnpjInput(e.target.value); setFoundStore(undefined); setSearchError(null); }}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCnpjSearch())}
+                                    placeholder="00.000.000/0000-00"
+                                    className="flex-1 shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 transition-shadow font-mono"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCnpjSearch}
+                                    disabled={searchLoading}
+                                    className="px-4 py-3 bg-laundry-blue-600 hover:bg-laundry-blue-700 disabled:bg-laundry-blue-300 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                                >
+                                    {searchLoading ? (
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                        </svg>
+                                    ) : 'Buscar'}
+                                </button>
+                            </div>
+
+                            {/* Resultado da busca */}
+                            {searchError && (
+                                <p className="text-xs text-red-500 dark:text-red-400 mb-3">{searchError}</p>
+                            )}
+
+                            {foundStore && (
+                                <div className="flex items-center justify-between p-3 mb-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-600 rounded-lg">
+                                    <div>
+                                        <p className="text-sm font-semibold text-green-800 dark:text-green-300">{foundStore.name}</p>
+                                        <p className="text-xs text-green-600 dark:text-green-400 font-mono">{foundStore.cnpj}</p>
+                                        {foundStore.address && <p className="text-xs text-green-600 dark:text-green-400">{foundStore.address}</p>}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddStore}
+                                        className="ml-3 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                        </svg>
+                                        Adicionar
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Lista de lojas adicionadas */}
+                            {selectedStores.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                        Lojas selecionadas ({selectedStores.length})
+                                    </p>
+                                    {selectedStores.map(store => (
+                                        <div key={store.id} className="flex items-center justify-between p-2.5 bg-laundry-blue-50 dark:bg-slate-700 border border-laundry-blue-200 dark:border-slate-600 rounded-lg">
+                                            <div>
+                                                <p className="text-sm font-medium text-laundry-blue-800 dark:text-slate-200">{store.name}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{store.cnpj}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveStore(store.id)}
+                                                className="ml-2 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                                                title="Remover loja"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

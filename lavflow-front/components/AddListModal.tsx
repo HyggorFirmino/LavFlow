@@ -84,7 +84,6 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
               className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
               required
             >
-              <option value="">Selecione uma loja...</option>
               {stores.map(store => (
                 <option key={store.id} value={store.id}>{store.name}</option>
               ))}
