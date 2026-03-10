@@ -406,9 +406,19 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-4 mb-4 cursor-grab active:cursor-grabbing border-t-4 border-laundry-blue-400 dark:border-laundry-teal-500 select-none"
       >
         <div className="flex justify-between items-start">
-          <h4 className="font-bold text-lg text-laundry-blue-900 dark:text-slate-100 break-words">
-            {card.client?.name || card.customerName}
-          </h4>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-bold text-lg text-laundry-blue-900 dark:text-slate-100 break-words">
+              {card.client?.name || card.customerName}
+            </h4>
+            {card.numeroCesto && (
+              <span
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-laundry-blue-100 dark:bg-laundry-blue-900/50 text-laundry-blue-700 dark:text-laundry-blue-300 text-xs font-bold border border-laundry-blue-200 dark:border-laundry-blue-800 shrink-0"
+                title={`Cesto Numérico: ${card.numeroCesto}`}
+              >
+                {card.numeroCesto}
+              </span>
+            )}
+          </div>
           <div className="flex space-x-1">
             <button onClick={() => onEditCard(card)} className="text-gray-400 dark:text-slate-400 hover:text-laundry-blue-500 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-100 dark:hover:bg-slate-700 transition-colors" aria-label="Editar Pedido">
               <PencilIcon className="w-5 h-5" />
@@ -440,7 +450,9 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         {card.basketIdentifier && (
           <div className="flex items-center text-gray-700 dark:text-slate-300 mt-2">
             <BasketIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
-            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">{card.basketIdentifier}</span>
+            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">
+              {card.basketIdentifier}
+            </span>
           </div>
         )}
 

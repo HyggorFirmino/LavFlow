@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { StoresModule } from './stores/stores.module';
 import { ClientsModule } from './clients/clients.module';
 import { LogsModule } from './logs/logs.module';
+import { SupabaseService } from './supabase.service';
 
 @Module({
   imports: [
@@ -27,16 +28,17 @@ import { LogsModule } from './logs/logs.module';
       // 4. Injete o ConfigService para que ele possa ser usado na factory
       inject: [ConfigService],
       // 5. A 'useFactory' agora recebe o configService como um parâmetro válido
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'), // Esta é a linha que provavelmente estava dando o erro
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Apenas para desenvolvimento
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL') || '';
+        const isSupabase = dbUrl.includes('supabase');
+        return {
+          type: 'postgres',
+          url: dbUrl,
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: true, // Apenas para desenvolvimento
+          ssl: isSupabase ? { rejectUnauthorized: false } : false,
+        };
+      },
     }),
 
     // Seus outros módulos
@@ -49,6 +51,7 @@ import { LogsModule } from './logs/logs.module';
     LogsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [SupabaseService],
+  exports: [SupabaseService],
 })
 export class AppModule { }

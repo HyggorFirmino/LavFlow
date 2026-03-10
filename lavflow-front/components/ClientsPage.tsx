@@ -148,7 +148,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
     const storeMaxpanId = selectedStore?.maxpanId;
 
-    const fetchedClients = await fetchClients(storeMaxpanId);
+    const fetchedClients = await fetchClients(storeMaxpanId, selectedStore);
     const localClients = await fetchLocalClients();
 
     const clientMap = new Map<string, Client>();
@@ -206,7 +206,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsMultiCardModalOpen(true);
   };
 
-  const handleConfirmMultiple = (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string) => {
+  const handleConfirmMultiple = (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string, cestoNumbers: string[]) => {
     if (!selectedClient) return;
     for (let i = 0; i < quantity; i++) {
       // Calculate the part (e.g., "1/3")
@@ -217,6 +217,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         customerDocument: selectedClient.document,
         contact: selectedClient.phone,
         basketIdentifier: quantity > 1 ? `Cesto ${part}` : `Cesto`, // Improved identifier
+        numeroCesto: cestoNumbers[i] ? parseInt(cestoNumbers[i], 10) || undefined : undefined,
         services: services,
         tags: tags,
         notes: notes,
@@ -258,7 +259,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       const localClients = await fetchLocalClients();
       const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
       const storeMaxpanId = selectedStore?.maxpanId;
-      const externalClients = await fetchClients(storeMaxpanId); // From maxpanApiService
+      const externalClients = await fetchClients(storeMaxpanId, selectedStore); // From maxpanApiService
 
       // Use Set for O(1) lookup of documents
       const localDocuments = new Set(localClients.map(c => c.document.replace(/\D/g, '')));

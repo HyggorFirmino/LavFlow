@@ -28,6 +28,18 @@ export class CreateStoreDto {
     @ApiProperty({ description: 'Preço do combo', example: 35.00 })
     comboPrice: number;
 
-    @ApiProperty({ description: 'ID da loja externa (Maxpan)', example: 'STORE-123' })
+    @ApiProperty({ description: 'ID da loja externa (Maxpan)', example: 'STORE-123', required: false })
     maxpanId: string;
+
+    @ApiProperty({ description: 'Refresh Token da Maxpan', required: false })
+    refreshTokenMaxpan: string;
+
+    @ApiProperty({ description: 'Bearer Token da Maxpan', required: false })
+    BearerTokenMaxpan: string;
+
+    @ApiProperty({ description: 'Data de Expiração do Refresh Token', required: false })
+    refreshTokenMaxpanExpiration: string; // or Date
+
+    @ApiProperty({ description: 'Data de Expiração do Bearer Token', required: false })
+    BearerTokenMaxpanExpiration: string; // or Date
 }

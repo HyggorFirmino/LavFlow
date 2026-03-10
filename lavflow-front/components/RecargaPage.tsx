@@ -46,7 +46,7 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId, onSe
 
             console.log('🔍 Buscando cliente no Maxpan', { cpf: cpfOnlyNumbers, storeMaxpanId, selectedStoreId });
 
-            const customerData = await searchCustomerByCpf(cpfOnlyNumbers, storeMaxpanId);
+            const customerData = await searchCustomerByCpf(cpfOnlyNumbers, storeMaxpanId, selectedStore);
             if (customerData) {
                 setCustomer(customerData);
             } else {
@@ -109,7 +109,7 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId, onSe
                 customer: customer?.customer,
                 paymentType: paymentMethod,
                 store: storeMaxpanId,
-            });
+            }, selectedStore);
 
             setSuccess(
                 `Recarga de R$ ${(amountInCents / 100).toFixed(2).replace('.', ',')} realizada com sucesso para o cliente ${customer?.fullName}.`

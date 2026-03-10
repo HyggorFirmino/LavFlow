@@ -185,14 +185,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
                     </div>
                   </div>
 
-                  <div className="border-t border-laundry-blue-200 dark:border-slate-700 pt-4 mt-4">
-                    <h3 className="text-lg font-semibold text-laundry-blue-900 dark:text-slate-100 mb-4">Integrações</h3>
-                    <div>
-                      <label htmlFor="maxpanId" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">ID Maxpan</label>
-                      <input id="maxpanId" name="maxpanId" type="text" value={formData.maxpanId !== undefined ? formData.maxpanId : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed" />
-                      <p className="text-xs text-slate-500 mt-1">ID utilizado para integração com API Maxpan.</p>
+                  {isAdmin && (
+                    <div className="border-t border-laundry-blue-200 dark:border-slate-700 pt-4 mt-4">
+                      <h3 className="text-lg font-semibold text-laundry-blue-900 dark:text-slate-100 mb-4">Integrações</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="maxpanId" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">ID Maxpan</label>
+                          <input id="maxpanId" name="maxpanId" type="text" value={formData.maxpanId !== undefined ? formData.maxpanId : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50 disabled:cursor-not-allowed" />
+                          <p className="text-xs text-slate-500 mt-1">ID utilizado para integração com API Maxpan.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label htmlFor="refreshTokenMaxpan" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Refresh Token Maxpan</label>
+                            <input id="refreshTokenMaxpan" name="refreshTokenMaxpan" type="text" value={formData.refreshTokenMaxpan || ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50" />
+                          </div>
+                          <div>
+                            <label htmlFor="refreshTokenMaxpanExpiration" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Validade Refresh Token</label>
+                            <input id="refreshTokenMaxpanExpiration" name="refreshTokenMaxpanExpiration" type="datetime-local" value={formData.refreshTokenMaxpanExpiration ? String(formData.refreshTokenMaxpanExpiration).substring(0, 16) : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50" />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label htmlFor="BearerTokenMaxpan" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Bearer Token Maxpan</label>
+                            <input id="BearerTokenMaxpan" name="BearerTokenMaxpan" type="text" value={formData.BearerTokenMaxpan || ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50" />
+                          </div>
+                          <div>
+                            <label htmlFor="BearerTokenMaxpanExpiration" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Validade Bearer Token</label>
+                            <input id="BearerTokenMaxpanExpiration" name="BearerTokenMaxpanExpiration" type="datetime-local" value={formData.BearerTokenMaxpanExpiration ? String(formData.BearerTokenMaxpanExpiration).substring(0, 16) : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
             </div>

@@ -1,11 +1,11 @@
 import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
-import { refreshToken } from '../services/maxpanApiService';
+import { refreshTokenFn } from '../services/maxpanApiService';
 import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
-    refreshToken();
+    refreshTokenFn();
   }, []);
 
   return <Component {...pageProps} />;

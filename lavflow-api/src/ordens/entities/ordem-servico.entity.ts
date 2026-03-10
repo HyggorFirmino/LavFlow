@@ -62,6 +62,10 @@ export class OrdemServico {
   @Column({ name: 'basket_identifier', type: 'varchar', length: 100, nullable: true })
   basketIdentifier: string;
 
+  @ApiProperty({ example: 5, required: false })
+  @Column({ name: 'numero_cesto', type: 'int', nullable: true })
+  numeroCesto: number;
+
   @ApiProperty({ example: new Date().toISOString(), required: false, type: String })
   @Column({ name: 'notified_at', type: 'timestamp', nullable: true })
   notifiedAt: Date;

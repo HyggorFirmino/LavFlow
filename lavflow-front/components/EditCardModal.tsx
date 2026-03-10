@@ -24,6 +24,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
     const [customerDocument, setCustomerDocument] = useState('');
     const [contact, setContact] = useState('');
     const [basketIdentifier, setBasketIdentifier] = useState('');
+    const [numeroCesto, setNumeroCesto] = useState<number | undefined>(undefined);
     const [notes, setNotes] = useState('');
     const [selectedTags, setSelectedTags] = useState<CardTag[]>([]);
     const [tagInput, setTagInput] = useState('');
@@ -42,6 +43,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
             setCustomerDocument(card.customerDocument ? maskVisibleCpf(card.customerDocument) : '');
             setContact(card.contact ? maskVisiblePhone(card.contact) : '');
             setBasketIdentifier(card.basketIdentifier || '');
+            setNumeroCesto(card.numeroCesto);
             setNotes(card.notes);
             setSelectedTags(card.tags || []);
             setPaymentMethod(card.paymentMethod);
@@ -138,6 +140,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
             customerDocument: customerDocument.replace(/\D/g, ''),
             contact: contact.replace(/\D/g, ''),
             basketIdentifier,
+            numeroCesto,
             notes,
             tags: selectedTags,
             paymentMethod: paymentMethod,
@@ -165,7 +168,17 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label htmlFor="customerName" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Nome do Cliente</label>
+                                <label htmlFor="customerName" className="flex items-center gap-2 text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">
+                                    <span>Nome do Cliente</span>
+                                    {numeroCesto && (
+                                        <span
+                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-laundry-blue-100 dark:bg-laundry-blue-900/50 text-laundry-blue-700 dark:text-laundry-blue-300 text-xs font-bold border border-laundry-blue-200 dark:border-laundry-blue-800 shrink-0"
+                                            title={`Cesto Numérico: ${numeroCesto}`}
+                                        >
+                                            {numeroCesto}
+                                        </span>
+                                    )}
+                                </label>
                                 <input
                                     id="customerName"
                                     type="text"
@@ -222,16 +235,34 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                             </div>
                         </div>
 
-                        <div className="mb-4">
-                            <label htmlFor="basketIdentifier" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Identificador do Cesto</label>
-                            <input
-                                id="basketIdentifier"
-                                type="text"
-                                value={basketIdentifier}
-                                onChange={(e) => setBasketIdentifier(e.target.value)}
-                                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
-                                placeholder="Ex: Cesto 1..."
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label htmlFor="numeroCesto" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Número do Cesto</label>
+                                <select
+                                    id="numeroCesto"
+                                    value={numeroCesto || ''}
+                                    onChange={(e) => setNumeroCesto(e.target.value ? Number(e.target.value) : undefined)}
+                                    className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {[...Array(12)].map((_, i) => (
+                                        <option key={i + 1} value={i + 1}>
+                                            {i + 1}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="basketIdentifier" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Anotação do Cesto</label>
+                                <input
+                                    id="basketIdentifier"
+                                    type="text"
+                                    value={basketIdentifier}
+                                    onChange={(e) => setBasketIdentifier(e.target.value)}
+                                    className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                                    placeholder="Ex: Cesto 1..."
+                                />
+                            </div>
                         </div>
 
                         {card.history && card.history.length > 0 && (

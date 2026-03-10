@@ -1,51 +1,59 @@
-import { Client, LoginCredentials } from '../types';
+import { Client, Store } from '../types';
+import { updateStore } from './storeService';
 
 const API_URL = process.env.NEXT_PUBLIC_MAXPAN_URL;
-const selectedStoreId = process.env.NEXT_PUBLIC_SELECTED_STORE_ID;
 
 let clientsCache: Client[] | null = null;
 let lastFetchTime: number | null = null;
 const CACHE_DURATION = 20 * 60 * 1000; // 20 minutes in milliseconds
+
+/**
+ * Retrieves the Bearer token for the Maxpan API.
+ * Priority: Store.BearerTokenMaxpan > localStorage > env variable
+ */
+export const getAccessToken = (store?: Store | null): string => {
+  // 1. Try from Store (database)
+  if (store?.BearerTokenMaxpan) {
+    return store.BearerTokenMaxpan;
+  }
+  // 2. Fallback to localStorage
+  if (typeof window !== 'undefined') {
+    const localToken = localStorage.getItem('accessToken');
+    if (localToken) return localToken;
+  }
+  // 3. Fallback to env
+  return process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN || '';
+};
+
+/**
+ * Retrieves the Refresh token for the Maxpan API.
+ * Priority: Store.refreshTokenMaxpan > localStorage > env variable
+ */
+export const getRefreshToken = (store?: Store | null): string => {
+  // 1. Try from Store (database)
+  if (store?.refreshTokenMaxpan) {
+    return store.refreshTokenMaxpan;
+  }
+  // 2. Fallback to localStorage
+  if (typeof window !== 'undefined') {
+    const localToken = localStorage.getItem('refreshToken');
+    if (localToken) return localToken;
+  }
+  // 3. Fallback to env
+  return process.env.NEXT_PUBLIC_MAXPAN_REFRESH_TOKEN || '';
+};
 
 export const saveTokens = (accessToken: string, refreshToken: string) => {
   localStorage.setItem('accessToken', accessToken);
   localStorage.setItem('refreshToken', refreshToken);
 };
 
-export const getAccessToken = () => {
-  if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('accessToken');
-    if (localToken) {
-      return localToken;
-    }
-    const envToken = process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN;
-    if (envToken) {
-      localStorage.setItem('accessToken', envToken);
-      return envToken;
-    }
-  }
-  return process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN || '';
-};
-
-export const getRefreshToken = () => {
-  if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('refreshToken');
-    if (localToken) {
-      return localToken;
-    }
-    const envToken = process.env.NEXT_PUBLIC_MAXPAN_REFRESH_TOKEN;
-    if (envToken) {
-      localStorage.setItem('refreshToken', envToken);
-      return envToken;
-    }
-  }
-  return process.env.NEXT_PUBLIC_MAXPAN_REFRESH_TOKEN || '';
-};
-
-
-
-export const refreshToken = async (): Promise<boolean> => {
-  const token = getRefreshToken();
+/**
+ * Attempts to refresh the Maxpan token using the store's refresh token.
+ * If a store is provided, the new tokens are also saved back to the database.
+ */
+export const refreshTokenFn = async (store?: Store | null): Promise<boolean> => {
+  const token = getRefreshToken(store);
   if (!token) {
     return false;
   }
@@ -65,12 +73,30 @@ export const refreshToken = async (): Promise<boolean> => {
 
     const data = await response.json();
     console.log('Dados do token atualizado:', data);
-    // Adjust based on actual response structure if needed, assuming data.access.token and data.refresh.token
     const newAccessToken = data.access?.token || data.accessToken;
     const newRefreshToken = data.refresh?.token || data.refreshToken;
+    const newAccessExpires = data.access?.expires || data.accessExpires;
+    const newRefreshExpires = data.refresh?.expires || data.refreshExpires;
 
     if (newAccessToken && newRefreshToken) {
+      // Save to localStorage for immediate use
       saveTokens(newAccessToken, newRefreshToken);
+
+      // If we have a store, also persist back to the database
+      if (store?.id) {
+        try {
+          await updateStore(String(store.id), {
+            BearerTokenMaxpan: newAccessToken,
+            refreshTokenMaxpan: newRefreshToken,
+            BearerTokenMaxpanExpiration: newAccessExpires || undefined,
+            refreshTokenMaxpanExpiration: newRefreshExpires || undefined,
+          });
+          console.log('Tokens Maxpan atualizados no banco de dados para a loja', store.id);
+        } catch (err) {
+          console.error('Falha ao salvar tokens atualizados no banco:', err);
+        }
+      }
+
       return true;
     }
     return false;
@@ -81,8 +107,13 @@ export const refreshToken = async (): Promise<boolean> => {
   }
 };
 
-export const maxpanFetch = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
-  const token = getAccessToken();
+/**
+ * Core fetch wrapper for Maxpan API calls.
+ * Uses the store's BearerTokenMaxpan from the database.
+ * On 401, attempts to refresh the token and retry.
+ */
+export const maxpanFetch = async (endpoint: string, options: RequestInit = {}, store?: Store | null): Promise<Response> => {
+  const token = getAccessToken(store);
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
@@ -96,9 +127,9 @@ export const maxpanFetch = async (endpoint: string, options: RequestInit = {}): 
 
   if (response.status === 401) {
     // Step 2: try refreshing the token
-    const refreshed = await refreshToken();
+    const refreshed = await refreshTokenFn(store);
     if (refreshed) {
-      const newToken = getAccessToken();
+      const newToken = getAccessToken(); // from localStorage after refresh
       const refreshedHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
       response = await fetch(`${API_URL}${endpoint}`, { ...options, headers: refreshedHeaders });
     }
@@ -122,23 +153,9 @@ export const maxpanFetch = async (endpoint: string, options: RequestInit = {}): 
 };
 
 /**
- * Simula uma chamada de API para buscar a lista de clientes.
- * @returns Uma promessa que resolve para uma lista de clientes.
+ * Busca a lista de clientes da Maxpan.
  */
-export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> => {
-  const now = Date.now();
-  // Cache key could specific to store, but simplistic for now.
-  // Ideally, cache should be a map: storeId -> clients.
-  // For now, let's invalidate cache if storeId changes or just not use cache if storeId is provided?
-  // Or simple:
-  // if (clientsCache && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
-  //   console.log('Retornando clientes do cache');
-  //   return clientsCache;
-  // }
-  // Actually, since we are filtering by store now, a global cache is risky if we switch stores.
-  // Let's clear cache if we fetch for a specific store or just bypass for now to be safe.
-  // Or better, let's just fetch fresh.
-
+export const fetchClients = async (storeMaxpanId?: string, store?: Store | null): Promise<Client[]> => {
   if (!storeMaxpanId) {
     console.warn('fetchClients: maxpanId não fornecido. Retornando lista vazia.');
     return [];
@@ -147,10 +164,7 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
   try {
     const url = `users/customer-stores?mask=false&showName=true&limit=3000&store=${storeMaxpanId}`;
 
-    const response = await maxpanFetch(
-      url,
-      { method: 'GET' }
-    );
+    const response = await maxpanFetch(url, { method: 'GET' }, store);
 
     if (!response.ok) {
       throw new Error('Erro ao buscar clientes');
@@ -159,7 +173,6 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
     const data = await response.json();
     console.log('Resposta da API:', data);
 
-    // Ajuste conforme o formato real da resposta
     const clientsArray = Array.isArray(data) ? data : data.results ?? [];
     console.log('Array de clientes:', clientsArray);
 
@@ -175,7 +188,7 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
     }));
 
     clientsCache = mappedClients;
-    lastFetchTime = now;
+    lastFetchTime = Date.now();
 
     return mappedClients;
   } catch (error) {
@@ -186,11 +199,8 @@ export const fetchClients = async (storeMaxpanId?: string): Promise<Client[]> =>
 
 /**
  * Busca um cliente por CPF
- * @param cpf CPF do cliente (apenas números)
- * @param storeMaxpanId ID da loja no Maxpan (opcional)
- * @returns Dados do cliente encontrado ou null
  */
-export const searchCustomerByCpf = async (cpf: string, storeMaxpanId?: string): Promise<any> => {
+export const searchCustomerByCpf = async (cpf: string, storeMaxpanId?: string, store?: Store | null): Promise<any> => {
   try {
     let url = `users/customer-stores?page=1&mask=true&showName=true&limit=1000&documentId=${cpf}`;
 
@@ -198,10 +208,7 @@ export const searchCustomerByCpf = async (cpf: string, storeMaxpanId?: string): 
       url += `&store=${storeMaxpanId}`;
     }
 
-    const response = await maxpanFetch(
-      url,
-      { method: 'GET' }
-    );
+    const response = await maxpanFetch(url, { method: 'GET' }, store);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -223,8 +230,6 @@ export const searchCustomerByCpf = async (cpf: string, storeMaxpanId?: string): 
 
 /**
  * Cria uma recarga de crédito para um cliente
- * @param rechargeData Dados da recarga
- * @returns Resposta da API
  */
 export const createRecharge = async (rechargeData: {
   amount: number;
@@ -232,16 +237,15 @@ export const createRecharge = async (rechargeData: {
   customer: any;
   paymentType: string;
   store: string;
-}): Promise<any> => {
+}, store?: Store | null): Promise<any> => {
   try {
     const response = await maxpanFetch('orders', {
       method: 'POST',
       body: JSON.stringify({
         ...rechargeData,
-        store: rechargeData.store || selectedStoreId,
         isBalancePurchase: true,
       }),
-    });
+    }, store);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -257,14 +261,12 @@ export const createRecharge = async (rechargeData: {
 
 /**
  * Busca os pedidos de hoje para uma loja específica
- * @param storeId ID da loja
- * @returns Lista de pedidos (orders)
  */
-export const getStoreOrders = async (storeId: string): Promise<any> => {
+export const getStoreOrders = async (storeId: string, store?: Store | null): Promise<any> => {
   try {
     const url = `orders?page=1&limit=1000&mask=true&showName=true&storeId=${storeId}&period=today`;
     console.log('Fetching orders from:', url);
-    const response = await maxpanFetch(url, { method: 'GET' });
+    const response = await maxpanFetch(url, { method: 'GET' }, store);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

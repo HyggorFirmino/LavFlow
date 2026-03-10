@@ -51,6 +51,22 @@ export class Store {
     @Column({ type: 'varchar', length: 50, nullable: true })
     maxpanId: string;
 
+    @ApiProperty({ description: 'Refresh Token da Maxpan' })
+    @Column({ type: 'text', nullable: true })
+    refreshTokenMaxpan: string;
+
+    @ApiProperty({ description: 'Bearer Token da Maxpan' })
+    @Column({ type: 'text', nullable: true })
+    BearerTokenMaxpan: string;
+
+    @ApiProperty({ description: 'Data de Expiração do Refresh Token' })
+    @Column({ type: 'timestamp', nullable: true })
+    refreshTokenMaxpanExpiration: Date;
+
+    @ApiProperty({ description: 'Data de Expiração do Bearer Token' })
+    @Column({ type: 'timestamp', nullable: true })
+    BearerTokenMaxpanExpiration: Date;
+
     @ManyToMany(() => User, (user) => user.stores)
     @JoinTable()
     users: User[]

@@ -36,6 +36,7 @@ export interface Card {
   paymentMethod?: 'dinheiro' | 'pix';
   tags: { name: string; value?: string }[];
   basketIdentifier?: string;
+  numeroCesto?: number;
   notifiedAt?: string;
   services?: { washing: boolean; drying: boolean };
   createdAt: string; // Convertido de Date para string
@@ -112,6 +113,10 @@ export interface Store {
   dryingPrice?: number;
   comboPrice?: number;
   maxpanId?: string;
+  refreshTokenMaxpan?: string;
+  BearerTokenMaxpan?: string;
+  refreshTokenMaxpanExpiration?: string;
+  BearerTokenMaxpanExpiration?: string;
 }
 
 export type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients' | 'recarga' | 'movimentacoes' | 'machine-operation';

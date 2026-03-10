@@ -297,7 +297,9 @@ const App: React.FC = () => {
             createdAt: ordem.createdAt,
             completedAt: ordem.completedAt,
             enteredDryerAt: ordem.enteredDryerAt, // ✅ FIX: Pass value directly from API
-            client: ordem.client
+            client: ordem.client,
+            numeroCesto: ordem.numeroCesto,
+            basketIdentifier: ordem.basketIdentifier
           };
 
           console.log('🔵 CARD CREATED:', { cardId, listType: newBoardData[listId].type, enteredDryerAt: newCard.enteredDryerAt });
@@ -914,6 +916,13 @@ const App: React.FC = () => {
             onCardDragStart={onCardDragStart}
             onListDragStart={onListDragStart}
             onDrop={onDrop}
+            onTouchDragStart={(cardId, listId) => {
+              draggedItem.current = { cardId, sourceListId: listId };
+            }}
+            onTouchDrop={(targetListId) => {
+              const mockEvent = { preventDefault: () => { }, stopPropagation: () => { } } as unknown as React.DragEvent;
+              onDrop(mockEvent, targetListId);
+            }}
             currentUser={currentUser!}
             stores={stores}
             selectedStoreId={selectedStoreId}

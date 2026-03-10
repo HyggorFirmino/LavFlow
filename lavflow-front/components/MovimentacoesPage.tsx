@@ -108,7 +108,7 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
             setError(null);
             try {
                 const endpoint = `orders?page=1&limit=1000&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
-                const response = await maxpanFetch(endpoint);
+                const response = await maxpanFetch(endpoint, {}, selectedStore);
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

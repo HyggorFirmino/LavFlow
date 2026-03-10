@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  Max,
   IsArray,
   ValidateNested,
   IsBoolean,
@@ -59,6 +60,13 @@ export class CreateOrdemDto {
   @IsOptional()
   @IsString()
   basketIdentifier?: string;
+
+  @ApiProperty({ description: 'Número do cesto (1 a 12).', example: 5, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  numeroCesto?: number;
 
   @ApiProperty({ description: 'Valor do serviço.', example: 55.5, required: false })
   @IsOptional()

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { getAccessToken, refreshToken } from '../services/maxpanApiService';
+import { getAccessToken, refreshTokenFn } from '../services/maxpanApiService';
 import { Store } from '../types';
 import { WashingMachineIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from './icons';
 import StoreSelector from './StoreSelector';
@@ -199,7 +199,8 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
 
     const authenticatedFetch = useMemo(() => {
         return async (url: string, options: RequestInit = {}) => {
-            const token = getAccessToken();
+            const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+            const token = getAccessToken(selectedStore);
             if (!token) return null;
 
             const makeRequest = (token: string) => fetch(url, {
@@ -210,7 +211,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
             let response = await makeRequest(token);
             if (response.status === 401) {
                 try {
-                    const refreshed = await refreshToken();
+                    const refreshed = await refreshTokenFn(selectedStore);
                     if (refreshed) {
                         const newToken = getAccessToken();
                         if (!newToken) throw new Error('Sessão expirada.');
@@ -223,7 +224,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
             }
             return response;
         };
-    }, []);
+    }, [stores, selectedStoreId]);
 
     const fetchStatuses = async () => {
         const selectedStore = stores.find(s => String(s.id) === selectedStoreId);

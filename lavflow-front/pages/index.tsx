@@ -207,6 +207,7 @@ const Home: React.FC = () => {
             paymentMethod: ordem.paymentMethod,
             tags: ordem.tags || [],
             basketIdentifier: ordem.basketIdentifier,
+            numeroCesto: ordem.numeroCesto,
             notifiedAt: ordem.notifiedAt ? new Date(ordem.notifiedAt).toISOString() : undefined,
             enteredDryerAt: ordem.enteredDryerAt ? new Date(ordem.enteredDryerAt).toISOString() : undefined,
             services: ordem.services,

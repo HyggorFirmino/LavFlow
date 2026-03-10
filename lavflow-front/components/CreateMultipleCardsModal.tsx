@@ -10,7 +10,7 @@ interface CardTag {
 interface CreateMultipleCardsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string) => void;
+  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string, cestoNumbers: string[]) => void;
   client: Client | null;
   stores: Store[];
   tags: TagDefinition[];
@@ -26,8 +26,25 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
   const [selectedTags, setSelectedTags] = useState<CardTag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [cestoNumbers, setCestoNumbers] = useState<string[]>(['']);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const num = parseInt(quantity, 10);
+    if (!isNaN(num) && num > 0) {
+      setCestoNumbers(prev => {
+        if (prev.length === num) return prev;
+        const newArr = [...prev];
+        if (num > prev.length) {
+          for (let i = prev.length; i < num; i++) newArr.push('');
+        } else {
+          newArr.splice(num);
+        }
+        return newArr;
+      });
+    }
+  }, [quantity]);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,6 +53,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       setNotes('');
       setSelectedTags([]);
       setTagInput('');
+      setCestoNumbers(['']);
 
       // Default to first store if available and nothing selected
       if (stores.length > 0 && !selectedStoreId) {
@@ -121,7 +139,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       return;
     }
 
-    onConfirm(numQuantity, storeId, services, selectedTags, notes);
+    onConfirm(numQuantity, storeId, services, selectedTags, notes, cestoNumbers);
   };
 
   return (
@@ -166,6 +184,33 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
                 autoFocus
               />
               <p className="text-xs text-gray-500 dark:text-slate-400 mt-2">Os pedidos serão identificados sequencialmente (ex: 1/3, 2/3, 3/3).</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">
+                Números dos Cestos (Opcional)
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {cestoNumbers.map((cesto, index) => (
+                  <div key={index} className="flex flex-col">
+                    <label className="text-xs text-gray-600 dark:text-slate-400 mb-1">Cesto {index + 1}</label>
+                    <select
+                      value={cesto}
+                      onChange={(e) => {
+                        const newCestos = [...cestoNumbers];
+                        newCestos[index] = e.target.value;
+                        setCestoNumbers(newCestos);
+                      }}
+                      className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                    >
+                      <option value="">Selecione...</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={String(num)}>{num}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="mb-4">

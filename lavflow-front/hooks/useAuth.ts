@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { getAccessToken, refreshToken } from '../services/maxpanApiService';
+import { getAccessToken } from '../services/maxpanApiService';
 import { login as apiLogin } from '../services/userService';
 
 // This is a simplified example. In a real app, you'd fetch the user from the API.
