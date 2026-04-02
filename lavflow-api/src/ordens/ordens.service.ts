@@ -30,7 +30,11 @@ export class OrdensService {
   ) { }
 
   async create(createOrdemDto: CreateOrdemDto): Promise<OrdemServico> {
-    const { idStatusInicial, idFuncionarioResponsavel, clientId, storeId, ...dadosOrdem } = createOrdemDto;
+    console.log('[CREATE ORDEM] Payload recebido:', JSON.stringify(createOrdemDto, null, 2));
+    
+    const { idStatusInicial, idFuncionarioResponsavel, clientId, clientDocument, storeId, ...dadosOrdem } = createOrdemDto;
+
+    console.log('[CREATE ORDEM] Campos extraídos:', { idStatusInicial, idFuncionarioResponsavel, clientId, clientDocument, storeId });
 
     let statusInicial;
 
@@ -39,11 +43,7 @@ export class OrdensService {
       if (!statusInicial) {
         throw new NotFoundException(`Status com ID ${idStatusInicial} não encontrado.`);
       }
-      
-      // Validação opcional para checar se storeId foi providenciado
-      // e é consistente, mas assumindo que o frontend envia correto
     } else if (storeId) {
-      // Se idStatusInicial não foi fornecido, mas storeId foi, buscamos o status com ordem 1
       statusInicial = await this.statusKanbanRepository.findOne({
         where: {
           store: { id: storeId },
@@ -58,32 +58,63 @@ export class OrdensService {
       throw new NotFoundException('É necessário informar o status inicial ou a loja para criar a ordem.');
     }
 
-    const client = await this.clientRepository.findOneBy({ id: clientId });
-    if (!client) {
-      throw new NotFoundException(`Cliente com ID ${clientId} não encontrado.`);
+    console.log('[CREATE ORDEM] Status inicial encontrado:', statusInicial?.id, statusInicial?.titulo);
+
+    // Regex para validar formato UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let client: Client | null = null;
+    if (clientId) {
+      if (uuidRegex.test(clientId)) {
+        // clientId é um UUID válido → buscar direto pelo ID
+        client = await this.clientRepository.findOneBy({ id: clientId });
+      } else {
+        // clientId não é UUID (ex: ID MongoDB da Maxpan) → tentar buscar por CPF
+        console.log(`[CREATE ORDEM] clientId "${clientId}" não é UUID. Tentando buscar por CPF...`);
+        if (clientDocument) {
+          const cpfLimpo = clientDocument.replace(/\D/g, '');
+          client = await this.clientRepository.findOneBy({ cpf: cpfLimpo });
+          console.log(`[CREATE ORDEM] Busca por CPF "${cpfLimpo}":`, client ? `encontrado (${client.id})` : 'não encontrado');
+        }
+      }
+    } else if (clientDocument) {
+      // Sem clientId mas com CPF → buscar por CPF
+      const cpfLimpo = clientDocument.replace(/\D/g, '');
+      client = await this.clientRepository.findOneBy({ cpf: cpfLimpo });
     }
 
-    const novaOrdem = this.ordemServicoRepository.create({
-      ...dadosOrdem,
-      status: statusInicial,
-      client: client,
-    });
+    console.log('[CREATE ORDEM] Client:', client ? client.id : 'null (sem cliente vinculado)');
 
-    if (idFuncionarioResponsavel) {
-      novaOrdem.funcionarioResponsavel = { id: idFuncionarioResponsavel } as User;
+    try {
+      const novaOrdem = this.ordemServicoRepository.create({
+        ...dadosOrdem,
+        status: statusInicial,
+        ...(client ? { client } : {}),
+      });
+
+      if (idFuncionarioResponsavel) {
+        novaOrdem.funcionarioResponsavel = { id: idFuncionarioResponsavel } as User;
+      }
+
+      console.log('[CREATE ORDEM] Salvando ordem...');
+      const ordemSalva = await this.ordemServicoRepository.save(novaOrdem);
+      console.log('[CREATE ORDEM] Ordem salva com ID:', ordemSalva.id);
+
+      const historico = this.historicoRepository.create({
+        ordem: ordemSalva,
+        fromListTitle: '',
+        toListTitle: statusInicial.titulo,
+        idFuncionarioAcao: idFuncionarioResponsavel,
+      });
+      await this.historicoRepository.save(historico);
+
+      return ordemSalva;
+    } catch (error) {
+      console.error('[CREATE ORDEM] ❌ ERRO ao salvar:', error.message);
+      console.error('[CREATE ORDEM] ❌ Stack:', error.stack);
+      console.error('[CREATE ORDEM] ❌ Detalhes:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      throw error;
     }
-
-    const ordemSalva = await this.ordemServicoRepository.save(novaOrdem);
-
-    const historico = this.historicoRepository.create({
-      ordem: ordemSalva,
-      fromListTitle: '',
-      toListTitle: statusInicial.titulo,
-      idFuncionarioAcao: idFuncionarioResponsavel,
-    });
-    await this.historicoRepository.save(historico);
-
-    return ordemSalva;
   }
 
   async findAll(): Promise<OrdemServico[]> {

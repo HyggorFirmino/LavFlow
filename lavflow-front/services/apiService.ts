@@ -12,6 +12,7 @@ export const createOrdem = (data: Partial<Card> & { storeId?: number }): Promise
   // Construir payload limpo apenas com campos do CreateOrdemDto
   const payload: Record<string, any> = {
     clientId: data.client?.id,
+    clientDocument: data.client?.document || data.client?.cpf || data.customerDocument,
     notes: data.notes,
     tags: data.tags,
     basketIdentifier: data.basketIdentifier,
@@ -32,8 +33,11 @@ export const createOrdem = (data: Partial<Card> & { storeId?: number }): Promise
     if (payload[key] === undefined) delete payload[key];
   });
 
+  console.log('[DEBUG createOrdem] Payload final enviado:', JSON.stringify(payload, null, 2));
+
   return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
 };
+
 
 export const updateOrdem = (id: string, data: Partial<Card>): Promise<any> => {
   const payload = {

@@ -133,6 +133,15 @@ const Home: React.FC = () => {
     }
     return process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
   });
+  const [firstListsMap, setFirstListsMap] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('lavflow_firstListIds');
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) { }
+      }
+    }
+    return {};
+  });
 
   const [users, setUsers] = useState<User[]>([
     { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
@@ -215,6 +224,35 @@ const Home: React.FC = () => {
         };
       });
 
+      // Mapear primeira lista de cada loja a partir dos dados do banco e salvar no localStorage
+      const newFirstLists: Record<string, string> = {};
+      const storeStatusesMap: Record<string, any[]> = {};
+      statuses.forEach((status: any) => {
+        if (status.store) {
+          const sId = String(status.store.id);
+          if (!storeStatusesMap[sId]) storeStatusesMap[sId] = [];
+          storeStatusesMap[sId].push(status);
+        }
+      });
+      Object.keys(storeStatusesMap).forEach(sId => {
+        // Encontra explicitamente o status com ordem 1
+        const statusOrdem1 = storeStatusesMap[sId].find(s => Number(s.ordem) === 1);
+        if (statusOrdem1) {
+          newFirstLists[sId] = String(statusOrdem1.id);
+        } else {
+          // Fallback seguro caso 'ordem 1' não exista, pega o mais baixo
+          const sorted = storeStatusesMap[sId].sort((a, b) => a.ordem - b.ordem);
+          if (sorted.length > 0) {
+            newFirstLists[sId] = String(sorted[0].id);
+          }
+        }
+      });
+      console.log("[DEBUG] Listas de ordem 1 detectadas e salvas:", newFirstLists);
+      setFirstListsMap(newFirstLists);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lavflow_firstListIds', JSON.stringify(newFirstLists));
+      }
+
       // 2. Processar Ordens (Cartões) e Tags
       ordens.forEach((ordem: any) => {
         if (!ordem.status) {
@@ -263,7 +301,11 @@ const Home: React.FC = () => {
       });
 
       // Ordenar listas
-      const fetchedListOrder = statuses.map((s: any) => String(s.id));
+      const storeStatuses = currentStoreId 
+          ? statuses.filter((s:any) => s.store && String(s.store.id) === currentStoreId)
+          : statuses;
+      storeStatuses.sort((a: any, b: any) => a.ordem - b.ordem);
+      const fetchedListOrder = storeStatuses.map((s: any) => String(s.id));
       setListOrder(fetchedListOrder);
 
       // Ordenar todas as listas com ordem 1 pelo ID (crescente)
@@ -447,27 +489,43 @@ const Home: React.FC = () => {
         await updateOrdem(newCardData.id, newCardData);
         addNotification("Cartão atualizado com sucesso!", "success");
       } else {
-        console.log("Creating card. Store:", newCardData.storeId, "List:", newCardData.listId);
-        
         const cardToSave = { ...newCardData };
         
-        // Pega o Id da lista (status-kanban) que está no número 1 da ordem
+        // Determina a lista correta (primeira lista da loja correspondente, buscada do LocalStorage/API)
         if (!cardToSave.listId) {
-          let firstListId;
-          for (const lid of Object.keys(boardData)) {
-            if (Number(boardData[lid].order) === 1) {
-              firstListId = lid;
-              break;
+          const targetStoreId = String(cardToSave.storeId || selectedStoreId);
+          if (firstListsMap[targetStoreId]) {
+            cardToSave.listId = firstListsMap[targetStoreId];
+          } else {
+            // Fallback secundário: tentar descobrir pela varredura em boardData
+            let firstListId;
+            for (const lid of Object.keys(boardData)) {
+              if (Number(boardData[lid].order) === 1) {
+                firstListId = lid;
+                break;
+              }
+            }
+            if (!firstListId) {
+              // Se order 1 não existe, pega a mais baixa
+              let minOrder = Infinity;
+              for (const lid of Object.keys(boardData)) {
+                const listOrderVal = Number(boardData[lid].order);
+                if (!isNaN(listOrderVal) && listOrderVal < minOrder) {
+                  minOrder = listOrderVal;
+                  firstListId = lid;
+                }
+              }
+            }
+            
+            if (firstListId) {
+              cardToSave.listId = firstListId;
+            } else if (listOrder.length > 0) {
+              cardToSave.listId = listOrder[0];
             }
           }
-          
-          if (firstListId) {
-            cardToSave.listId = firstListId;
-          } else if (listOrder.length > 0) {
-            // Fallback
-            cardToSave.listId = listOrder[0];
-          }
         }
+        
+        console.log("Creating card. Store:", cardToSave.storeId, "List:", cardToSave.listId);
         
         await createOrdem(cardToSave);
         addNotification("Cartão criado com sucesso!", "success");

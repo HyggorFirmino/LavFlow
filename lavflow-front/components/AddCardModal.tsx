@@ -178,7 +178,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       services: services,
       createdAt: cardToEdit?.createdAt || '',
       storeId: selectedStoreId ? Number(selectedStoreId) : undefined,
-      client: clientId ? { id: clientId } : undefined, // Pass client structure with ID
+      client: clientId ? { id: clientId, document: customerDocument.replace(/\D/g, '') } : undefined, // Pass client structure with ID + CPF for backend fallback
     } as any); // Cast to any or update type if needed
     onClose();
   };

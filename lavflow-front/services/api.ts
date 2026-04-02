@@ -11,7 +11,8 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(errorData.message || 'Ocorreu um erro na API');
+        console.error('[apiFetch] Erro da API:', response.status, JSON.stringify(errorData));
+        throw new Error(errorData.message || `Erro ${response.status}: ${response.statusText}`);
     }
 
     if (response.status === 204) { // No Content
