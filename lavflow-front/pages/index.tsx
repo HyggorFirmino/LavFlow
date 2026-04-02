@@ -22,7 +22,7 @@ import MovimentacoesPage from '../components/MovimentacoesPage';
 import MachineOperationPage from '../components/MachineOperationPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
-import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem } from '../services/apiService';
+import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag } from '../services/apiService';
 import { getStores, updateStore } from '../services/storeService';
 import { login } from '../services/userService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
@@ -118,10 +118,21 @@ const Home: React.FC = () => {
   const [isListSettingsModalOpen, setIsListSettingsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [listToEdit, setListToEdit] = useState<List | null>(null);
-  const [currentView, setCurrentView] = useState<ViewType>('board');
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    if (typeof window !== 'undefined') {
+      const savedView = localStorage.getItem('lavflow_currentView');
+      if (savedView) return savedView as ViewType;
+    }
+    return 'board';
+  });
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lavflow_selectedStoreId') || process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
+    }
+    return process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
+  });
 
   const [users, setUsers] = useState<User[]>([
     { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
@@ -156,8 +167,6 @@ const Home: React.FC = () => {
         getStores(),
       ]);
 
-      setStores(storesData);
-
       // Select first store if none selected
       let currentStoreId = selectedStoreId;
       if (!currentStoreId && storesData.length > 0) {
@@ -165,8 +174,27 @@ const Home: React.FC = () => {
         setSelectedStoreId(currentStoreId);
       }
 
+      // Fetch tags with specific store
+      const fetchedTags = await getTags(currentStoreId);
+
+      setStores(storesData);
+
       const newBoardData: BoardData = {};
       const newTagMap = new Map<string, TagDefinition>();
+
+      // Initialize map with fetched database tags
+      if (fetchedTags && fetchedTags.length > 0) {
+        fetchedTags.forEach((tag: any) => {
+          newTagMap.set(tag.name, {
+            id: tag.id,
+            name: tag.name,
+            color: tag.color || TAG_COLORS[0].classes,
+            type: tag.type || 'texto',
+            baseValue: tag.baseValue ? Number(tag.baseValue) : undefined,
+            storeId: tag.store?.id || currentStoreId
+          });
+        });
+      }
 
       // 1. Processar Status (Listas)
       statuses.forEach((status: any) => {
@@ -290,8 +318,6 @@ const Home: React.FC = () => {
         const user = JSON.parse(storedUser);
         if (user) {
           setCurrentUser(user);
-          // Redirect based on role if needed, but usually just staying on current page is fine
-          // setCurrentView(user.role === 'ADMIN' ? 'dashboard' : 'board');
         }
       } catch (e) {
         console.error("Failed to parse stored user", e);
@@ -300,10 +326,20 @@ const Home: React.FC = () => {
     }
   }, []);
 
+  // Save UI preferences on change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lavflow_currentView', currentView);
+      if (selectedStoreId) {
+        localStorage.setItem('lavflow_selectedStoreId', selectedStoreId);
+      }
+    }
+  }, [currentView, selectedStoreId]);
+
   // Fetch clients separately
   useEffect(() => {
     const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
-    fetchClients(selectedStore?.maxpanId).then(setClients).catch(e => console.error("Error fetching clients", e));
+    fetchClients(selectedStore?.maxpanId, selectedStore).then(setClients).catch(e => console.error("Error fetching clients", e));
   }, [selectedStoreId, stores]);
 
 
@@ -406,50 +442,33 @@ const Home: React.FC = () => {
     // If storeId is provided (from AddCardModal for new cards), find the first list of that store.
 
     try {
-      let finalListId = '';
-
-      if (newCardData.listId) {
-        finalListId = newCardData.listId;
-      } else if (newCardData.storeId) {
-        // Fetch all statuses to find the correct one for the target store
-        const allStatuses = await getStatusKanban();
-        console.log("Searching for status in store:", newCardData.storeId);
-
-        // Filter statuses by store taking type safety into account
-        const storeStatuses = allStatuses.filter((s: any) =>
-          s.store && String(s.store.id) === String(newCardData.storeId)
-        );
-
-        // Sort by order
-        storeStatuses.sort((a: any, b: any) => a.ordem - b.ordem);
-
-        if (storeStatuses.length > 0) {
-          finalListId = String(storeStatuses[0].id);
-          console.log("Found target list:", finalListId, "for store:", newCardData.storeId);
-        } else {
-          console.warn("No lists found for store:", newCardData.storeId);
-          addNotification("A loja selecionada não possui listas. Verifique as configurações.", "error");
-          return;
-        }
-      } else {
-        // Fallback logic if storeId is missing
-        if (listOrder.length > 0) {
-          finalListId = listOrder[0];
-          console.log("Defaulting to first list of current view:", finalListId);
-        }
-      }
-
-      const cardToSave = {
-        ...newCardData,
-        listId: finalListId,
-      };
-
       if (newCardData.id) {
-        console.log("Updating card:", newCardData.id, cardToSave);
-        await updateOrdem(newCardData.id, cardToSave);
+        console.log("Updating card:", newCardData.id, newCardData);
+        await updateOrdem(newCardData.id, newCardData);
         addNotification("Cartão atualizado com sucesso!", "success");
       } else {
-        console.log("Creating card in list:", finalListId, newCardData);
+        console.log("Creating card. Store:", newCardData.storeId, "List:", newCardData.listId);
+        
+        const cardToSave = { ...newCardData };
+        
+        // Pega o Id da lista (status-kanban) que está no número 1 da ordem
+        if (!cardToSave.listId) {
+          let firstListId;
+          for (const lid of Object.keys(boardData)) {
+            if (Number(boardData[lid].order) === 1) {
+              firstListId = lid;
+              break;
+            }
+          }
+          
+          if (firstListId) {
+            cardToSave.listId = firstListId;
+          } else if (listOrder.length > 0) {
+            // Fallback
+            cardToSave.listId = listOrder[0];
+          }
+        }
+        
         await createOrdem(cardToSave);
         addNotification("Cartão criado com sucesso!", "success");
       }
@@ -577,33 +596,65 @@ const Home: React.FC = () => {
   };
 
   // Tag handlers
-  const handleSaveTag = (tagToSave: TagDefinition) => {
-    // This might need an API endpoint in the future
-    setTags(prevTags => {
-      const existingIndex = prevTags.findIndex(t => t.name === tagToSave.name);
-      if (existingIndex > -1) {
-        const newTags = [...prevTags];
-        newTags[existingIndex] = tagToSave;
-        return newTags;
+  const handleSaveTag = async (tagToSave: TagDefinition) => {
+    try {
+      if (tagToSave.id) {
+        const updatedTag = await updateTag(tagToSave.id, {
+          name: tagToSave.name,
+          color: tagToSave.color,
+          type: tagToSave.type,
+          baseValue: tagToSave.baseValue,
+        });
+        setTags(prevTags => prevTags.map(t => t.id === updatedTag.id ? { ...tagToSave, id: updatedTag.id } : t));
+        addNotification("Etiqueta atualizada com sucesso!", "success");
+      } else {
+        const newTag = await createTag({
+          name: tagToSave.name,
+          color: tagToSave.color,
+          type: tagToSave.type,
+          baseValue: tagToSave.baseValue,
+          storeId: Number(selectedStoreId)
+        });
+        setTags(prevTags => [...prevTags, { ...tagToSave, id: newTag.id, storeId: Number(selectedStoreId) }]);
+        addNotification("Etiqueta criada com sucesso!", "success");
       }
-      return [...prevTags, tagToSave];
-    });
+    } catch (error: any) {
+      console.error("Erro ao salvar etiqueta:", error);
+      if (error.message?.includes('409') || error.response?.status === 409) {
+        addNotification("Uma etiqueta com este nome já existe.", "error");
+      } else {
+        addNotification("Erro ao salvar etiqueta.", "error");
+      }
+    }
   };
 
-  const handleDeleteTag = (tagName: string) => {
-    // This might need an API endpoint in the future
+  const handleDeleteTag = async (tagName: string) => {
+    const tagToDelete = tags.find(t => t.name === tagName);
+    if (!tagToDelete || !tagToDelete.id) {
+       addNotification("Etiqueta não encontrada no banco de dados.", "error");
+       setTags(prevTags => prevTags.filter(t => t.name !== tagName));
+       return;
+    }
+
     if (window.confirm(`Tem certeza de que deseja excluir a etiqueta "${tagName}"? Isso a removerá de todos os cartões.`)) {
-      setTags(prevTags => prevTags.filter(t => t.name !== tagName));
-      setBoardData(prevData => {
-        const newData = { ...prevData };
-        Object.keys(newData).forEach(listId => {
-          newData[listId].cards = newData[listId].cards.map(card => ({
-            ...card,
-            tags: card.tags.filter(tag => tag.name !== tagName)
-          }));
+      try {
+        await deleteTag(tagToDelete.id);
+        setTags(prevTags => prevTags.filter(t => t.id !== tagToDelete.id));
+        setBoardData(prevData => {
+          const newData = { ...prevData };
+          Object.keys(newData).forEach(listId => {
+            newData[listId].cards = newData[listId].cards.map(card => ({
+              ...card,
+              tags: card.tags.filter(tag => tag.name !== tagName)
+            }));
+          });
+          return newData;
         });
-        return newData;
-      });
+        addNotification("Etiqueta excluída com sucesso!", "success");
+      } catch (error) {
+        console.error("Erro ao excluir etiqueta:", error);
+        addNotification("Erro ao excluir etiqueta.", "error");
+      }
     }
   };
 
@@ -802,6 +853,7 @@ const Home: React.FC = () => {
           stores={stores}
           selectedStoreId={selectedStoreId}
           onSelectStore={setSelectedStoreId}
+          tags={tags}
         />;
       case 'list':
         return <ListView
@@ -918,6 +970,7 @@ const Home: React.FC = () => {
           tagsMap={tagsMap}
           currentUser={currentUser!}
           stores={stores}
+          currentStoreId={selectedStoreId}
         />
         {cardToEdit && (
           <EditCardModal

@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
         <div className="flex items-center group">
           <WashingMachineIcon className="w-7 h-7 md:w-8 md:h-8 text-laundry-blue-600 dark:text-laundry-blue-400 group-hover:text-laundry-blue-700 dark:group-hover:text-laundry-blue-300 transition-all duration-300 group-hover:rotate-6" />
           <h1 className="ml-2 md:ml-3 text-lg md:text-2xl font-bold text-laundry-blue-800 dark:text-slate-100 group-hover:text-laundry-blue-900 dark:group-hover:text-white transition-colors">
-            Lavanderia Inteligente
+            LAVFLOW
           </h1>
         </div>
 

@@ -33,7 +33,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="text-center">
           <WashingMachineIcon className="w-16 h-16 mx-auto text-laundry-blue-600 dark:text-laundry-blue-400 animate-[spin_5s_linear_infinite]" />
           <h1 className="mt-4 text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">
-            Lavanderia Inteligente
+            LAVFLOW
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
             Bem-vindo! Faça login para continuar.

@@ -255,26 +255,12 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     };
 
     const fetchLogs = async () => {
-        const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
-        // User requested to use maxpanId as storeId for logs
-        const storeIdToFilter = selectedStore?.maxpanId || selectedStoreId;
-
-        if (!storeIdToFilter) return;
-
-        // Use current app API URL (LavFlow API), not Maxpan API
-        // Assuming LavFlow API is on the same host or configured via proxy/env
-        // If running separately, we might need an env var for LavFlow API URL
-        // For specific project structure: apiService.ts likely has the base URL logic
-        // But since I'm in a component, I'll use a direct fetch relative to public or configured base
-        // Let's assume /api or direct localhost for now based on context or use authenticatedFetch if it points to LavFlow API?
-        // Wait, authenticatedFetch in this file points to MAXPAN_API_URL.
-        // I need to point to the local LavFlow API (NestJS).
-        // Let's create a specific fetch for LavFlow API.
+        if (!selectedStoreId) return;
 
         const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' || process.env.NEXT_PUBLIC_API_URL2;
 
         try {
-            const response = await fetch(`${lavflowApiUrl}/logs?storeId=${storeIdToFilter}`);
+            const response = await fetch(`${lavflowApiUrl}/logs?storeId=${selectedStoreId}`);
             if (response.ok) {
                 const data = await response.json();
                 setOperationLogs(data);
@@ -287,17 +273,19 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     };
 
     useEffect(() => {
-        const fetchInitialData = async () => {
-            if (currentUser && selectedStoreId) {
-                await fetchStatuses();
-                await fetchCustomers();
-                await fetchLogs();
+        const fetchInitialData = () => {
+            if (selectedStoreId) {
+                Promise.all([
+                    fetchStatuses(),
+                    fetchCustomers(),
+                    fetchLogs()
+                ]);
             }
         };
         fetchInitialData();
         const interval = setInterval(fetchStatuses, 15000);
         return () => clearInterval(interval);
-    }, [currentUser, selectedStoreId, authenticatedFetch]);
+    }, [selectedStoreId, authenticatedFetch]);
 
     const fetchCustomers = async () => {
         const selectedStore = stores.find(s => String(s.id) === selectedStoreId);

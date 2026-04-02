@@ -18,9 +18,10 @@ interface AddCardModalProps {
   tagsMap: Map<string, TagDefinition>;
   currentUser: User;
   stores: Store[];
+  currentStoreId?: string;
 }
 
-const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, cardToEdit, allTags, tagsMap, currentUser, stores }) => {
+const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, cardToEdit, allTags, tagsMap, currentUser, stores, currentStoreId }) => {
   const [customerName, setCustomerName] = useState('');
   const [customerDocument, setCustomerDocument] = useState('');
   const [contact, setContact] = useState('');
@@ -59,7 +60,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       // If editing, let's assume store is fixed or handled elsewhere? 
       // Actually, createFromTemplate (isCreatingFromTemplate) implies new card.
       if (isCreatingFromTemplate && stores.length > 0) {
-        setSelectedStoreId(String(stores[0].id));
+        setSelectedStoreId(currentStoreId || String(stores[0].id));
       }
       // Set client ID if available
       setClientId(cardToEdit.client?.id);
@@ -82,10 +83,12 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       setPaymentMethod(undefined);
       setClientId(undefined);
       setServices({ washing: false, drying: false });
-      if (stores.length > 0) setSelectedStoreId(String(stores[0].id));
+      if (stores.length > 0) {
+        setSelectedStoreId(currentStoreId || String(stores[0].id));
+      }
     }
     setTagInput('');
-  }, [cardToEdit, isOpen]);
+  }, [cardToEdit, isOpen, currentStoreId, stores]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -123,7 +126,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
     if (!selectedTags.some(t => t.name === tagName)) {
       const tagDef = tagsMap.get(tagName);
       const newTag: CardTag = { name: tagName };
-      if (tagDef?.type === 'número') {
+      if (tagDef?.type === 'número' || tagDef?.type === 'valor') {
         newTag.value = ''; // Initialize with empty value
       }
       setSelectedTags([...selectedTags, newTag]);
@@ -340,15 +343,18 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                     return (
                       <div key={tag.name} className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border ${tagColor}`}>
                         <span>{tag.name}</span>
-                        {tagDef?.type === 'número' && (
-                          <input
-                            type="number"
-                            value={tag.value || ''}
-                            onChange={(e) => handleTagValueChange(tag.name, e.target.value)}
-                            className="w-12 text-center bg-transparent border-b border-current/50 focus:outline-none p-0 focus:border-current"
-                            placeholder="Nº"
-                            onClick={e => e.stopPropagation()}
-                          />
+                        {(tagDef?.type === 'número' || tagDef?.type === 'valor') && (
+                          <div className="flex items-center ml-1">
+                            {tagDef.type === 'valor' && <span className="mr-1">Qtd:</span>}
+                            <input
+                              type="number"
+                              value={tag.value || ''}
+                              onChange={(e) => handleTagValueChange(tag.name, e.target.value)}
+                              className="w-12 text-center bg-transparent border-b border-current/50 focus:outline-none p-0 focus:border-current"
+                              placeholder={tagDef.type === 'valor' ? '0' : 'Nº'}
+                              onClick={e => e.stopPropagation()}
+                            />
+                          </div>
                         )}
                         <button type="button" onClick={() => handleRemoveTag(tag.name)} className="text-current opacity-70 hover:opacity-100 font-bold text-lg leading-none ml-1">&times;</button>
                       </div>

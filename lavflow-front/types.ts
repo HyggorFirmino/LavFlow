@@ -65,12 +65,15 @@ export interface List {
 
 export type BoardData = Record<string, List>;
 
-export type TagType = 'texto' | 'número';
+export type TagType = 'texto' | 'número' | 'valor';
 
 export interface TagDefinition {
+  id?: number;
   name: string;
   color: string; // Tailwind CSS class e.g. 'bg-blue-100 text-blue-800'
   type: TagType;
+  baseValue?: number;
+  storeId?: number;
 }
 
 export interface User {

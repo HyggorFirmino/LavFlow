@@ -52,9 +52,10 @@ export class CreateOrdemDto {
   @Type(() => CardTagDto)
   tags?: CardTagDto[];
 
-  @ApiProperty({ description: 'ID do status inicial.', example: 1 })
+  @ApiProperty({ description: 'ID do status inicial.', example: 1, required: false })
+  @IsOptional()
   @IsInt()
-  idStatusInicial: number;
+  idStatusInicial?: number;
 
   @ApiProperty({ description: 'Identificador do cesto.', example: 'Cesto A-12', required: false })
   @IsOptional()

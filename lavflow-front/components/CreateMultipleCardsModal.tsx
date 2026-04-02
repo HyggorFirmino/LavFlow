@@ -14,9 +14,10 @@ interface CreateMultipleCardsModalProps {
   client: Client | null;
   stores: Store[];
   tags: TagDefinition[];
+  currentStoreId?: string;
 }
 
-const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isOpen, onClose, onConfirm, client, stores, tags: allTags }) => {
+const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isOpen, onClose, onConfirm, client, stores, tags: allTags, currentStoreId }) => {
   const [quantity, setQuantity] = useState('1');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
 
@@ -55,17 +56,15 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       setTagInput('');
       setCestoNumbers(['']);
 
-      // Default to first store if available and nothing selected
+      // Default to currentStoreId or first store if available and nothing selected
       if (stores.length > 0 && !selectedStoreId) {
-        setSelectedStoreId(String(stores[0].id));
-      } else if (stores.length > 0) {
-        // Ensure selected store is still valid (e.g. if stores changed)
-        if (!stores.some(s => String(s.id) === selectedStoreId)) {
-          setSelectedStoreId(String(stores[0].id));
-        }
+        setSelectedStoreId(currentStoreId || String(stores[0].id));
+      } else if (stores.length > 0 && currentStoreId) {
+        // Se mudou a loja no topo, atualizamos aqui também
+        setSelectedStoreId(currentStoreId);
       }
     }
-  }, [isOpen, stores]);
+  }, [isOpen, stores, currentStoreId]);
 
   // Close dropdown on outside click
   useEffect(() => {

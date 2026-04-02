@@ -13,15 +13,23 @@ export class TagsService {
   ) {}
 
   async create(createTagDto: CreateTagDto): Promise<Tag> {
-    const existingTag = await this.tagRepository.findOneBy({ name: createTagDto.name });
+    const existingTag = await this.tagRepository.findOne({
+      where: { name: createTagDto.name, store: { id: createTagDto.storeId } }
+    });
     if (existingTag) {
-      throw new ConflictException(`A etiqueta com o nome '${createTagDto.name}' já existe.`);
+      throw new ConflictException(`A etiqueta com o nome '${createTagDto.name}' já existe nesta loja.`);
     }
-    const tag = this.tagRepository.create(createTagDto);
+    const tag = this.tagRepository.create({
+      ...createTagDto,
+      store: { id: createTagDto.storeId }
+    });
     return this.tagRepository.save(tag);
   }
 
-  findAll(): Promise<Tag[]> {
+  findAll(storeId?: number): Promise<Tag[]> {
+    if (storeId) {
+       return this.tagRepository.find({ where: { store: { id: storeId } } });
+    }
     return this.tagRepository.find();
   }
 

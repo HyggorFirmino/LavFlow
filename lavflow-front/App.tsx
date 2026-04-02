@@ -192,20 +192,42 @@ const App: React.FC = () => {
   const [isListSettingsModalOpen, setIsListSettingsModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [listToEdit, setListToEdit] = useState<List | null>(null);
-  const [currentView, setCurrentView] = useState<ViewType>('board');
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    if (typeof window !== 'undefined') {
+      const savedView = localStorage.getItem('lavflow_currentView');
+      if (savedView) return savedView as ViewType;
+    }
+    return 'board';
+  });
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lavflow_selectedStoreId') || process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
+    }
+    return process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
+  });
   const [initialRechargeCpf, setInitialRechargeCpf] = useState<string | undefined>(undefined);
 
   // Initialize selected store
   useEffect(() => {
-    if (stores.length > 0 && !selectedStoreId) {
-      // Revert: Use internal ID
-      setSelectedStoreId(String(stores[0].id));
+    if (stores.length > 0) {
+      if (!selectedStoreId) {
+        setSelectedStoreId(String(stores[0].id));
+      }
     }
   }, [stores, selectedStoreId]);
+
+  // Save UI preferences on change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lavflow_currentView', currentView);
+      if (selectedStoreId) {
+        localStorage.setItem('lavflow_selectedStoreId', selectedStoreId);
+      }
+    }
+  }, [currentView, selectedStoreId]);
 
   const handleNavigateToRecharge = (cpf: string) => {
     setInitialRechargeCpf(cpf);
@@ -850,7 +872,7 @@ const App: React.FC = () => {
     console.log('[DEBUG] renderContent called with currentView:', currentView);
     switch (currentView) {
       case 'dashboard':
-        return <DashboardPage boardData={boardData} stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />;
+        return <DashboardPage boardData={boardData} stores={stores} selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} tags={tags} />;
       case 'list':
         return <ListView
           cards={getAllCardsSorted()}

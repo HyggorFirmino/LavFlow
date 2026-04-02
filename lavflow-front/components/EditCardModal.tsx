@@ -97,7 +97,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
         if (!selectedTags.some(t => t.name === tagName)) {
             const tagDef = tagsMap.get(tagName);
             const newTag: CardTag = { name: tagName };
-            if (tagDef?.type === 'número') {
+            if (tagDef?.type === 'número' || tagDef?.type === 'valor') {
                 newTag.value = ''; // Initialize with empty value
             }
             setSelectedTags([...selectedTags, newTag]);
@@ -294,15 +294,18 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                                         return (
                                             <div key={tag.name} className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border ${tagColor}`}>
                                                 <span>{tag.name}</span>
-                                                {tagDef?.type === 'número' && (
-                                                    <input
-                                                        type="number"
-                                                        value={tag.value || ''}
-                                                        onChange={(e) => handleTagValueChange(tag.name, e.target.value)}
-                                                        className="w-12 text-center bg-transparent border-b border-current/50 focus:outline-none p-0 focus:border-current"
-                                                        placeholder="Nº"
-                                                        onClick={e => e.stopPropagation()}
-                                                    />
+                                                {(tagDef?.type === 'número' || tagDef?.type === 'valor') && (
+                                                    <div className="flex items-center ml-1">
+                                                        {tagDef.type === 'valor' && <span className="mr-1">Qtd:</span>}
+                                                        <input
+                                                            type="number"
+                                                            value={tag.value || ''}
+                                                            onChange={(e) => handleTagValueChange(tag.name, e.target.value)}
+                                                            className="w-12 text-center bg-transparent border-b border-current/50 focus:outline-none p-0 focus:border-current"
+                                                            placeholder={tagDef.type === 'valor' ? '0' : 'Nº'}
+                                                            onClick={e => e.stopPropagation()}
+                                                        />
+                                                    </div>
                                                 )}
                                                 <button type="button" onClick={() => handleRemoveTag(tag.name)} className="text-current opacity-70 hover:opacity-100 font-bold text-lg leading-none ml-1">&times;</button>
                                             </div>

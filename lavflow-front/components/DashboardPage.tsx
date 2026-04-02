@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { BoardData } from '../types';
+import { BoardData, TagDefinition, Store } from '../types';
 import { ChartBarIcon, CurrencyDollarIcon, CheckCircleIcon, ArrowTrendingUpIcon, UsersIcon, ExclamationTriangleIcon } from './icons';
-import { Store } from '../types';
 import StoreSelector from './StoreSelector';
 
 interface DashboardPageProps {
@@ -9,6 +8,7 @@ interface DashboardPageProps {
   stores: Store[];
   selectedStoreId: string;
   onSelectStore: (storeId: string) => void;
+  tags: TagDefinition[];
 }
 
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; detail?: string }> = ({ icon, title, value, detail }) => (
@@ -118,7 +118,7 @@ const PaymentMethodChart: React.FC<{ data: { pix: { count: number; totalValue: n
   );
 }
 
-const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, selectedStoreId, onSelectStore }) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, selectedStoreId, onSelectStore, tags }) => {
   const stats = useMemo(() => {
     const completedCards = boardData['list-5']?.cards.filter(c => c.completedAt) || [];
     const totalRevenue = completedCards.reduce((sum, card) => sum + (card.serviceValue || 0), 0);
@@ -127,16 +127,35 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
     let pendingOrders = 0;
     let pendingAssistedOrders = 0;
     let incomingValue = 0;
+    const valorTagsTotals: Record<string, { totalValue: number, count: number, color: string }> = {};
+
     Object.values(boardData).forEach(list => {
       if (list.id !== 'list-5') {
         pendingOrders += list.cards.length;
         list.cards.forEach(card => {
-          if (card.tags.some(tag => tag.name === 'Assistido')) {
+          if (card.tags && card.tags.some(tag => tag.name === 'Assistido')) {
             pendingAssistedOrders++;
             incomingValue += card.serviceValue || 0;
           }
         });
       }
+
+      list.cards.forEach(card => {
+        if (!card.tags) return;
+        card.tags.forEach(tag => {
+          const tagDef = tags.find(t => t.name === tag.name);
+          if (tagDef && tagDef.type === 'valor' && tagDef.baseValue) {
+            const qty = Number(tag.value) || 0;
+            if (qty > 0) {
+              if (!valorTagsTotals[tag.name]) {
+                valorTagsTotals[tag.name] = { totalValue: 0, count: 0, color: tagDef.color };
+              }
+              valorTagsTotals[tag.name].totalValue += (qty * tagDef.baseValue);
+              valorTagsTotals[tag.name].count += qty;
+            }
+          }
+        });
+      });
     });
 
     const weeklyRevenueData = Array(7).fill(0).map((_, i) => {
@@ -182,8 +201,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
       return acc;
     }, { pix: { count: 0, totalValue: 0 }, dinheiro: { count: 0, totalValue: 0 } });
 
-    return { totalRevenue, totalCompletedOrders, pendingOrders, weeklyRevenueData, paymentMethods, weeklyRevenueTopValue, pendingAssistedOrders, incomingValue };
-  }, [boardData]);
+    return { totalRevenue, totalCompletedOrders, pendingOrders, weeklyRevenueData, paymentMethods, weeklyRevenueTopValue, pendingAssistedOrders, incomingValue, valorTagsTotals };
+  }, [boardData, tags]);
 
   return (
     <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
@@ -243,6 +262,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
             <PaymentMethodChart data={stats.paymentMethods} />
           </div>
         </div>
+        {/* Valor Tags Totals */}
+        {Object.keys(stats.valorTagsTotals).length > 0 && (
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700">
+            <div className="p-6 border-b border-laundry-blue-200 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-laundry-blue-900 dark:text-slate-100">Resumo de Etiquetas de Valor</h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400">Total calculado com base na quantidade e valor base das etiquetas do tipo "Valor" em todos os pedidos.</p>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Object.entries(stats.valorTagsTotals).map(([tagName, data]) => {
+                const tagColorClass = data.color || 'bg-gray-100 text-gray-800 border-gray-200';
+                return (
+                  <div key={tagName} className={`rounded-xl border p-4 flex flex-col items-center justify-center text-center shadow-sm ${tagColorClass} bg-opacity-20 dark:bg-opacity-10 backdrop-blur-sm`}>
+                    <span className="font-bold text-lg mb-1">{tagName}</span>
+                    <span className="text-sm font-medium opacity-80 mb-2">{data.count} itens</span>
+                    <span className="font-extrabold text-2xl">{data.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

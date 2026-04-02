@@ -507,6 +507,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         client={selectedClient}
         stores={stores}
         tags={tags}
+        currentStoreId={selectedStoreId}
       />
 
       {/* Create Client Modal */}

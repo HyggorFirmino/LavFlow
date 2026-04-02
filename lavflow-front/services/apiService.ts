@@ -8,13 +8,30 @@ export const getOrdens = (): Promise<any[]> => {
   return apiFetch(`/ordens?_t=${Date.now()}`);
 };
 
-export const createOrdem = (data: Partial<Card>): Promise<any> => {
-  // O backend espera um `id_status` no corpo
-  const payload = {
-    ...data,
-    id_status: Number(data.listId),
-    clientId: data.client?.id, // Ensure clientId is populated from the client object
+export const createOrdem = (data: Partial<Card> & { storeId?: number }): Promise<any> => {
+  // Construir payload limpo apenas com campos do CreateOrdemDto
+  const payload: Record<string, any> = {
+    clientId: data.client?.id,
+    notes: data.notes,
+    tags: data.tags,
+    basketIdentifier: data.basketIdentifier,
+    numeroCesto: data.numeroCesto,
+    serviceValue: data.serviceValue,
+    paymentMethod: data.paymentMethod,
+    services: data.services,
+    storeId: data.storeId ? Number(data.storeId) : undefined,
   };
+
+  // Só enviar idStatusInicial se tiver listId explícito
+  if (data.listId) {
+    payload.idStatusInicial = Number(data.listId);
+  }
+
+  // Remover campos undefined do payload
+  Object.keys(payload).forEach(key => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+
   return apiFetch('/ordens', { method: 'POST', body: JSON.stringify(payload) });
 };
 
@@ -82,4 +99,23 @@ export const reorderStatusOrdem = (storeId: number, orderedIds: number[]): Promi
     method: 'POST',
     body: JSON.stringify({ storeId, orderedIds })
   });
+};
+
+// --- Funções da API para Etiquetas (Tags) ---
+
+export const getTags = (storeId?: number | string): Promise<any[]> => {
+  const query = storeId ? `?storeId=${storeId}` : '';
+  return apiFetch(`/tags${query}`);
+};
+
+export const createTag = (data: any): Promise<any> => {
+  return apiFetch('/tags', { method: 'POST', body: JSON.stringify(data) });
+};
+
+export const updateTag = (id: number, data: any): Promise<any> => {
+  return apiFetch(`/tags/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+};
+
+export const deleteTag = (id: number): Promise<void> => {
+  return apiFetch(`/tags/${id}`, { method: 'DELETE' });
 };

@@ -9,43 +9,30 @@ const CACHE_DURATION = 20 * 60 * 1000; // 20 minutes in milliseconds
 
 /**
  * Retrieves the Bearer token for the Maxpan API.
- * Priority: Store.BearerTokenMaxpan > localStorage > env variable
+ * Priority: Store.BearerTokenMaxpan > env variable
+ * LocalStorage fallback has been removed to rely exclusively on database storage.
  */
 export const getAccessToken = (store?: Store | null): string => {
   // 1. Try from Store (database)
   if (store?.BearerTokenMaxpan) {
     return store.BearerTokenMaxpan;
   }
-  // 2. Fallback to localStorage
-  if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('accessToken');
-    if (localToken) return localToken;
-  }
-  // 3. Fallback to env
-  return process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN || '';
+  console.warn('getAccessToken: BearerTokenMaxpan não encontrado na loja.');
+  return '';
 };
 
 /**
  * Retrieves the Refresh token for the Maxpan API.
- * Priority: Store.refreshTokenMaxpan > localStorage > env variable
+ * Priority: Store.refreshTokenMaxpan > env variable
+ * LocalStorage fallback has been removed to rely exclusively on database storage.
  */
 export const getRefreshToken = (store?: Store | null): string => {
   // 1. Try from Store (database)
   if (store?.refreshTokenMaxpan) {
     return store.refreshTokenMaxpan;
   }
-  // 2. Fallback to localStorage
-  if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('refreshToken');
-    if (localToken) return localToken;
-  }
-  // 3. Fallback to env
-  return process.env.NEXT_PUBLIC_MAXPAN_REFRESH_TOKEN || '';
-};
-
-export const saveTokens = (accessToken: string, refreshToken: string) => {
-  localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
+  console.warn('getRefreshToken: refreshTokenMaxpan não encontrado na loja.');
+  return '';
 };
 
 /**
@@ -73,17 +60,25 @@ export const refreshTokenFn = async (store?: Store | null): Promise<boolean> => 
 
     const data = await response.json();
     console.log('Dados do token atualizado:', data);
-    const newAccessToken = data.access?.token || data.accessToken;
-    const newRefreshToken = data.refresh?.token || data.refreshToken;
-    const newAccessExpires = data.access?.expires || data.accessExpires;
-    const newRefreshExpires = data.refresh?.expires || data.refreshExpires;
+    
+    // Tratando diferentes formatos de resposta de APIs de token
+    const newAccessToken = data?.access?.token || data?.accessToken || data?.token || data?.tokens?.access?.token;
+    const newRefreshToken = data?.refresh?.token || data?.refreshToken || data?.refresh_token || data?.tokens?.refresh?.token;
+    
+    // Tratando as validades
+    const newAccessExpires = data?.access?.expires || data?.accessExpires || data?.expires_in || data?.tokens?.access?.expires;
+    const newRefreshExpires = data?.refresh?.expires || data?.refreshExpires || data?.tokens?.refresh?.expires;
 
     if (newAccessToken && newRefreshToken) {
-      // Save to localStorage for immediate use
-      saveTokens(newAccessToken, newRefreshToken);
+      // If we have a store, persist back to the database
+      if (store && store.id) {
+        // Mutate store reference in memory to ensure maxpanFetch can use the updated token immediately
+        store.BearerTokenMaxpan = newAccessToken;
+        store.refreshTokenMaxpan = newRefreshToken;
 
-      // If we have a store, also persist back to the database
-      if (store?.id) {
+        if (newAccessExpires) store.BearerTokenMaxpanExpiration = newAccessExpires;
+        if (newRefreshExpires) store.refreshTokenMaxpanExpiration = newRefreshExpires;
+
         try {
           await updateStore(String(store.id), {
             BearerTokenMaxpan: newAccessToken,
@@ -91,13 +86,17 @@ export const refreshTokenFn = async (store?: Store | null): Promise<boolean> => 
             BearerTokenMaxpanExpiration: newAccessExpires || undefined,
             refreshTokenMaxpanExpiration: newRefreshExpires || undefined,
           });
-          console.log('Tokens Maxpan atualizados no banco de dados para a loja', store.id);
+          console.log('Tokens Maxpan atualizados no banco de dados para a loja', store.name || store.id);
         } catch (err) {
           console.error('Falha ao salvar tokens atualizados no banco:', err);
         }
+      } else {
+        console.warn('refreshTokenFn: token atualizado mas *nenhuma loja referenciada* para salvar no banco!');
       }
 
       return true;
+    } else {
+      console.error('refreshTokenFn: Formato de retorno da Maxpan não reconhecido, dados:', data);
     }
     return false;
 
@@ -129,23 +128,14 @@ export const maxpanFetch = async (endpoint: string, options: RequestInit = {}, s
     // Step 2: try refreshing the token
     const refreshed = await refreshTokenFn(store);
     if (refreshed) {
-      const newToken = getAccessToken(); // from localStorage after refresh
+      const newToken = getAccessToken(store); // from store object after refresh memory mutation
       const refreshedHeaders = { ...headers, 'Authorization': `Bearer ${newToken}` };
       response = await fetch(`${API_URL}${endpoint}`, { ...options, headers: refreshedHeaders });
     }
 
-    // Step 3: if still 401 (or refresh failed), fall back to the raw .env bearer token
     if (response.status === 401 || !refreshed) {
-      const envToken = process.env.NEXT_PUBLIC_MAXPAN_BEARER_TOKEN;
-      if (envToken && envToken !== token) {
-        console.warn('maxpanFetch: refresh falhou, tentando com token do .env como fallback.');
-        const envHeaders = { ...headers, 'Authorization': `Bearer ${envToken}` };
-        response = await fetch(`${API_URL}${endpoint}`, { ...options, headers: envHeaders });
-        // If the env token worked, persist it for next calls
-        if (response.ok) {
-          localStorage.setItem('accessToken', envToken);
-        }
-      }
+      console.warn('maxpanFetch: Falha irreversível na autenticação. Token inválido ou não foi possível renovar.');
+      // We could optionally throw an error here depending on frontend architecture
     }
   }
 

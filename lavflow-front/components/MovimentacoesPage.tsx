@@ -101,13 +101,14 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
 
             if (!targetStoreId) {
                 console.warn("Store ID (Maxpan ID) missing");
+                setLoading(false);
                 return;
             }
 
             setLoading(true);
             setError(null);
             try {
-                const endpoint = `orders?page=1&limit=1000&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
+                const endpoint = `orders?page=1&limit=50&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
                 const response = await maxpanFetch(endpoint, {}, selectedStore);
 
                 if (!response.ok) {
@@ -159,10 +160,10 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
             }
         };
 
-        if (currentUser) {
+        if (selectedStoreId) {
             fetchMachineData();
         }
-    }, [currentUser, selectedStoreId, stores]);
+    }, [selectedStoreId, stores]);
 
     const dryers = machines.filter((m) => m.type === "dryer");
     const washers = machines.filter((m) => m.type === "washer");
