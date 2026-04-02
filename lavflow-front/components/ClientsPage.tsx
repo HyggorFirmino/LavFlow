@@ -82,7 +82,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex justify-center w-full rounded-md border border-laundry-blue-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-laundry-blue-100 dark:focus:ring-offset-slate-800 focus:ring-laundry-teal-500"
+          className="inline-flex justify-between w-full rounded-md border border-laundry-blue-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-laundry-blue-100 dark:focus:ring-offset-slate-800 focus:ring-laundry-teal-500"
           id="options-menu"
           aria-haspopup="true"
           aria-expanded={isOpen}
@@ -345,7 +345,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   return (
     <>
       <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex flex-col gap-3 mb-6 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -444,13 +444,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
               <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700 text-sm">
                 <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nome</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap min-w-[200px]">Nome</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">CPF</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nascimento</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Telefone</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Endereço</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Saldo</th>
-                    <th scope="col" className="relative px-6 py-3 text-right font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Ações</th>
+                    <th scope="col" className="relative px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-laundry-blue-100 dark:divide-slate-700">
@@ -468,13 +468,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {visibleSensitiveData.includes(client.id) ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 max-w-[200px] truncate" title={client.address || ''}>
                         {client.address || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 font-mono">
                         {formatCurrency(client.saldo)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium min-w-[120px]">
                         <ActionsMenu
                           client={client}
                           onOpenCreateSingle={handleOpenCreateSingle}

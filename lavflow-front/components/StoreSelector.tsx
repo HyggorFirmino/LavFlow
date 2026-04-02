@@ -49,7 +49,7 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({
                 title="Selecionar Loja"
             >
                 <BuildingStorefrontIcon className="w-5 h-5 text-laundry-teal-600 dark:text-laundry-teal-400" />
-                <span className="hidden md:inline truncate max-w-[150px]">
+                <span className="hidden md:inline whitespace-nowrap">
                     {selectedStore ? selectedStore.name : 'Selecione a Loja'}
                 </span>
                 <ChevronDownIcon
@@ -58,7 +58,7 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({
             </button>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-laundry-blue-200 dark:border-slate-700 min-w-[220px] z-[10] overflow-hidden">
+                <div className="absolute top-full mt-2 right-0 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-laundry-blue-200 dark:border-slate-700 min-w-[220px] w-max max-w-[calc(100vw-2rem)] z-[10] overflow-hidden">
                     <div className="py-1 max-h-60 overflow-y-auto">
                         {stores.map((store) => {
                             const isActive = String(store.id) === selectedStoreId;
@@ -73,7 +73,7 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({
                                     onClick={() => handleSelect(String(store.id))}
                                     className={`${itemClasses} w-full text-left`}
                                 >
-                                    <span className="truncate">{store.name}</span>
+                                    <span className="whitespace-nowrap pr-4">{store.name}</span>
                                     {isActive && <span className="w-2 h-2 rounded-full bg-laundry-teal-500 ml-2"></span>}
                                 </button>
                             );

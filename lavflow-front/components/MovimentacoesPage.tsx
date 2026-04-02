@@ -87,7 +87,7 @@ interface MovimentacoesPageProps {
 const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedStoreId, onSelectStore }) => {
     const { currentUser } = useAuth();
     const [machines, setMachines] = useState<Machine[]>(initialMachines);
-    const [storeName, setStoreName] = useState("");
+    const [storeName, setStoreName] = useState(() => stores.find(s => String(s.id) === selectedStoreId)?.name || "");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -143,8 +143,9 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
                         return { ...machine, state: 'available' };
                     }));
 
-                    // Try to get store name from API data, traverse up fallback chain
-                    setStoreName(data.results[0]?.store.nickName || stores.find(s => String(s.id) === selectedStoreId)?.name || "Loja");
+                    // Prioritize the selected store's name from props
+                    const currentStoreName = stores.find(s => String(s.id) === selectedStoreId)?.name;
+                    setStoreName(currentStoreName || data.results[0]?.store.nickName || "Loja");
                 } else {
                     // Fallback store name
                     const currentStore = stores.find(s => String(s.id) === selectedStoreId);
@@ -187,7 +188,7 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
                         <WashingMachineIcon className="text-laundry-teal-600 dark:text-laundry-teal-400 w-8 h-8 md:w-12 md:h-12" />
                     </div>
                     <h1 className="text-xl md:text-3xl lg:text-4xl font-extrabold text-laundry-blue-800 dark:text-slate-100 mb-1 md:mb-2 drop-shadow-sm">
-                        Movimentações <span className="text-laundry-teal-600 dark:text-laundry-teal-400">- {storeName}</span>
+                        Movimentações <span className="text-laundry-teal-600 dark:text-laundry-teal-400">- {stores.find(s => String(s.id) === selectedStoreId)?.name || storeName || "Loja"}</span>
                     </h1>
                     <div className="mt-2 text-left">
                         <StoreSelector stores={stores} selectedStoreId={selectedStoreId} onSelectStore={onSelectStore} />
