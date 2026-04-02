@@ -445,7 +445,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                 <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nome</th>
-                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Documento</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">CPF</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nascimento</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Telefone</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Endereço</th>

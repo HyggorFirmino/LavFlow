@@ -121,8 +121,8 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
               <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                 <tr>
                   <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
-                  <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden sm:table-cell">Documento</th>
-                  <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden sm:table-cell">Contato</th>
+                  <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden sm:table-cell">CPF</th>
+                  <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden sm:table-cell">Telefone</th>
                   <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider">Status</th>
                   <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden md:table-cell">Etiquetas</th>
                   {isAdmin && <th scope="col" className="px-2 py-2 md:px-6 md:py-3 text-left text-xs font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider hidden md:table-cell">Valor</th>}

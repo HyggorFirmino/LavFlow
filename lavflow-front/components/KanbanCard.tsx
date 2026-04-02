@@ -122,18 +122,20 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   };
 
   const handleSendWhatsApp = async () => {
-    if (!card.contact) {
-      alert('Este cliente não possui um número de contato.');
+    const phoneNumberRaw = card.client?.phone || card.contact;
+
+    if (!phoneNumberRaw) {
+      alert('Este cliente não possui um telefone cadastrado.');
       return;
     }
 
     setIsWhatsAppLoading(true);
     try {
       const message = await generateWhatsAppMessage(card.customerName, card.id);
-      const phoneNumber = sanitizePhoneNumber(card.contact);
+      const phoneNumber = sanitizePhoneNumber(phoneNumberRaw);
 
       if (!phoneNumber) {
-        alert('O número de contato fornecido é inválido.');
+        alert('O telefone fornecido é inválido.');
         setIsWhatsAppLoading(false);
         return;
       }

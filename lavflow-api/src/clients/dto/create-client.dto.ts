@@ -17,7 +17,7 @@ export class CreateClientDto {
     @IsOptional()
     address?: string;
 
-    @ApiProperty({ description: 'Telefone de contato', example: '(11) 98765-4321', required: false })
+    @ApiProperty({ description: 'Telefone', example: '(11) 98765-4321', required: false })
     @IsString()
     @IsOptional()
     phone?: string;

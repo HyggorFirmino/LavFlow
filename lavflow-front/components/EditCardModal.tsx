@@ -54,9 +54,12 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
             // For now, initializing with card data is correct.
             if (card.client) {
                 setCustomerName(card.client.name);
-                // If we want to force client data, we could lock these fields. 
-                // But the user might want to edit the specific order details (e.g. contact for this specific order).
-                // Let's assume fields are editable but pre-filled.
+                // Prioritize client data for visible fields if available in the linked entity
+                const clientDoc = card.client.cpf || card.client.document;
+                const clientPhone = card.client.phone;
+                
+                if (clientDoc) setCustomerDocument(maskVisibleCpf(clientDoc));
+                if (clientPhone) setContact(maskVisiblePhone(clientPhone));
             }
         }
     }, [card, isOpen]);
@@ -189,7 +192,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                                 />
                             </div>
                             <div>
-                                <label htmlFor="customerDocument" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Documento</label>
+                                <label htmlFor="customerDocument" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">CPF</label>
                                 <input
                                     id="customerDocument"
                                     type="text"
@@ -201,7 +204,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                         </div>
 
                         <div className="mb-4">
-                            <label htmlFor="contact" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Contato (Telefone/Email)</label>
+                            <label htmlFor="contact" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Telefone</label>
                             <input
                                 id="contact"
                                 type="text"

@@ -19,7 +19,7 @@ export class Client {
   @Column({ nullable: true })
   address: string;
 
-  @ApiProperty({ description: 'Telefone de contato', example: '(11) 98765-4321', required: false })
+  @ApiProperty({ description: 'Telefone', example: '(11) 98765-4321', required: false })
   @Column({ nullable: true })
   phone: string;
 

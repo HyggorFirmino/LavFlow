@@ -96,7 +96,7 @@ export class CreateOrdemDto {
   @IsInt()
   storeId?: number;
 
-  @ApiProperty({ description: 'CPF/Documento do cliente (usado como fallback quando o clientId não é um UUID local).', example: '12345678900', required: false })
+  @ApiProperty({ description: 'CPF do cliente (usado como fallback quando o clientId não é um UUID local).', example: '12345678900', required: false })
   @IsOptional()
   @IsString()
   clientDocument?: string;

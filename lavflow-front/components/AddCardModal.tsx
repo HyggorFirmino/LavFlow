@@ -236,7 +236,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                 />
               </div>
               <div>
-                <label htmlFor="customerDocument" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Documento</label>
+                <label htmlFor="customerDocument" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">CPF</label>
                 <input
                   id="customerDocument"
                   type="text"
@@ -249,7 +249,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
             </div>
 
             <div className="mb-4">
-              <label htmlFor="contact" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Contato (Telefone/Email)</label>
+              <label htmlFor="contact" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Telefone</label>
               <input
                 id="contact"
                 type="text"
