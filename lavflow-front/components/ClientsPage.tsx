@@ -229,6 +229,34 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setSelectedClient(null);
   };
 
+  // --- AUTOMATIC SYNC ON SEARCH ---
+  // Quando o usuário busca e vê clientes apenas no Maxpan, 
+  // vamos sincronizar os primeiros resultados automaticamente em segundo plano.
+  useEffect(() => {
+    if (searchTerm.trim().length > 3 && filteredClients.length > 0) {
+      const unsynced = filteredClients.filter(c => {
+         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+         return !uuidRegex.test(c.id);
+      }).slice(0, 3); // Sync only top 3 to be safe
+
+      if (unsynced.length > 0) {
+        console.log(`[AUTO-SYNC] Sincronizando ${unsynced.length} clientes encontrados na busca...`);
+        unsynced.forEach(async (client) => {
+          try {
+            await createClient({
+              name: client.name,
+              cpf: client.document,
+              phone: client.phone,
+              address: client.address
+            });
+          } catch (e) {
+            console.error("Erro no auto-sync de busca:", e);
+          }
+        });
+      }
+    }
+  }, [filteredClients, searchTerm]);
+
   // ... (Rest of component functions remain roughly same, skipping for brevity of replacement chunk if possible but replace_file_content needs contiguity)
   // Since I need a single contiguous block, I have to include everything between the start and end.
   // I will include the rest of the file content up until `return (` to make sure.

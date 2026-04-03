@@ -83,7 +83,7 @@ export class OrdensService {
       client = await this.clientRepository.findOneBy({ cpf: cpfLimpo });
     }
 
-    console.log('[CREATE ORDEM] Client:', client ? client.id : 'null (sem cliente vinculado)');
+    console.log('[CREATE ORDEM] Resultado busca cliente:', client ? `Encontrado (ID Local: ${client.id})` : '⚠️ NÃO ENCONTRADO (O cartão será criado sem vínculo com cliente local!)');
 
     try {
       const novaOrdem = this.ordemServicoRepository.create({

@@ -77,3 +77,25 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
         return null;
     }
 };
+export const findLocalClientByCpf = async (cpf: string): Promise<Client | null> => {
+    try {
+        const cpfLimpo = cpf.replace(/\D/g, '');
+        const data = await apiFetch<any>(`/clients?cpf=${cpfLimpo}`);
+        // Assuming /clients?cpf=... returns an array of matching clients
+        if (Array.isArray(data) && data.length > 0) {
+            const item = data[0];
+            return {
+                id: item.id,
+                name: item.name,
+                document: item.cpf,
+                phone: item.phone || '',
+                address: item.address,
+                saldo: 0
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error finding local client by CPF:', error);
+        return null;
+    }
+};

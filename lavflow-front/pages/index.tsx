@@ -25,6 +25,7 @@ import { fetchClients } from '../services/maxpanApiService';
 import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag } from '../services/apiService';
 import { getStores, updateStore } from '../services/storeService';
 import { login } from '../services/userService';
+import { createClient, findLocalClientByCpf } from '../services/clientService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
 
 // --- Toast Notification Components ---
@@ -490,6 +491,36 @@ const Home: React.FC = () => {
         addNotification("Cartão atualizado com sucesso!", "success");
       } else {
         const cardToSave = { ...newCardData };
+        
+        // --- AUTO-SYNC CLIENT ---
+        // Se temos dados do cliente mas não um ID de banco local (UUID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const currentClientId = cardToSave.client?.id || cardToSave.clientId;
+        const isLocalClient = currentClientId && uuidRegex.test(String(currentClientId));
+
+        if (!isLocalClient && (cardToSave.customerDocument || cardToSave.client?.document)) {
+          const cpf = (cardToSave.customerDocument || cardToSave.client?.document || "").replace(/\D/g, "");
+          if (cpf) {
+            console.log("[AUTO-SYNC] Verificando cliente local para CPF:", cpf);
+            let localClient = await findLocalClientByCpf(cpf);
+            
+            if (!localClient) {
+              console.log("[AUTO-SYNC] Cliente não encontrado no banco local. Cadastrando...");
+              localClient = await createClient({
+                name: cardToSave.customerName || cardToSave.client?.name || "Cliente sem nome",
+                cpf: cpf,
+                phone: cardToSave.contact || cardToSave.client?.phone || "",
+                address: cardToSave.client?.address || ""
+              });
+            }
+
+            if (localClient) {
+              console.log("[AUTO-SYNC] Cliente vinculado:", localClient.id);
+              cardToSave.client = localClient;
+              cardToSave.clientId = localClient.id;
+            }
+          }
+        }
         
         // Determina a lista correta (primeira lista da loja correspondente, buscada do LocalStorage/API)
         if (!cardToSave.listId) {

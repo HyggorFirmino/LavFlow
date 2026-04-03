@@ -84,7 +84,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   return (
-    <main className="flex-grow overflow-x-auto overflow-y-hidden p-2 md:p-4">
+    <main className="flex-grow overflow-y-hidden p-2 md:p-4 flex flex-col">
       <div className="mb-3 md:mb-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 px-1">
         <label htmlFor="store-selector" className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
           Loja Atual:
@@ -103,7 +103,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </select>
       </div>
 
-      <div className="relative group">
+      <div className="relative group flex-1 overflow-hidden">
         {/* Botão de Scroll Esquerda */}
         <button
           onClick={() => handleScroll('left')}
@@ -129,7 +129,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <div
           ref={scrollContainerRef}
           data-kanban-scroll
-          className="flex space-x-3 md:space-x-4 h-full snap-x snap-mandatory md:snap-none overflow-x-auto pb-4 px-1 scrollbar-hide"
+          className="flex space-x-3 md:space-x-4 h-full snap-x snap-mandatory md:snap-none overflow-x-auto pb-6 px-1"
         >
           {listOrder.map(listId => {
             const list = boardData[listId];

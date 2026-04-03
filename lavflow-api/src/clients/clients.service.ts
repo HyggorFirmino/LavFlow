@@ -17,7 +17,10 @@ export class ClientsService {
     return this.clientsRepository.save(client);
   }
 
-  findAll() {
+  findAll(cpf?: string) {
+    if (cpf) {
+      return this.clientsRepository.find({ where: { cpf } });
+    }
     return this.clientsRepository.find();
   }
 

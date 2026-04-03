@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -18,8 +18,8 @@ export class ClientsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todos os clientes' })
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Query('cpf') cpf?: string) {
+    return this.clientsService.findAll(cpf);
   }
 
   @Get(':id')
