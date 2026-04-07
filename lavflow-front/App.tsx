@@ -844,6 +844,13 @@ const App: React.FC = () => {
     draggedItem.current = null;
   };
 
+  const handleMoveCard = (cardId: string, sourceListId: string, targetListId: string) => {
+    // Set up draggedItem as if a drag started, then reuse the onDrop logic
+    draggedItem.current = { cardId, sourceListId };
+    const mockEvent = { preventDefault: () => { }, stopPropagation: () => { } } as unknown as React.DragEvent;
+    onDrop(mockEvent, targetListId);
+  };
+
   const handleNavigate = (view: ViewType) => {
     console.log('[DEBUG] handleNavigate called with:', view);
     setCurrentView(view);
@@ -949,6 +956,7 @@ const App: React.FC = () => {
             stores={stores}
             selectedStoreId={selectedStoreId}
             onSelectStore={handleSelectStore}
+            onMoveCard={handleMoveCard}
           />
         );
     }

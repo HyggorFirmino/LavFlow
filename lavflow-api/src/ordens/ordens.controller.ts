@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch, Delete } from '@nestjs/common';
 import { OrdensService } from './ordens.service';
 import { CreateOrdemDto } from './dto/create-ordem.dto';
 import { MudarStatusOrdemDto } from './dto/mudar-status-ordem.dto';
@@ -51,5 +51,13 @@ export class OrdensController {
     @Body() mudarStatusDto: MudarStatusOrdemDto,
   ) {
     return this.ordensService.mudarStatus(id, mudarStatusDto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Remove uma ordem de serviço' })
+  @ApiResponse({ status: 200, description: 'Ordem removida com sucesso.' })
+  @ApiResponse({ status: 404, description: 'Ordem não encontrada.' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.ordensService.remove(id);
   }
 }

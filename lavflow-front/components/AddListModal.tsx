@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Store } from '../types';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface AddListModalProps {
   isOpen: boolean;
@@ -16,6 +17,20 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
   const [totalDryingTime, setTotalDryingTime] = useState('');
   const [reminderInterval, setReminderInterval] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   useEffect(() => {
     // Reset state when modal is closed/reopened
@@ -36,7 +51,12 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert("O título da lista não pode ser vazio.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Campo Obrigatório',
+        message: 'O título da lista não pode ser vazio.',
+        type: 'warning'
+      });
       return;
     }
     const newLimit = limit === '' ? null : parseInt(limit, 10);
@@ -44,25 +64,50 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
     const newReminderInterval = reminderInterval === '' ? undefined : parseInt(reminderInterval, 10);
 
     if (!selectedStoreId) {
-      alert("Selecione uma loja para a lista.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Campo Obrigatório',
+        message: 'Selecione uma loja para a lista.',
+        type: 'warning'
+      });
       return;
     }
 
     if (limit !== '' && (isNaN(newLimit as number) || (newLimit as number) < 0)) {
-      alert("O limite de cartões deve ser um número positivo.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Valor Inválido',
+        message: 'O limite de cartões deve ser um número positivo.',
+        type: 'warning'
+      });
       return;
     }
 
     if (type === 'dryer' && (newTotalTime === undefined || newTotalTime <= 0)) {
-      alert("O tempo total de secagem é obrigatório e deve ser positivo para listas do tipo Secadora.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Campo Obrigatório',
+        message: 'O tempo total de secagem é obrigatório e deve ser positivo para listas do tipo Secadora.',
+        type: 'warning'
+      });
       return;
     }
     if (type === 'dryer' && newReminderInterval !== undefined && newReminderInterval <= 0) {
-      alert("O intervalo de lembrete deve ser um número positivo.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Valor Inválido',
+        message: 'O intervalo de lembrete deve ser um número positivo.',
+        type: 'warning'
+      });
       return;
     }
     if (type === 'dryer' && newReminderInterval !== undefined && newTotalTime !== undefined && newReminderInterval >= newTotalTime) {
-      alert("O intervalo de lembrete deve ser menor que o tempo total.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Valor Inválido',
+        message: 'O intervalo de lembrete deve ser menor que o tempo total.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -182,6 +227,15 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
           </div>
         </form>
       </div>
+
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </div>
   );
 };

@@ -22,7 +22,7 @@ import MovimentacoesPage from '../components/MovimentacoesPage';
 import MachineOperationPage from '../components/MachineOperationPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
-import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag } from '../services/apiService';
+import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag, deleteOrdem } from '../services/apiService';
 import { getStores, updateStore } from '../services/storeService';
 import { login } from '../services/userService';
 import { createClient, findLocalClientByCpf } from '../services/clientService';
@@ -490,7 +490,7 @@ const Home: React.FC = () => {
         await updateOrdem(newCardData.id, newCardData);
         addNotification("Cartão atualizado com sucesso!", "success");
       } else {
-        const cardToSave = { ...newCardData };
+        const cardToSave = { ...newCardData } as any;
         
         // --- AUTO-SYNC CLIENT ---
         // Se temos dados do cliente mas não um ID de banco local (UUID)
@@ -598,11 +598,15 @@ const Home: React.FC = () => {
     setIsEditCardModalOpen(true);
   };
 
-  const handleDeleteCard = (cardId: string, listId: string) => {
-    // This function will now likely need to call the API to delete a card
-    console.log("Deleting card (local state):", cardId, listId);
-    // A proper implementation would call deleteOrdem from apiService
-    // and then reload the board data or update the state.
+  const handleDeleteCard = async (cardId: string, listId: string) => {
+    try {
+      await deleteOrdem(cardId);
+      addNotification("Pedido excluído com sucesso!", "success");
+      await loadBoardData();
+    } catch (e) {
+      console.error("Erro ao excluir cartão:", e);
+      addNotification("Erro ao excluir pedido.", "error");
+    }
   };
 
   // List handlers
@@ -904,6 +908,13 @@ const Home: React.FC = () => {
     await onDrop(fakeEvent, targetListId);
   };
 
+  const handleMoveCard = async (cardId: string, sourceListId: string, targetListId: string) => {
+    // Reutiliza a lógica de onDrop definindo o item arrastado e chamando o tratador
+    draggedItem.current = { cardId, sourceListId };
+    const fakeEvent = { preventDefault: () => { }, stopPropagation: () => { } } as unknown as React.DragEvent;
+    await onDrop(fakeEvent, targetListId);
+  };
+
   const handleNavigate = (view: ViewType) => {
     setCurrentView(view);
   };
@@ -1020,6 +1031,7 @@ const Home: React.FC = () => {
             stores={stores}
             selectedStoreId={selectedStoreId}
             onSelectStore={setSelectedStoreId}
+            onMoveCard={handleMoveCard}
           />
         );
     }
@@ -1069,6 +1081,7 @@ const Home: React.FC = () => {
               setCardToEdit(null);
             }}
             onSave={handleUpdateCard}
+            onDelete={(id) => handleDeleteCard(id, cardToEdit.listId)}
             card={cardToEdit}
             allTags={tags}
             tagsMap={tagsMap}

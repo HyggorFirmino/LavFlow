@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, TagDefinition, User } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
-import { ClockIcon } from './icons';
+import { ClockIcon, TrashIcon } from './icons';
 import { maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
+import { deleteOrdem } from '../services/apiService';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface CardTag {
     name: string;
@@ -17,9 +19,10 @@ interface EditCardModalProps {
     allTags: TagDefinition[];
     tagsMap: Map<string, TagDefinition>;
     currentUser: User;
+    onDelete?: (cardId: string) => Promise<void>;
 }
 
-const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, card, allTags, tagsMap, currentUser }) => {
+const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, card, allTags, tagsMap, currentUser, onDelete }) => {
     const [customerName, setCustomerName] = useState('');
     const [customerDocument, setCustomerDocument] = useState('');
     const [contact, setContact] = useState('');
@@ -31,6 +34,20 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | undefined>(undefined);
     const [services, setServices] = useState({ washing: false, drying: false });
+
+    // Modal State
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: ModalType;
+        onConfirm?: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info'
+    });
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const isAdmin = currentUser.role === 'admin' || currentUser.role === 'ADMIN';
@@ -134,7 +151,12 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         if (!customerName) {
-            alert("O nome do cliente é obrigatório.");
+            setModalConfig({
+                isOpen: true,
+                title: 'Campo Obrigatório',
+                message: 'O nome do cliente é obrigatório.',
+                type: 'warning'
+            });
             return;
         }
 
@@ -155,15 +177,57 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
         onClose();
     };
 
+    const handleOpenDeleteModal = () => {
+        setModalConfig({
+            isOpen: true,
+            title: 'Excluir Pedido',
+            message: `Tem certeza que deseja excluir permanentemente o pedido #${card.id}? Esta ação não pode ser desfeita.`,
+            type: 'confirm',
+            onConfirm: confirmDelete
+        });
+    };
+
+    const confirmDelete = async () => {
+        try {
+            if (onDelete) {
+                await onDelete(card.id);
+                onClose();
+            } else {
+                // Fallback for cases where onDelete is not provided
+                await deleteOrdem(card.id);
+                window.location.reload();
+            }
+        } catch (error: any) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Erro ao Excluir',
+                message: 'Não foi possível excluir o pedido. Tente novamente mais tarde.',
+                type: 'error'
+            });
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-laundry-teal-400 flex flex-col max-h-[95vh]">
                 <form onSubmit={handleSave} className="flex flex-col flex-grow min-h-0">
 
                     {/* Modal Header */}
-                    <div className="p-6 flex-shrink-0 border-b border-laundry-blue-100 dark:border-slate-700">
-                        <h2 className="text-2xl font-bold text-laundry-blue-900 dark:text-slate-100">Editar Pedido</h2>
-                        <div className="text-xs text-gray-400 mt-1">ID: {card.id}</div>
+                    <div className="p-6 flex-shrink-0 border-b border-laundry-blue-100 dark:border-slate-700 flex justify-between items-start">
+                        <div>
+                            <h2 className="text-2xl font-bold text-laundry-blue-900 dark:text-slate-100">Editar Pedido</h2>
+                            <div className="text-xs text-gray-400 mt-1">ID: {card.id}</div>
+                        </div>
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={handleOpenDeleteModal}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                                title="Excluir Pedido"
+                            >
+                                <TrashIcon className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Scrollable Content */}
@@ -405,6 +469,15 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                     </div>
                 </form>
             </div>
+
+            <CustomModal
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={modalConfig.onConfirm}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                type={modalConfig.type}
+            />
         </div>
     );
 };

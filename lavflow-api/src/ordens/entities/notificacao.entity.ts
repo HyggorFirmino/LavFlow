@@ -32,7 +32,7 @@ export class Notificacao {
   dataEnvio: Date;
 
   @ApiProperty({ type: () => OrdemServico })
-  @ManyToOne(() => OrdemServico, (ordem) => ordem.notificacoes)
+  @ManyToOne(() => OrdemServico, (ordem) => ordem.notificacoes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_ordem' })
   ordem: OrdemServico;
 }

@@ -6,6 +6,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Store } from 'src/stores/entities/store.entity';
+import { OrdemServico } from '../ordens/entities/ordem-servico.entity';
 
 @Injectable()
 export class UsersService {
@@ -84,6 +85,17 @@ export class UsersService {
   }
 
   async remove(id: number): Promise<void> {
+    // Verificar se o usuário é responsável por alguma ordem de serviço
+    const ordensCount = await this.userRepository.manager.getRepository(OrdemServico).count({
+      where: { funcionarioResponsavel: { id } },
+    });
+
+    if (ordensCount > 0) {
+      throw new BadRequestException(
+        `Este usuário não pode ser removido pois é responsável por ${ordensCount} ordem(ns) de serviço.`,
+      );
+    }
+
     const result = await this.userRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Usuário com ID ${id} não encontrado`);

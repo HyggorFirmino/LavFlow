@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BoardData, TagDefinition, Card, User, Store } from '../types';
 import { TagIcon, PencilIcon, TrashIcon } from './icons';
 import TagEditModal from './TagEditModal';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface TagsPageProps {
   boardData: BoardData;
@@ -17,6 +18,19 @@ interface TagsPageProps {
 const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDeleteTag, currentUser, stores, selectedStoreId, onSelectStore }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tagToEdit, setTagToEdit] = useState<Partial<TagDefinition> | null>(null);
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
   const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'admin';
 
   const tagUsage = useMemo(() => {
@@ -48,6 +62,17 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setTagToEdit(null);
+  };
+
+  const handleOpenDeleteModal = (tagName: string) => {
+    const usage = tagUsage.get(tagName) || 0;
+    setModalConfig({
+      isOpen: true,
+      title: 'Excluir Etiqueta',
+      message: `Tem certeza que deseja excluir a etiqueta "${tagName}"? ${usage > 0 ? `Ela está em uso por ${usage} cartão(ões) e será removida de todos eles.` : ''}`,
+      type: 'confirm',
+      onConfirm: () => onDeleteTag(tagName)
+    });
   };
 
   const sortedTags = [...tags].sort((a, b) => a.name.localeCompare(b.name));
@@ -109,7 +134,7 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
                         <button onClick={() => handleOpenEditModal(tag)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-laundry-blue-600 dark:hover:text-laundry-blue-300 hover:bg-laundry-blue-200/70 dark:hover:bg-slate-600/70 rounded-full transition-colors" aria-label={`Editar etiqueta ${tag.name}`}>
                           <PencilIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={() => onDeleteTag(tag.name)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-full transition-colors" aria-label={`Excluir etiqueta ${tag.name}`}>
+                        <button onClick={() => handleOpenDeleteModal(tag.name)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-full transition-colors" aria-label={`Excluir etiqueta ${tag.name}`}>
                           <TrashIcon className="w-5 h-5" />
                         </button>
                       </>
@@ -136,6 +161,14 @@ const TagsPage: React.FC<TagsPageProps> = ({ boardData, tags, onSaveTag, onDelet
           existingTagNames={tags.map(t => t.name)}
         />
       )}
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </div>
   );
 };

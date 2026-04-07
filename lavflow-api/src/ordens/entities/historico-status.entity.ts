@@ -17,7 +17,7 @@ export class HistoricoStatus {
   id: number;
 
   @ApiProperty({ type: () => OrdemServico })
-  @ManyToOne(() => OrdemServico, (ordem) => ordem.historico)
+  @ManyToOne(() => OrdemServico, (ordem) => ordem.historico, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_ordem' })
   ordem: OrdemServico;
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Client, Store, TagDefinition } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface CardTag {
   name: string;
@@ -28,6 +29,20 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
   const [tagInput, setTagInput] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [cestoNumbers, setCestoNumbers] = useState<string[]>(['']);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -124,17 +139,32 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
     const storeId = parseInt(selectedStoreId, 10);
 
     if (isNaN(numQuantity) || numQuantity <= 0) {
-      alert('Por favor, insira um número inteiro válido e positivo.');
+      setModalConfig({
+        isOpen: true,
+        title: 'Valor Inválido',
+        message: 'Por favor, insira um número inteiro válido e positivo.',
+        type: 'warning'
+      });
       return;
     }
 
     if (isNaN(storeId)) {
-      alert('Por favor, selecione uma loja.');
+      setModalConfig({
+        isOpen: true,
+        title: 'Campo Obrigatório',
+        message: 'Por favor, selecione uma loja.',
+        type: 'warning'
+      });
       return;
     }
 
     if (!services.washing && !services.drying) {
-      alert('Por favor, selecione pelo menos um serviço (Lavagem ou Secagem).');
+      setModalConfig({
+        isOpen: true,
+        title: 'Serviço Obrigatório',
+        message: 'Por favor, selecione pelo menos um serviço (Lavagem ou Secagem).',
+        type: 'warning'
+      });
       return;
     }
 
@@ -323,6 +353,15 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
           </button>
         </div>
       </div>
+
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </div>
   );
 };

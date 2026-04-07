@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { BoardData, Card, List, TagDefinition, User, Store } from '../types';
 import KanbanList from './KanbanList';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
@@ -22,6 +22,7 @@ interface KanbanBoardProps {
   stores: Store[];
   selectedStoreId: string;
   onSelectStore: (id: string) => void;
+  onMoveCard: (cardId: string, sourceListId: string, targetListId: string) => void;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -41,10 +42,18 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   stores,
   selectedStoreId,
   onSelectStore,
+  onMoveCard,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
+
+  // Compute the ordered list of all List objects for the move dropdown
+  const allLists = useMemo(() => {
+    return listOrder
+      .map(id => boardData[id])
+      .filter(Boolean);
+  }, [listOrder, boardData]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -148,6 +157,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 onTouchDrop={onTouchDrop}
                 tagsMap={tagsMap}
                 currentUser={currentUser}
+                allLists={allLists}
+                onMoveCard={onMoveCard}
               />
             );
           })}

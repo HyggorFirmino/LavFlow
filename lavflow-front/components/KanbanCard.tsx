@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, TagDefinition, List, User } from '../types';
-import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon, MapPinIcon } from './icons';
+import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon, MapPinIcon, ArrowsRightLeftIcon, ListBulletIcon } from './icons';
 import { generateWhatsAppMessage } from '../services/geminiService';
 import { DEFAULT_TAG_COLOR } from '../constants';
 import { maskCpf, maskPhone } from '../utils/formatters';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface KanbanCardProps {
   card: Card;
@@ -16,13 +17,31 @@ interface KanbanCardProps {
   onTouchDrop: (targetListId: string) => void;
   tagsMap: Map<string, TagDefinition>;
   currentUser: User;
+  allLists?: List[];
+  onMoveCard?: (cardId: string, sourceListId: string, targetListId: string) => void;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, onTouchDragStart, onTouchDrop, tagsMap, currentUser }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, onTouchDragStart, onTouchDrop, tagsMap, currentUser, allLists, onMoveCard }) => {
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [isBeingDraggedOver, setIsBeingDraggedOver] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
   const [timerStatus, setTimerStatus] = useState<'normal' | 'reminder' | 'done' | 'none'>('none');
+  const [isMoveDropdownOpen, setIsMoveDropdownOpen] = useState(false);
+  const moveDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const cardRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement | null>(null);
@@ -32,6 +51,26 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   const scrollAnimFrame = useRef<number | null>(null);
 
   const isAdmin = currentUser.role === 'admin';
+
+  // Close move dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moveDropdownRef.current && !moveDropdownRef.current.contains(event.target as Node)) {
+        setIsMoveDropdownOpen(false);
+      }
+    };
+    if (isMoveDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMoveDropdownOpen]);
+
+  const handleMoveToList = (targetListId: string) => {
+    if (onMoveCard) {
+      onMoveCard(card.id, card.listId, targetListId);
+    }
+    setIsMoveDropdownOpen(false);
+  };
 
   useEffect(() => {
     // Timers should only run for cards in a 'dryer' list with a valid start time.
@@ -125,7 +164,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
     const phoneNumberRaw = card.client?.phone || card.contact;
 
     if (!phoneNumberRaw) {
-      alert('Este cliente não possui um telefone cadastrado.');
+      setModalConfig({
+        isOpen: true,
+        title: 'Telefone Ausente',
+        message: 'Este cliente não possui um telefone cadastrado para envio de WhatsApp.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -135,7 +179,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       const phoneNumber = sanitizePhoneNumber(phoneNumberRaw);
 
       if (!phoneNumber) {
-        alert('O telefone fornecido é inválido.');
+        setModalConfig({
+          isOpen: true,
+          title: 'Telefone Inválido',
+          message: 'O telefone fornecido é inválido para envio de WhatsApp.',
+          type: 'error'
+        });
         setIsWhatsAppLoading(false);
         return;
       }
@@ -147,7 +196,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
 
     } catch (error) {
       console.error("Failed to generate or send WhatsApp message:", error);
-      alert("Ocorreu um erro ao tentar gerar a mensagem. Por favor, tente novamente.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro no WhatsApp',
+        message: 'Ocorreu um erro ao tentar gerar a mensagem. Por favor, tente novamente.',
+        type: 'error'
+      });
     } finally {
       setIsWhatsAppLoading(false);
     }
@@ -155,9 +209,13 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
 
 
   const handleDelete = () => {
-    if (window.confirm(`Tem certeza que deseja excluir o pedido de ${card.customerName}?`)) {
-      onDeleteCard(card.id, card.listId);
-    }
+    setModalConfig({
+      isOpen: true,
+      title: 'Excluir Pedido',
+      message: `Tem certeza que deseja excluir permanentemente o pedido de "${card.customerName}"? Esta ação não pode ser desfeita.`,
+      type: 'confirm',
+      onConfirm: () => onDeleteCard(card.id, card.listId)
+    });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -422,6 +480,51 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
             )}
           </div>
           <div className="flex space-x-1">
+            {allLists && onMoveCard && (
+              <div className="relative" ref={moveDropdownRef}>
+                <button
+                  onClick={() => setIsMoveDropdownOpen(!isMoveDropdownOpen)}
+                  className="text-gray-400 dark:text-slate-400 hover:text-laundry-teal-500 dark:hover:text-laundry-teal-300 p-1 rounded-full hover:bg-laundry-teal-100 dark:hover:bg-laundry-teal-500/20 transition-colors"
+                  aria-label="Mover Pedido"
+                  title="Mover para outra lista"
+                >
+                  <ArrowsRightLeftIcon className="w-5 h-5" />
+                </button>
+                {isMoveDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 z-50 py-1.5 animate-fade-in overflow-hidden">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-700">
+                      <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Mover para</p>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {allLists
+                        .filter(l => l.id !== card.listId)
+                        .map(targetList => (
+                          <button
+                            key={targetList.id}
+                            onClick={() => handleMoveToList(targetList.id)}
+                            className="w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 group"
+                          >
+                            <div className="shrink-0 group-hover:scale-110 transition-transform">
+                              {targetList.type === 'lavadora' && <WashingMachineIcon className="w-4 h-4 text-laundry-blue-500 dark:text-laundry-blue-400" />}
+                              {targetList.type === 'dryer' && <SunIcon className="w-4 h-4 text-orange-400" />}
+                              {targetList.type === 'whatsapp' && <WhatsAppIcon className="w-4 h-4 text-green-500" />}
+                              {targetList.type !== 'lavadora' && targetList.type !== 'dryer' && targetList.type !== 'whatsapp' && (
+                                <ListBulletIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                              )}
+                            </div>
+                            <span className="font-medium truncate">{targetList.title}</span>
+                            {targetList.cardLimit != null && (
+                              <span className="ml-auto text-xs text-gray-400 dark:text-slate-500">
+                                {targetList.cards.length}/{targetList.cardLimit}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <button onClick={() => onEditCard(card)} className="text-gray-400 dark:text-slate-400 hover:text-laundry-blue-500 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-100 dark:hover:bg-slate-700 transition-colors" aria-label="Editar Pedido">
               <PencilIcon className="w-5 h-5" />
             </button>
@@ -552,6 +655,15 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
           <span className="text-xs text-gray-400 dark:text-slate-500">ID: {card.id.substring(0, 8)}</span>
         </div>
       </div>
+
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </>
   );
 };

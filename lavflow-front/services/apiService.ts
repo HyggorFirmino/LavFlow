@@ -64,6 +64,10 @@ export const updateOrdemStatus = (ordemId: string, novoStatusId: string): Promis
   return mudarStatusOrdem(ordemId, novoStatusId);
 };
 
+export const deleteOrdem = (id: number | string): Promise<void> => {
+  return apiFetch(`/ordens/${id}`, { method: 'DELETE' });
+};
+
 // --- Funções da API para Status (Lists) ---
 
 export const getStatusKanban = (): Promise<any[]> => {

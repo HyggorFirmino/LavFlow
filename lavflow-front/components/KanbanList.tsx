@@ -18,6 +18,8 @@ interface KanbanListProps {
   onTouchDrop: (targetListId: string) => void;
   tagsMap: Map<string, TagDefinition>;
   currentUser: User;
+  allLists?: List[];
+  onMoveCard?: (cardId: string, sourceListId: string, targetListId: string) => void;
 }
 
 const KanbanList: React.FC<KanbanListProps> = ({
@@ -32,6 +34,8 @@ const KanbanList: React.FC<KanbanListProps> = ({
   onTouchDrop,
   tagsMap,
   currentUser,
+  allLists,
+  onMoveCard,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -96,6 +100,8 @@ const KanbanList: React.FC<KanbanListProps> = ({
               onTouchDrop={onTouchDrop}
               tagsMap={tagsMap}
               currentUser={currentUser}
+              allLists={allLists}
+              onMoveCard={onMoveCard}
             />
           ))}
         </div>

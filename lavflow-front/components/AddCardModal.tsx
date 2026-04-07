@@ -3,6 +3,7 @@ import { Card, TagDefinition, User, Store } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
 import { ClockIcon } from './icons';
 import { maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface CardTag {
   name: string;
@@ -35,6 +36,20 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | undefined>(undefined);
   const [services, setServices] = useState({ washing: false, drying: false });
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdmin = currentUser.role === 'admin';
@@ -162,7 +177,12 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName) {
-      alert("O nome do cliente é obrigatório.");
+      setModalConfig({
+        isOpen: true,
+        title: 'Campo Obrigatório',
+        message: 'O nome do cliente é obrigatório.',
+        type: 'warning'
+      });
       return;
     }
     onSave({
@@ -454,6 +474,14 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
           </div>
         </form>
       </div>
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </div>
   );
 };

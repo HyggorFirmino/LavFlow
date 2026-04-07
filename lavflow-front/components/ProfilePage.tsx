@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Store } from '../types';
 import { BuildingOfficeIcon, SunIcon, MoonIcon, ChevronDownIcon } from './icons';
+import CustomModal, { ModalType } from './CustomModal';
 
 interface ProfilePageProps {
   stores: Store[];
@@ -13,6 +14,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
   const [formData, setFormData] = useState<Partial<Store>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'admin' || currentUser.role === 'MANAGER';
 
@@ -60,10 +75,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
     try {
       setIsSaving(true);
       await onUpdateStore(selectedStoreId, formData);
-      alert('Informações da loja salvas com sucesso!');
+      setModalConfig({
+        isOpen: true,
+        title: 'Sucesso',
+        message: 'Informações da loja salvas com sucesso!',
+        type: 'success'
+      });
     } catch (error) {
       console.error("Error saving store:", error);
-      alert('Erro ao salvar as informações da loja.');
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro ao Salvar',
+        message: 'Ocorreu um erro ao tentar salvar as informações da loja.',
+        type: 'error'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -232,6 +257,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
           </form>
         </div>
       </div>
+
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </div>
   );
 };

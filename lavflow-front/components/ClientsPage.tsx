@@ -4,8 +4,9 @@ import { UserGroupIcon, MagnifyingGlassIcon, PlusIcon, XMarkIcon, ArrowPathIcon 
 import StoreSelector from './StoreSelector';
 import CreateMultipleCardsModal from './CreateMultipleCardsModal';
 import { fetchClients } from '../services/maxpanApiService';
-import { createClient, fetchLocalClients, updateClient } from '../services/clientService';
+import { createClient, fetchLocalClients, updateClient, deleteClient } from '../services/clientService';
 import { maskCpf, maskPhone, maskVisibleCpf, maskVisiblePhone, formatDate } from '../utils/formatters';
+import CustomModal, { ModalType } from './CustomModal';
 
 // Formata o saldo para reais, considerando as duas últimas casas como centavos
 function formatCurrency(value: number | undefined): string {
@@ -34,10 +35,11 @@ interface ActionsMenuProps {
   onToggleSensitiveData: (clientId: string) => void;
   onEdit: (client: Client) => void;
   onRecharge: (cpf: string) => void;
+  onDelete: (client: Client) => void;
   isSensitiveDataVisible: boolean;
 }
 
-const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, onToggleSensitiveData, onEdit, onRecharge, isSensitiveDataVisible }) => {
+const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, onOpenCreateMultiple, onToggleSensitiveData, onEdit, onRecharge, onDelete, isSensitiveDataVisible }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +74,12 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
   const handleRechargeClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onRecharge(client.document);
+    setIsOpen(false);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onDelete(client);
     setIsOpen(false);
   };
 
@@ -116,6 +124,13 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
             >
               {isSensitiveDataVisible ? 'Ocultar dados' : 'Mostrar dados'}
             </button>
+            <button
+              onClick={handleDeleteClick}
+              className="w-full text-left block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              role="menuitem"
+            >
+              Excluir Cliente
+            </button>
           </div>
         </div>
       )}
@@ -142,6 +157,20 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientBirthDate, setNewClientBirthDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ModalType;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const fetchAndSetClients = async () => {
     // Lookup maxpanId from selectedStoreId (internal)
@@ -298,7 +327,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       });
 
       if (newClientsToCreate.length === 0) {
-        alert('Todos os clientes externos já estão sincronizados.');
+        setModalConfig({
+          isOpen: true,
+          title: 'Sincronização',
+          message: 'Todos os clientes externos já estão sincronizados.',
+          type: 'info'
+        });
       } else {
         let createdCount = 0;
         // Process in chunks or individually? Individually for now to handle errors gracefully
@@ -311,7 +345,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
           });
           if (created) createdCount++;
         }
-        alert(`${createdCount} novos clientes importados com sucesso!`);
+        setModalConfig({
+          isOpen: true,
+          title: 'Sincronização Concluída',
+          message: `${createdCount} novos clientes importados com sucesso!`,
+          type: 'success'
+        });
 
         // Refresh list
         // Refresh list
@@ -320,7 +359,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
 
     } catch (error) {
       console.error('Falha na sincronização:', error);
-      alert('Erro ao sincronizar clientes. Verifique o console.');
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro na Sincronização',
+        message: 'Ocorreu um erro ao tentar sincronizar os clientes. Por favor, tente novamente.',
+        type: 'error'
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -355,7 +399,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       setIsCreateClientModalOpen(false);
       resetForm();
     } else {
-      alert(`Erro ao ${isEditing ? 'atualizar' : 'criar'} cliente. Verifique se o backend está rodando.`);
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro',
+        message: `Erro ao ${isEditing ? 'atualizar' : 'criar'} cliente. Verifique se o backend está rodando e se os dados estão corretos.`,
+        type: 'error'
+      });
     }
     setIsSubmitting(false);
   };
@@ -368,6 +417,40 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setNewClientBirthDate('');
     setIsEditing(false);
     setCurrentClientId(null);
+  };
+
+  const handleOpenDeleteModal = (client: Client) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Excluir Cliente',
+      message: `Tem certeza que deseja excluir o cliente "${client.name}"? Esta ação não pode ser desfeita.`,
+      type: 'confirm',
+      onConfirm: () => confirmDeleteClient(client.id)
+    });
+  };
+
+  const confirmDeleteClient = async (id: string) => {
+    try {
+      await deleteClient(id);
+      setClients(prev => prev.filter(c => c.id !== id));
+      setModalConfig({
+        isOpen: true,
+        title: 'Sucesso',
+        message: 'Cliente excluído com sucesso!',
+        type: 'success'
+      });
+    } catch (error: any) {
+      const errorMessage = error.message?.includes('pedidos') 
+        ? 'Não é possível excluir este cliente pois ele possui pedidos vinculados.' 
+        : 'Ocorreu um erro ao tentar excluir o cliente. Tente novamente.';
+        
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro ao Excluir',
+        message: errorMessage,
+        type: 'error'
+      });
+    }
   };
 
   return (
@@ -431,6 +514,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                       onToggleSensitiveData={toggleSensitiveData}
                       onEdit={handleOpenEditModal}
                       onRecharge={onNavigateToRecharge}
+                      onDelete={handleOpenDeleteModal}
                       isSensitiveDataVisible={isVisible}
                     />
                   </div>
@@ -510,6 +594,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                           onToggleSensitiveData={toggleSensitiveData}
                           onEdit={handleOpenEditModal}
                           onRecharge={onNavigateToRecharge}
+                          onDelete={handleOpenDeleteModal}
                           isSensitiveDataVisible={visibleSensitiveData.includes(client.id)}
                         />
                       </td>
@@ -630,6 +715,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
           </div>
         </div>
       )}
+
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+      />
     </>
   );
 };

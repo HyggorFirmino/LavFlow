@@ -99,3 +99,14 @@ export const findLocalClientByCpf = async (cpf: string): Promise<Client | null> 
         return null;
     }
 };
+export const deleteClient = async (id: string): Promise<boolean> => {
+    try {
+        await apiFetch(`/clients/${id}`, {
+            method: 'DELETE',
+        });
+        return true;
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        throw error; // Let the component handle it (e.g., showing the restriction message)
+    }
+};

@@ -19,5 +19,6 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
         return null as T;
     }
 
-    return response.json();
+    const text = await response.text();
+    return text ? JSON.parse(text) : (null as T);
 }

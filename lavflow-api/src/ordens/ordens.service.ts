@@ -218,4 +218,11 @@ export class OrdensService {
       return ordem;
     });
   }
+
+  async remove(id: number): Promise<void> {
+    const result = await this.ordemServicoRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
+    }
+  }
 }
