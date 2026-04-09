@@ -508,7 +508,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
                               {targetList.type === 'lavadora' && <WashingMachineIcon className="w-4 h-4 text-laundry-blue-500 dark:text-laundry-blue-400" />}
                               {targetList.type === 'dryer' && <SunIcon className="w-4 h-4 text-orange-400" />}
                               {targetList.type === 'whatsapp' && <WhatsAppIcon className="w-4 h-4 text-green-500" />}
-                              {targetList.type !== 'lavadora' && targetList.type !== 'dryer' && targetList.type !== 'whatsapp' && (
+                              {targetList.type === 'conclusao' && <CheckCircleIcon className="w-4 h-4 text-green-500" />}
+                              {targetList.type !== 'lavadora' && targetList.type !== 'dryer' && targetList.type !== 'whatsapp' && targetList.type !== 'conclusao' && (
                                 <ListBulletIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
                               )}
                             </div>

@@ -324,6 +324,14 @@ const Home: React.FC = () => {
             return idA - idB;
           });
         }
+
+        // Ordenar listas de tipo 'conclusao' por data de criação decrescente (mais recente primeiro)
+        if (list && list.type === 'conclusao' && list.cards) {
+          list.cards.sort((a, b) => {
+            // Inversão: mais novo (maior data) primeiro
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+        }
       });
 
       setBoardData(newBoardData);
@@ -614,7 +622,7 @@ const Home: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
+  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
     try {
       if (!storeId) {
         addNotification("Loja não selecionada.", "error");
@@ -652,7 +660,7 @@ const Home: React.FC = () => {
     setIsListSettingsModalOpen(true);
   };
 
-  const handleSaveListSettings = async (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', totalDryingTime?: number, reminderInterval?: number) => {
+  const handleSaveListSettings = async (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number) => {
     try {
       await updateList(listId, {
         title,

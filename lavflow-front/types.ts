@@ -55,7 +55,7 @@ export interface List {
   title: string; // Mapeado de 'titulo'
   order: number; // Mapeado de 'ordem'
   cardLimit?: number | null; // Mapeado de 'limiteCartoes'
-  type?: 'default' | 'dryer' | 'lavadora' | 'whatsapp'; // Mapeado de 'tipo'
+  type?: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao'; // Mapeado de 'tipo'
   totalDryingTime?: number | null; // Mapeado de 'tempoSecagemTotal'
   reminderInterval?: number | null; // Mapeado de 'intervaloLeitura'
 

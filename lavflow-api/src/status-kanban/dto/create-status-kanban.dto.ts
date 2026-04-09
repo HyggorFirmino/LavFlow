@@ -32,13 +32,13 @@ export class CreateStatusKanbanDto {
   @ApiProperty({
     description: 'O tipo de lista, que define seu comportamento no frontend.',
     example: 'dryer',
-    enum: ['default', 'dryer', 'lavadora', 'whatsapp'],
+    enum: ['default', 'dryer', 'lavadora', 'whatsapp', 'conclusao'],
     default: 'default',
     required: false,
   })
-  @IsIn(['default', 'dryer', 'lavadora', 'whatsapp'])
+  @IsIn(['default', 'dryer', 'lavadora', 'whatsapp', 'conclusao'])
   @IsOptional()
-  tipo?: 'default' | 'dryer' | 'lavadora' | 'whatsapp';
+  tipo?: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao';
 
   @ApiProperty({
     description: 'O tempo total de secagem em minutos (apenas para listas do tipo \'dryer\').',

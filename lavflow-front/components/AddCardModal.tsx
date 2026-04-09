@@ -265,6 +265,9 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                   className={`shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
                   disabled={isEditing}
                 />
+                {isEditing && (
+                  <p className="text-[10px] text-laundry-blue-400 mt-1 italic leading-tight">Para alterar dados do cliente, acesse o menu Clientes.</p>
+                )}
               </div>
             </div>
 

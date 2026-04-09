@@ -5,7 +5,7 @@ import CustomModal, { ModalType } from './CustomModal';
 interface AddListModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', storeId: number, totalDryingTime?: number, reminderInterval?: number) => void;
+  onSave: (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', storeId: number, totalDryingTime?: number, reminderInterval?: number) => void;
   stores: Store[];
   currentStoreId?: string;
 }
@@ -13,7 +13,7 @@ interface AddListModalProps {
 const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, stores, currentStoreId }) => {
   const [title, setTitle] = useState('');
   const [limit, setLimit] = useState<string>('');
-  const [type, setType] = useState<'default' | 'dryer' | 'lavadora' | 'whatsapp'>('default');
+  const [type, setType] = useState<'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao'>('default');
   const [totalDryingTime, setTotalDryingTime] = useState('');
   const [reminderInterval, setReminderInterval] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
@@ -166,13 +166,14 @@ const AddListModal: React.FC<AddListModalProps> = ({ isOpen, onClose, onSave, st
             <select
               id="newListType"
               value={type}
-              onChange={(e) => setType(e.target.value as 'default' | 'dryer' | 'lavadora' | 'whatsapp')}
+              onChange={(e) => setType(e.target.value as 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao')}
               className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
             >
               <option value="default">Padrão</option>
               <option value="lavadora">Lavadora</option>
               <option value="dryer">Secadora</option>
               <option value="whatsapp">WhatsApp</option>
+              <option value="conclusao">Conclusão</option>
             </select>
           </div>
 
