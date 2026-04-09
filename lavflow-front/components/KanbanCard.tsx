@@ -19,15 +19,19 @@ interface KanbanCardProps {
   currentUser: User;
   allLists?: List[];
   onMoveCard?: (cardId: string, sourceListId: string, targetListId: string) => void;
+  onUpdateCard?: (cardId: string, updates: Partial<Card>) => Promise<void>;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, onTouchDragStart, onTouchDrop, tagsMap, currentUser, allLists, onMoveCard }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDeleteCard, onDragStart, onDrop, onTouchDragStart, onTouchDrop, tagsMap, currentUser, allLists, onMoveCard, onUpdateCard }) => {
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
   const [isBeingDraggedOver, setIsBeingDraggedOver] = useState(false);
   const [remainingTime, setRemainingTime] = useState('');
   const [timerStatus, setTimerStatus] = useState<'normal' | 'reminder' | 'done' | 'none'>('none');
   const [isMoveDropdownOpen, setIsMoveDropdownOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [isDryerModalOpen, setIsDryerModalOpen] = useState(false);
+  const [machineTimeInput, setMachineTimeInput] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState(false);
   const moveDropdownRef = useRef<HTMLDivElement>(null);
 
   // Modal State
@@ -205,6 +209,31 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       });
     } finally {
       setIsWhatsAppLoading(false);
+    }
+  };
+
+  const handleStartDryer = async () => {
+    if (!onUpdateCard) return;
+
+    const machineTime = parseFloat(machineTimeInput);
+    if (isNaN(machineTime) || machineTime < 0) {
+      alert("Por favor, insira um tempo válido.");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const totalCycle = list.totalDryingTime || list.reminderInterval || 45;
+      const opTimeElapsedMinutes = totalCycle - machineTime;
+      const fakeStartTime = new Date(Date.now() - opTimeElapsedMinutes * 60 * 1000);
+      
+      await onUpdateCard(card.id, { enteredDryerAt: fakeStartTime.toISOString() });
+      setIsDryerModalOpen(false);
+    } catch (error) {
+      console.error("Failed to start dryer:", error);
+      alert("Erro ao iniciar secagem. Tente novamente.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -425,6 +454,23 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const renderTimer = () => {
+    if (list.type === 'dryer' && !card.enteredDryerAt) {
+      return (
+        <div className="mt-3">
+          <button
+            onClick={() => {
+              setMachineTimeInput(String(list.totalDryingTime || list.reminderInterval || ''));
+              setIsDryerModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+          >
+            <SunIcon className="w-5 h-5" />
+            <span>Iniciar Secagem</span>
+          </button>
+        </div>
+      );
+    }
+
     if (timerStatus === 'none') return null;
 
     if (timerStatus === 'done') {
@@ -672,7 +718,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         </div>
       </div>
 
-      <CustomModal
+       <CustomModal
         isOpen={modalConfig.isOpen}
         onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
         onConfirm={modalConfig.onConfirm}
@@ -680,6 +726,61 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
         message={modalConfig.message}
         type={modalConfig.type}
       />
+
+      {/* Manual Dryer Start Modal */}
+      {isDryerModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !isUpdating && setIsDryerModalOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-t-4 border-orange-500 w-full max-w-sm overflow-hidden animate-slide-down">
+            <div className="p-6">
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-4 text-orange-500">
+                  <SunIcon className="w-12 h-12" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                  Iniciar Secagem
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+                  Quanto tempo total aparece no visor da máquina agora?
+                </p>
+                
+                <div className="w-full relative">
+                  <input
+                    type="number"
+                    value={machineTimeInput}
+                    onChange={(e) => setMachineTimeInput(e.target.value)}
+                    placeholder="Ex: 25"
+                    autoFocus
+                    className="w-full bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-center text-2xl font-mono font-bold text-slate-900 dark:text-white focus:border-orange-500 focus:outline-none transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">min</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex gap-2">
+              <button
+                disabled={isUpdating}
+                onClick={() => setIsDryerModalOpen(false)}
+                className="flex-1 px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={isUpdating || !machineTimeInput}
+                onClick={handleStartDryer}
+                className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isUpdating ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  'Confirmar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

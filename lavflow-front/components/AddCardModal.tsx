@@ -13,7 +13,7 @@ interface CardTag {
 interface AddCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (card: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number }) => void;
+  onSave: (card: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number }, options?: { skipReload?: boolean }) => Promise<void>;
   cardToEdit: Card | null;
   allTags: TagDefinition[];
   tagsMap: Map<string, TagDefinition>;
@@ -57,7 +57,11 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
   const isEditing = !!cardToEdit && !isCreatingFromTemplate;
 
 
-  const hasAssistidoTag = useMemo(() => selectedTags.some(t => t.name === 'Assistido'), [selectedTags]);
+  const hasAssistidoTag = useMemo(() => 
+    selectedTags.some(t => t.name.trim().toLowerCase() === 'assistido'), 
+  [selectedTags]);
+
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     if (cardToEdit) {
@@ -118,6 +122,12 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
 
   // Reset payment method if 'Assistido' tag is removed
   useEffect(() => {
+    // Skip the very first run to prevent clearing the initial value (e.g. from template/draft)
+    if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+    }
+
     if (!hasAssistidoTag) {
       setPaymentMethod(undefined);
     }

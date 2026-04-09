@@ -20,6 +20,7 @@ interface KanbanListProps {
   currentUser: User;
   allLists?: List[];
   onMoveCard?: (cardId: string, sourceListId: string, targetListId: string) => void;
+  onUpdateCard?: (cardId: string, updates: Partial<Card>) => Promise<void>;
 }
 
 const KanbanList: React.FC<KanbanListProps> = ({
@@ -36,6 +37,7 @@ const KanbanList: React.FC<KanbanListProps> = ({
   currentUser,
   allLists,
   onMoveCard,
+  onUpdateCard,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -103,6 +105,7 @@ const KanbanList: React.FC<KanbanListProps> = ({
               currentUser={currentUser}
               allLists={allLists}
               onMoveCard={onMoveCard}
+              onUpdateCard={onUpdateCard}
             />
           ))}
         </div>

@@ -19,7 +19,7 @@ function formatCurrency(value: number | undefined): string {
 }
 
 interface ClientsPageProps {
-  onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>> & { storeId?: number; listId?: string }) => void;
+  onAddCard: (card: Partial<Omit<Card, 'id' | 'listId'>> & { storeId?: number; listId?: string }, options?: { skipReload?: boolean }) => Promise<void>;
   onOpenAddCardModal: (initialData?: Partial<Card>) => void;
   stores: Store[];
   tags: TagDefinition[];
@@ -235,13 +235,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsMultiCardModalOpen(true);
   };
 
-  const handleConfirmMultiple = (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string, cestoNumbers: string[]) => {
+  const handleConfirmMultiple = async (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix') => {
     if (!selectedClient) return;
     for (let i = 0; i < quantity; i++) {
       // Calculate the part (e.g., "1/3")
       const part = `${i + 1}/${quantity}`;
 
-      onAddCard({
+      await onAddCard({
         customerName: selectedClient.name,
         customerDocument: selectedClient.document,
         contact: selectedClient.phone,
@@ -250,9 +250,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         services: services,
         tags: tags,
         notes: notes,
+        paymentMethod: paymentMethod,
         client: selectedClient,
         storeId: storeId,
-      });
+      }, { skipReload: i < quantity - 1 });
     }
     setIsMultiCardModalOpen(false);
     setSelectedClient(null);

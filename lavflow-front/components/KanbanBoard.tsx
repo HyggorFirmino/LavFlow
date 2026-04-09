@@ -23,6 +23,7 @@ interface KanbanBoardProps {
   selectedStoreId: string;
   onSelectStore: (id: string) => void;
   onMoveCard: (cardId: string, sourceListId: string, targetListId: string) => void;
+  onUpdateCard?: (cardId: string, updates: Partial<Card>) => Promise<void>;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -43,6 +44,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   selectedStoreId,
   onSelectStore,
   onMoveCard,
+  onUpdateCard,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -159,6 +161,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 currentUser={currentUser}
                 allLists={allLists}
                 onMoveCard={onMoveCard}
+                onUpdateCard={onUpdateCard}
               />
             );
           })}

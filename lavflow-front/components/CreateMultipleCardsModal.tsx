@@ -11,7 +11,7 @@ interface CardTag {
 interface CreateMultipleCardsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string, cestoNumbers: string[]) => void;
+  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix') => void;
   client: Client | null;
   stores: Store[];
   tags: TagDefinition[];
@@ -29,6 +29,9 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
   const [tagInput, setTagInput] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [cestoNumbers, setCestoNumbers] = useState<string[]>(['']);
+  const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | undefined>(undefined);
+
+  const hasAssistidoTag = useMemo(() => selectedTags.some(t => t.name === 'Assistido'), [selectedTags]);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -70,6 +73,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       setSelectedTags([]);
       setTagInput('');
       setCestoNumbers(['']);
+      setPaymentMethod(undefined);
 
       // Default to currentStoreId or first store if available and nothing selected
       if (stores.length > 0 && !selectedStoreId) {
@@ -91,6 +95,13 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Reset payment method if 'Assistido' tag is removed
+  useEffect(() => {
+    if (!hasAssistidoTag) {
+      setPaymentMethod(undefined);
+    }
+  }, [hasAssistidoTag]);
 
   const tagsMap = useMemo(() => new Map(allTags.map(tag => [tag.name, tag])), [allTags]);
 
@@ -168,7 +179,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       return;
     }
 
-    onConfirm(numQuantity, storeId, services, selectedTags, notes, cestoNumbers);
+    onConfirm(numQuantity, storeId, services, selectedTags, notes, cestoNumbers, paymentMethod);
   };
 
   return (
@@ -322,6 +333,22 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
                 )}
               </div>
             </div>
+
+            {hasAssistidoTag && (
+              <div className="mb-4">
+                <label htmlFor="paymentMethod" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Forma de Pagamento</label>
+                <select
+                  id="paymentMethod"
+                  value={paymentMethod || ''}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'dinheiro' | 'pix' || undefined)}
+                  className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-[42px]"
+                >
+                  <option value="" disabled>Selecione...</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="pix">Pix</option>
+                </select>
+              </div>
+            )}
 
             <div className="mb-4">
               <label htmlFor="notes-multi" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações</label>

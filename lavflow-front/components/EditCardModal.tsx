@@ -52,7 +52,11 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const isAdmin = currentUser.role === 'admin' || currentUser.role === 'ADMIN';
 
-    const hasAssistidoTag = useMemo(() => selectedTags.some(t => t.name === 'Assistido'), [selectedTags]);
+    const hasAssistidoTag = useMemo(() => 
+        selectedTags.some(t => t.name.trim().toLowerCase() === 'assistido'), 
+    [selectedTags]);
+
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
         if (isOpen && card) {
@@ -94,6 +98,12 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
 
     // Reset payment method if 'Assistido' tag is removed
     useEffect(() => {
+        // Skip the very first run to prevent clearing the initial value loaded from the backend
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
         if (!hasAssistidoTag) {
             setPaymentMethod(undefined);
         }

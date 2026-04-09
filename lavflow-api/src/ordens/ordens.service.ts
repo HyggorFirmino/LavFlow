@@ -197,12 +197,8 @@ export class OrdensService {
 
       const statusAntigoTitulo = ordem.status.titulo;
 
-      // Check for type 'dryer'
-      if (novoStatus.tipo === 'dryer') {
-        ordem.enteredDryerAt = new Date();
-      } else {
-        ordem.enteredDryerAt = null;
-      }
+      // Clear dryer timer on status change - will be started manually in the frontend
+      ordem.enteredDryerAt = null;
 
       ordem.status = novoStatus;
       await ordemRepo.save(ordem);

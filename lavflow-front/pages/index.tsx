@@ -488,7 +488,10 @@ const Home: React.FC = () => {
 
 
   // Card handlers
-  const handleAddCard = async (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number; listId?: string }) => {
+  const handleAddCard = async (
+    newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number; listId?: string },
+    options: { skipReload?: boolean } = {}
+  ) => {
     // Logic to properly add card with store context
     // If storeId is provided (from AddCardModal for new cards), find the first list of that store.
 
@@ -498,7 +501,40 @@ const Home: React.FC = () => {
         await updateOrdem(newCardData.id, newCardData);
         addNotification("Cartão atualizado com sucesso!", "success");
       } else {
-        const cardToSave = { ...newCardData } as any;
+        // Detecção robusta da etiqueta 'Assistido' (case-insensitive e sem espaços)
+        const hasAssistidoTag = newCardData.tags?.some(tag => 
+          tag.name.trim().toLowerCase() === 'assistido'
+        );
+        
+        // Só calculamos o valor se ele não tiver sido enviado explicitamente (fallback)
+        let finalServiceValue = newCardData.serviceValue;
+
+        if (hasAssistidoTag && (finalServiceValue === undefined || finalServiceValue === 0)) {
+          const isWashing = newCardData.services?.washing;
+          const isDrying = newCardData.services?.drying;
+          const storeIdToUse = newCardData.storeId || selectedStoreId;
+
+          if (storeIdToUse) {
+            const currentStore = stores.find(s => String(s.id) === String(storeIdToUse) || s.maxpanId === String(storeIdToUse));
+            if (currentStore) {
+              if (isWashing && isDrying) {
+                finalServiceValue = currentStore.comboPrice || 0;
+              } else if (isWashing) {
+                finalServiceValue = currentStore.washingPrice || 0;
+              } else if (isDrying) {
+                finalServiceValue = currentStore.dryingPrice || 0;
+              }
+            }
+          }
+        }
+
+        const cardToSave = {
+          ...newCardData,
+          // Mantemos o paymentMethod que veio da UI sem forçar limpeza baseada na tag aqui,
+          // deixando a responsabilidade de exibição/seleção para os Modais (como no pedido único).
+          paymentMethod: newCardData.paymentMethod,
+          serviceValue: finalServiceValue
+        } as any;
         
         // --- AUTO-SYNC CLIENT ---
         // Se temos dados do cliente mas não um ID de banco local (UUID)
@@ -571,7 +607,9 @@ const Home: React.FC = () => {
       }
 
       setIsCardModalOpen(false);
-      loadBoardData();
+      if (!options.skipReload) {
+        loadBoardData();
+      }
 
     } catch (e) {
       console.error("Erro ao salvar cartão:", e);
@@ -1040,6 +1078,7 @@ const Home: React.FC = () => {
             selectedStoreId={selectedStoreId}
             onSelectStore={setSelectedStoreId}
             onMoveCard={handleMoveCard}
+            onUpdateCard={handleUpdateCard}
           />
         );
     }
