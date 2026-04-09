@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, TagDefinition, List, User } from '../types';
-import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon, MapPinIcon, ArrowsRightLeftIcon, ListBulletIcon } from './icons';
+import { PhoneIcon, PencilIcon, TrashIcon, BasketIcon, ClockIcon, WhatsAppIcon, WashingMachineIcon, SunIcon, CheckCircleIcon, IdentificationIcon, MapPinIcon, ArrowsRightLeftIcon, ListBulletIcon, EyeIcon, EyeSlashIcon } from './icons';
 import { generateWhatsAppMessage } from '../services/geminiService';
 import { DEFAULT_TAG_COLOR } from '../constants';
-import { maskCpf, maskPhone } from '../utils/formatters';
+import { maskCpf, maskPhone, maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
 import CustomModal, { ModalType } from './CustomModal';
 
 interface KanbanCardProps {
@@ -27,6 +27,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   const [remainingTime, setRemainingTime] = useState('');
   const [timerStatus, setTimerStatus] = useState<'normal' | 'reminder' | 'done' | 'none'>('none');
   const [isMoveDropdownOpen, setIsMoveDropdownOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const moveDropdownRef = useRef<HTMLDivElement>(null);
 
   // Modal State
@@ -526,6 +527,14 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
                 )}
               </div>
             )}
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className={`p-1 rounded-full transition-colors ${showDetails ? 'text-laundry-teal-500 bg-laundry-teal-100 dark:bg-laundry-teal-500/20' : 'text-gray-400 dark:text-slate-400 hover:text-laundry-teal-500 dark:hover:text-laundry-teal-300 hover:bg-laundry-teal-100 dark:hover:bg-slate-700'}`}
+              aria-label={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
+              title={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
+            >
+              {showDetails ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+            </button>
             <button onClick={() => onEditCard(card)} className="text-gray-400 dark:text-slate-400 hover:text-laundry-blue-500 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-100 dark:hover:bg-slate-700 transition-colors" aria-label="Editar Pedido">
               <PencilIcon className="w-5 h-5" />
             </button>
@@ -535,21 +544,32 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
           </div>
         </div>
 
-        {(card.client?.document || card.client?.cpf || card.customerDocument) && (
-          <div className="flex items-center text-gray-700 dark:text-slate-300 mt-2">
-            <IdentificationIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
-            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">
-              {maskCpf(card.client?.document || card.client?.cpf || card.customerDocument || '')}
-            </span>
-          </div>
-        )}
+        {showDetails && (
+          <div className="mt-3 py-2 border-t border-gray-100 dark:border-slate-700/50 animate-fade-in">
+            {(card.client?.document || card.client?.cpf || card.customerDocument) && (
+              <div className="flex items-center text-gray-700 dark:text-slate-300 mt-1">
+                <IdentificationIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
+                <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">
+                  {maskVisibleCpf(card.client?.document || card.client?.cpf || card.customerDocument || '')}
+                </span>
+              </div>
+            )}
 
-        {card.client?.address && (
-          <div className="flex items-center text-gray-700 dark:text-slate-300 mt-2">
-            <MapPinIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
-            <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">
-              {card.client.address}
-            </span>
+            {card.client?.address && (
+              <div className="flex items-center text-gray-700 dark:text-slate-300 mt-2">
+                <MapPinIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
+                <span className="text-sm font-medium break-words text-laundry-blue-800 dark:text-slate-200">
+                  {card.client.address}
+                </span>
+              </div>
+            )}
+
+            {(card.client?.phone || card.contact) && (
+              <div className="flex items-center text-gray-600 dark:text-slate-400 mt-2">
+                <PhoneIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400" />
+                <span className="text-sm font-medium text-laundry-blue-800 dark:text-slate-200">{maskVisiblePhone(card.client?.phone || card.contact)}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -619,12 +639,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
           })}
         </div>
 
-        {(card.client?.phone || card.contact) && (
-          <div className="flex items-center text-gray-600 dark:text-slate-400 mt-2">
-            <PhoneIcon className="w-4 h-4 mr-2 text-laundry-blue-500 dark:text-laundry-blue-400" />
-            <span className="text-sm">{maskPhone(card.client?.phone || card.contact)}</span>
-          </div>
-        )}
+
 
         {card.notifiedAt && (
           <div className="flex items-center text-gray-600 dark:text-slate-300 mt-2" title={`Notificado em ${card.notifiedAt}`}>
