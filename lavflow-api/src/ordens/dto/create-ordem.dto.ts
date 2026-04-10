@@ -45,6 +45,11 @@ export class CreateOrdemDto {
   @IsString()
   notes?: string;
 
+  @ApiProperty({ description: 'Observações internas do cliente (snapshot).', example: 'Cliente prefere entrega à tarde', required: false })
+  @IsOptional()
+  @IsString()
+  clientNotes?: string;
+
   @ApiProperty({ description: 'Tags do cartão.', type: [CardTagDto], required: false })
   @IsOptional()
   @IsArray()

@@ -14,6 +14,7 @@ export interface Client {
   birthDate?: string;
   address?: string;
   saldo: number;
+  notes?: string;
 }
 
 export interface CardHistoryEvent {
@@ -31,6 +32,7 @@ export interface Card {
   customerName: string;
   customerDocument?: string;
   notes: string;
+  clientNotes?: string;
   contact: string;
   serviceValue?: number;
   paymentMethod?: 'dinheiro' | 'pix';

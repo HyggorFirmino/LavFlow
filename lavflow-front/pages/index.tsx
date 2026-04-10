@@ -269,6 +269,7 @@ const Home: React.FC = () => {
             customerName: ordem.client?.name || ordem.customerName || 'Cliente sem nome',
             customerDocument: ordem.customerDocument,
             notes: ordem.notes,
+            clientNotes: ordem.clientNotes || ordem.client_notes || '',
             contact: ordem.contact,
             serviceValue: Number(ordem.serviceValue),
             paymentMethod: ordem.paymentMethod,

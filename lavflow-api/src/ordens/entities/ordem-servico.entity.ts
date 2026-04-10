@@ -34,6 +34,10 @@ export class OrdemServico {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  @ApiProperty({ example: 'Cliente prefere entrega à tarde', required: false })
+  @Column({ name: 'client_notes', type: 'text', nullable: true })
+  clientNotes: string;
+
 
 
   @ApiProperty({ example: 120.5, required: false })

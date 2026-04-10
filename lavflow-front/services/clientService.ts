@@ -7,6 +7,7 @@ export interface CreateClientData {
     address?: string;
     phone?: string;
     birthDate?: string;
+    notes?: string;
 }
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
@@ -25,7 +26,8 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
             phone: data.phone || '',
             birthDate: data.birthDate,
             address: data.address,
-            saldo: 0 // New client starts with 0
+            notes: data.notes,
+            saldo: data.saldo ?? 0
         };
     } catch (error) {
         console.error('Error creating client:', error);
@@ -42,7 +44,8 @@ export const fetchLocalClients = async (): Promise<Client[]> => {
             document: item.cpf,
             phone: item.phone || '',
             address: item.address,
-            saldo: 0
+            notes: item.notes,
+            saldo: item.saldo ?? 0
         }));
     } catch (error) {
         console.error('Error fetching local clients:', error);
@@ -70,8 +73,9 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
             phone: clientData.phone || '',
             birthDate: clientData.birthDate,
             address: clientData.address,
-            saldo: 0 // Keep as is usually
-        } as Client; // This cast is a bit unsafe, better logic in component
+            notes: clientData.notes,
+            saldo: 0 // Default for optimistic update
+        } as Client;
     } catch (error) {
         console.error('Error updating client:', error);
         return null;
@@ -90,7 +94,8 @@ export const findLocalClientByCpf = async (cpf: string): Promise<Client | null> 
                 document: item.cpf,
                 phone: item.phone || '',
                 address: item.address,
-                saldo: 0
+                notes: item.notes,
+                saldo: item.saldo ?? 0
             };
         }
         return null;

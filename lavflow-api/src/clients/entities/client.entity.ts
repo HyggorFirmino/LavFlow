@@ -16,16 +16,16 @@ export class Client {
   cpf: string;
 
   @ApiProperty({ description: 'Endereço completo', example: 'Rua das Flores, 123', required: false })
-  @Column({ nullable: true })
-  address: string;
+  @Column({ type: 'varchar', nullable: true })
+  address: string | null;
 
   @ApiProperty({ description: 'Telefone', example: '(11) 98765-4321', required: false })
-  @Column({ nullable: true })
-  phone: string;
+  @Column({ type: 'varchar', nullable: true })
+  phone: string | null;
 
   @ApiProperty({ description: 'Data de nascimento', example: '1990-01-01', required: false })
   @Column({ type: 'date', nullable: true })
-  birthDate: string;
+  birthDate: string | null;
 
   @ApiProperty({ description: 'Data de criação' })
   @CreateDateColumn()
@@ -34,4 +34,8 @@ export class Client {
   @ApiProperty({ description: 'Data da última atualização' })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ApiProperty({ description: 'Observações internas sobre o cliente', example: 'Cliente prefere entrega à tarde', required: false })
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 }

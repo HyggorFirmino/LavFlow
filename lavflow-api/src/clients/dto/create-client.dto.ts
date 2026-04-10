@@ -22,8 +22,13 @@ export class CreateClientDto {
     @IsOptional()
     phone?: string;
 
-    @ApiProperty({ description: 'Data de nascimento', example: '1990-01-01', required: false })
+    @ApiProperty({ description: 'Data de nascimento', example: '1990-01-01', required: false, nullable: true })
     @IsDateString()
     @IsOptional()
-    birthDate?: string;
+    birthDate?: string | null;
+
+    @ApiProperty({ description: 'Observações internas sobre o cliente', example: 'Cliente prefere entrega à tarde', required: false, nullable: true })
+    @IsString()
+    @IsOptional()
+    notes?: string | null;
 }

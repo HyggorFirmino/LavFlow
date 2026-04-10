@@ -32,6 +32,17 @@ export class ClientsService {
   }
 
   async update(id: string, updateClientDto: UpdateClientDto) {
+    // Regex para validar UUID (prevent 500 errors on invalid foreign IDs)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new BadRequestException(`ID inválido: ${id}. Formato UUID esperado.`);
+    }
+
+    // Normalizar birthDate se for string vazia
+    if (updateClientDto.birthDate === '') {
+      updateClientDto.birthDate = null;
+    }
+
     const client = await this.clientsRepository.preload({ id, ...updateClientDto });
     if (!client) {
       throw new NotFoundException(`Cliente com ID ${id} não encontrado.`);

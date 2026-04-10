@@ -527,6 +527,15 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
             )}
           </div>
           <div className="flex space-x-1">
+            
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className={`p-1 rounded-full transition-colors ${showDetails ? 'text-laundry-teal-500 bg-laundry-teal-100 dark:bg-laundry-teal-500/20' : 'text-gray-400 dark:text-slate-400 hover:text-laundry-teal-500 dark:hover:text-laundry-teal-300 hover:bg-laundry-teal-100 dark:hover:bg-slate-700'}`}
+              aria-label={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
+              title={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
+            >
+              {showDetails ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+            </button>
             {allLists && onMoveCard && (
               <div className="relative" ref={moveDropdownRef}>
                 <button
@@ -573,14 +582,6 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
                 )}
               </div>
             )}
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className={`p-1 rounded-full transition-colors ${showDetails ? 'text-laundry-teal-500 bg-laundry-teal-100 dark:bg-laundry-teal-500/20' : 'text-gray-400 dark:text-slate-400 hover:text-laundry-teal-500 dark:hover:text-laundry-teal-300 hover:bg-laundry-teal-100 dark:hover:bg-slate-700'}`}
-              aria-label={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
-              title={showDetails ? "Ocultar Dados do Cliente" : "Ver Dados do Cliente"}
-            >
-              {showDetails ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-            </button>
             <button onClick={() => onEditCard(card)} className="text-gray-400 dark:text-slate-400 hover:text-laundry-blue-500 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-100 dark:hover:bg-slate-700 transition-colors" aria-label="Editar Pedido">
               <PencilIcon className="w-5 h-5" />
             </button>

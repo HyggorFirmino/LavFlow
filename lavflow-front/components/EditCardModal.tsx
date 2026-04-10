@@ -29,6 +29,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
     const [basketIdentifier, setBasketIdentifier] = useState('');
     const [numeroCesto, setNumeroCesto] = useState<number | undefined>(undefined);
     const [notes, setNotes] = useState('');
+    const [clientNotes, setClientNotes] = useState('');
     const [selectedTags, setSelectedTags] = useState<CardTag[]>([]);
     const [tagInput, setTagInput] = useState('');
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -65,7 +66,8 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
             setContact(card.contact ? maskVisiblePhone(card.contact) : '');
             setBasketIdentifier(card.basketIdentifier || '');
             setNumeroCesto(card.numeroCesto);
-            setNotes(card.notes);
+            setNotes(card.notes || '');
+            setClientNotes(card.clientNotes || '');
             setSelectedTags(card.tags || []);
             setPaymentMethod(card.paymentMethod);
             setServices(card.services || { washing: false, drying: false });
@@ -177,6 +179,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
             basketIdentifier,
             numeroCesto,
             notes,
+            clientNotes,
             tags: selectedTags,
             paymentMethod: paymentMethod,
             services: services,
@@ -453,11 +456,22 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                             </div>
                         )}
 
+                        <div className="mb-4">
+                            <label htmlFor="clientNotes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Cliente (Não editável)</label>
+                            <textarea
+                                id="clientNotes"
+                                value={clientNotes || ''}
+                                readOnly
+                                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-500 dark:text-slate-400 leading-tight focus:outline-none h-20 cursor-not-allowed italic"
+                                placeholder="Nenhuma observação cadastrada no cliente."
+                            />
+                        </div>
+
                         <div className="mb-6">
-                            <label htmlFor="notes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações</label>
+                            <label htmlFor="notes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Pedido</label>
                             <textarea
                                 id="notes"
-                                value={notes}
+                                value={notes || ''}
                                 onChange={(e) => setNotes(e.target.value)}
                                 className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-24"
                                 placeholder="Ex: Usar sabão hipoalergênico..."

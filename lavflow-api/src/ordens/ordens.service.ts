@@ -92,6 +92,7 @@ export class OrdensService {
         ...(client ? { client } : {}),
       });
 
+      // Se o funcionário foi informado, vincula à ordem
       if (idFuncionarioResponsavel) {
         novaOrdem.funcionarioResponsavel = { id: idFuncionarioResponsavel } as User;
       }

@@ -20,6 +20,7 @@ export const createOrdem = (data: Partial<Card> & { storeId?: number }): Promise
     serviceValue: data.serviceValue,
     paymentMethod: data.paymentMethod,
     services: data.services,
+    clientNotes: data.clientNotes,
     storeId: data.storeId ? Number(data.storeId) : undefined,
   };
 

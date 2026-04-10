@@ -311,7 +311,8 @@ const App: React.FC = () => {
             customerName: ordem.client ? ordem.client.name : 'Cliente Não Identificado',
             customerDocument: ordem.client ? (ordem.client.cpf || ordem.client.document) : '',
             contact: ordem.client ? ordem.client.phone : '',
-            notes: ordem.observacoes || '',
+            notes: ordem.notes || ordem.observacoes || '',
+            clientNotes: ordem.clientNotes || ordem.client_notes || '',
             tags: [], // TODO: Map tags if backend supports them or use local logic
             serviceValue: Number(ordem.valorTotal),
             // paymentMethod: ordem.metodoPagamento, // Assuming backend has this

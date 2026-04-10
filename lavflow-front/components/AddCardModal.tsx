@@ -29,6 +29,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
   const [basketIdentifier, setBasketIdentifier] = useState('');
   const [numeroCesto, setNumeroCesto] = useState<number | undefined>(undefined);
   const [notes, setNotes] = useState('');
+  const [clientNotes, setClientNotes] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
   const [clientId, setClientId] = useState<string | undefined>(undefined);
   const [selectedTags, setSelectedTags] = useState<CardTag[]>([]);
@@ -71,6 +72,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       setBasketIdentifier(cardToEdit.basketIdentifier || '');
       setNumeroCesto(cardToEdit.numeroCesto);
       setNotes(cardToEdit.notes);
+      setClientNotes(cardToEdit.clientNotes || '');
       setSelectedTags(cardToEdit.tags || []);
       setPaymentMethod(cardToEdit.paymentMethod);
       setServices(cardToEdit.services || { washing: false, drying: false });
@@ -89,6 +91,9 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
         setCustomerName(cardToEdit.client.name);
         setCustomerDocument(maskVisibleCpf(cardToEdit.client.cpf || cardToEdit.client.document || cardToEdit.customerDocument || ''));
         setContact(maskVisiblePhone(cardToEdit.client.phone || cardToEdit.contact || ''));
+        
+        // Set client notes (snapshot view)
+        setClientNotes(cardToEdit.client.notes || '');
       }
     } else {
       setCustomerName('');
@@ -97,6 +102,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       setBasketIdentifier('');
       setNumeroCesto(undefined);
       setNotes('');
+      setClientNotes('');
       setSelectedTags([]);
       setSelectedTags([]);
       setPaymentMethod(undefined);
@@ -203,6 +209,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
       basketIdentifier,
       numeroCesto,
       notes,
+      clientNotes,
       tags: selectedTags,
       paymentMethod: paymentMethod,
       services: services,
@@ -457,11 +464,22 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
               </div>
             )}
 
+            <div className="mb-4">
+              <label htmlFor="clientNotes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Cliente (Não editável)</label>
+              <textarea
+                id="clientNotes"
+                value={clientNotes || ''}
+                readOnly
+                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-500 dark:text-slate-400 leading-tight focus:outline-none h-20 cursor-not-allowed italic"
+                placeholder="Nenhuma observação cadastrada no cliente."
+              />
+            </div>
+
             <div className="mb-6">
-              <label htmlFor="notes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações</label>
+              <label htmlFor="notes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Pedido</label>
               <textarea
                 id="notes"
-                value={notes}
+                value={notes || ''}
                 onChange={(e) => setNotes(e.target.value)}
                 className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-24"
                 placeholder="Ex: Usar sabão hipoalergênico, cuidado com peça vermelha..."

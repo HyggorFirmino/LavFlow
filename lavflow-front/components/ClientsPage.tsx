@@ -156,6 +156,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [newClientAddress, setNewClientAddress] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientBirthDate, setNewClientBirthDate] = useState('');
+  const [newClientNotes, setNewClientNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal State
@@ -180,29 +181,50 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     const fetchedClients = await fetchClients(storeMaxpanId, selectedStore);
     const localClients = await fetchLocalClients();
 
-    const clientMap = new Map<string, Client>();
+    const localClientMap = new Map<string, Client>();
+    const usedLocalKeys = new Set<string>();
 
-    // Helper to generate a unique key: prefer CPF (digits only), fallback to ID with prefix
-    const getClientKey = (client: Client, prefix: string) => {
-      const doc = client.document ? client.document.replace(/\D/g, '') : '';
-      return doc || `${prefix}-${client.id}`;
+    // Helper to generate a unique key: prefer CPF (digits only)
+    const getClientKey = (client: Client) => {
+      return client.document ? client.document.replace(/\D/g, '') : null;
     };
 
-    // Add fetched clients first (to establish order and ensure latest data)
-    fetchedClients.forEach(client => {
-      const key = getClientKey(client, 'maxpan');
-      if (key) clientMap.set(key, client);
+    // Index local clients by CPF for quick lookup
+    localClients.forEach(client => {
+      const key = getClientKey(client);
+      if (key) localClientMap.set(key, client);
     });
 
-    // Add local clients (only if not already present)
-    localClients.forEach(client => {
-      const key = getClientKey(client, 'local');
-      if (!clientMap.has(key)) {
-        clientMap.set(key, client);
+    const finalClients: Client[] = [];
+
+    // Follow the order of fetchedClients (Maxpan)
+    fetchedClients.forEach(extClient => {
+      const key = getClientKey(extClient);
+      const localMatch = key ? localClientMap.get(key) : null;
+      
+      if (localMatch) {
+        // Use local object (has UUID) but merge with extClient
+        // IMPORTANT: Explicitly keep extClient.saldo to prevent it being overwritten by the local mapping (which is often 0)
+        finalClients.push({
+          ...extClient,   // Maxpan source (has current balance)
+          ...localMatch,  // Local overrides (has id UUID, notes, etc)
+          saldo: extClient.saldo // Force Maxpan balance to win
+        });
+        if (key) usedLocalKeys.add(key);
+      } else {
+        finalClients.push(extClient);
       }
     });
 
-    setClients(Array.from(clientMap.values()));
+    // Append any local clients that were NOT in the Maxpan list
+    localClients.forEach(localClient => {
+      const key = getClientKey(localClient);
+      if (key && !usedLocalKeys.has(key)) {
+        finalClients.push(localClient);
+      }
+    });
+
+    setClients(finalClients);
   };
 
   useEffect(() => {
@@ -235,7 +257,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setIsMultiCardModalOpen(true);
   };
 
-  const handleConfirmMultiple = async (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix') => {
+  const handleConfirmMultiple = async (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: any[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix', clientNotes?: string) => {
     if (!selectedClient) return;
     for (let i = 0; i < quantity; i++) {
       // Calculate the part (e.g., "1/3")
@@ -250,6 +272,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
         services: services,
         tags: tags,
         notes: notes,
+        clientNotes: clientNotes,
         paymentMethod: paymentMethod,
         client: selectedClient,
         storeId: storeId,
@@ -308,6 +331,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setNewClientAddress(client.address || '');
     // Ensure date matches YYYY-MM-DD for input type="date"
     setNewClientBirthDate(client.birthDate ? client.birthDate.split('T')[0] : '');
+    setNewClientNotes(client.notes || '');
     setIsCreateClientModalOpen(true);
   };
 
@@ -380,7 +404,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       cpf: newClientCpf,
       address: newClientAddress,
       phone: newClientPhone,
-      birthDate: newClientBirthDate
+      birthDate: newClientBirthDate || null, // Convert "" to null
+      notes: newClientNotes
     };
 
     let resultClient: Client | null = null;
@@ -416,6 +441,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setNewClientAddress('');
     setNewClientPhone('');
     setNewClientBirthDate('');
+    setNewClientNotes('');
     setIsEditing(false);
     setCurrentClientId(null);
   };
@@ -689,6 +715,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                             value={newClientAddress}
                             onChange={(e) => setNewClientAddress(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-laundry-teal-500 focus:ring-laundry-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm px-3 py-2 border"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Observações (Persistentes nos pedidos)</label>
+                          <textarea
+                            id="notes"
+                            rows={3}
+                            value={newClientNotes}
+                            onChange={(e) => setNewClientNotes(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-laundry-teal-500 focus:ring-laundry-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm px-3 py-2 border"
+                            placeholder="Ex: Cliente prefere sabão neutro. Sempre avisar antes de entregar."
                           />
                         </div>
                         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">

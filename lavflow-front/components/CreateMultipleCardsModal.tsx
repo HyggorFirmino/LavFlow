@@ -11,7 +11,7 @@ interface CardTag {
 interface CreateMultipleCardsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix') => void;
+  onConfirm: (quantity: number, storeId: number, services: { washing: boolean; drying: boolean }, tags: CardTag[], notes: string, cestoNumbers: string[], paymentMethod?: 'dinheiro' | 'pix', clientNotes?: string) => void;
   client: Client | null;
   stores: Store[];
   tags: TagDefinition[];
@@ -25,6 +25,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
   // New Fields
   const [services, setServices] = useState({ washing: false, drying: false });
   const [notes, setNotes] = useState('');
+  const [clientNotes, setClientNotes] = useState('');
   const [selectedTags, setSelectedTags] = useState<CardTag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -70,6 +71,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       setQuantity('1'); // Reset on open
       setServices({ washing: false, drying: false });
       setNotes('');
+      setClientNotes(client?.notes || '');
       setSelectedTags([]);
       setTagInput('');
       setCestoNumbers(['']);
@@ -179,7 +181,7 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
       return;
     }
 
-    onConfirm(numQuantity, storeId, services, selectedTags, notes, cestoNumbers, paymentMethod);
+    onConfirm(numQuantity, storeId, services, selectedTags, notes, cestoNumbers, paymentMethod, clientNotes);
   };
 
   return (
@@ -351,10 +353,21 @@ const CreateMultipleCardsModal: React.FC<CreateMultipleCardsModalProps> = ({ isO
             )}
 
             <div className="mb-4">
-              <label htmlFor="notes-multi" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações</label>
+              <label htmlFor="client-notes-multi" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Cliente (Não editável)</label>
+              <textarea
+                id="client-notes-multi"
+                value={clientNotes || ''}
+                readOnly
+                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-500 dark:text-slate-400 leading-tight focus:outline-none h-20 cursor-not-allowed italic"
+                placeholder="Nenhuma observação cadastrada no cliente."
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="notes-multi" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Pedido</label>
               <textarea
                 id="notes-multi"
-                value={notes}
+                value={notes || ''}
                 onChange={(e) => setNotes(e.target.value)}
                 className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 h-24"
                 placeholder="Ex: Usar sabão hipoalergênico..."
