@@ -20,6 +20,7 @@ import ClientsPage from '../components/ClientsPage';
 import RecargaPage from '../components/RecargaPage';
 import MovimentacoesPage from '../components/MovimentacoesPage';
 import MachineOperationPage from '../components/MachineOperationPage';
+import AdminPage from '../components/AdminPage';
 import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
 import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag, deleteOrdem } from '../services/apiService';
@@ -144,10 +145,7 @@ const Home: React.FC = () => {
     return {};
   });
 
-  const [users, setUsers] = useState<User[]>([
-    { id: 'user-admin', name: 'Administrador', email: 'admin@lavanderia.com', password: 'admin123', role: 'ADMIN', theme: 'claro' },
-    { id: 'user-employee', name: 'Funcionário Teste', email: 'func@lavanderia.com', password: 'func123', role: 'EMPLOYEE', theme: 'claro' }
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
   const [laundryProfile, setLaundryProfile] = useState<LaundryProfile>({
     name: 'Lavanderia Inteligente',
     address: 'Rua das Máquinas, 123 - Bairro Bolhas',
@@ -1058,6 +1056,8 @@ const Home: React.FC = () => {
           selectedStoreId={selectedStoreId}
           onSelectStore={setSelectedStoreId}
         />;
+      case 'admin':
+        return <AdminPage currentUser={currentUser!} onRefreshGlobal={loadBoardData} />;
       case 'board':
       default:
         return (

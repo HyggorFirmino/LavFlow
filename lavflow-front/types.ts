@@ -124,4 +124,4 @@ export interface Store {
   BearerTokenMaxpanExpiration?: string;
 }
 
-export type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients' | 'recarga' | 'movimentacoes' | 'machine-operation';
+export type ViewType = 'board' | 'list' | 'tags' | 'profile' | 'dashboard' | 'print-labels' | 'history' | 'clients' | 'recarga' | 'movimentacoes' | 'machine-operation' | 'admin';

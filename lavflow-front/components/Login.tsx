@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { WashingMachineIcon } from './icons';
+import { WashingMachineIcon, EyeIcon, EyeSlashIcon } from './icons';
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
@@ -12,6 +12,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,19 +56,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
+            <div className="relative">
               <label htmlFor="password" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Senha</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-3 px-4 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
-                placeholder="Digite sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-700/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-3 px-4 pr-12 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400"
+                  placeholder="Digite sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-600 dark:text-slate-400 hover:text-laundry-teal-500 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -87,14 +101,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </div>
 
-          <div className="flex flex-col space-y-2 text-center text-sm">
-            <Link href="/register/store" className="text-laundry-teal-600 hover:text-laundry-teal-800 dark:text-laundry-teal-400 dark:hover:text-laundry-teal-300 font-medium transition-colors">
-              Cadastrar Nova Loja
-            </Link>
-            <Link href="/register/user" className="text-laundry-teal-600 hover:text-laundry-teal-800 dark:text-laundry-teal-400 dark:hover:text-laundry-teal-300 font-medium transition-colors">
-              Cadastrar Novo Usuário
-            </Link>
-          </div>
+         
         </form>
       </div>
     </div>

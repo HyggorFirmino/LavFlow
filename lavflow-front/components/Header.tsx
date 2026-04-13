@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TagIcon, WashingMachineIcon, LogoutIcon, UserCircleIcon, ChartBarIcon, ViewGridIcon, PrinterIcon, ListBulletIcon, ArchiveBoxIcon, UserGroupIcon, CurrencyDollarIcon, ArrowPathIcon, ChevronDownIcon } from './icons';
+import { TagIcon, WashingMachineIcon, LogoutIcon, UserCircleIcon, ChartBarIcon, ViewGridIcon, PrinterIcon, ListBulletIcon, ArchiveBoxIcon, UserGroupIcon, CurrencyDollarIcon, ArrowPathIcon, ChevronDownIcon, BuildingOfficeIcon } from './icons';
 import { User, ViewType } from '../types';
 import Dropdown from './Dropdown';
 
@@ -115,6 +115,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
                 { view: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon className="w-5 h-5" />, adminOnly: true },
                 { view: 'history', label: 'Histórico', icon: <ArchiveBoxIcon className="w-5 h-5" />, adminOnly: true },
                 { view: 'tags', label: 'Etiquetas', icon: <TagIcon className="w-5 h-5" />, adminOnly: true },
+                { view: 'admin', label: 'Administração', icon: <BuildingOfficeIcon className="w-5 h-5" />, adminOnly: true },
               ]}
               currentView={currentView}
               onNavigate={onNavigate}
@@ -209,6 +210,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
                       {mobileNavItem('dashboard', 'Dashboard', <ChartBarIcon className="w-5 h-5" />)}
                       {mobileNavItem('history', 'Histórico', <ArchiveBoxIcon className="w-5 h-5" />)}
                       {mobileNavItem('tags', 'Etiquetas', <TagIcon className="w-5 h-5" />)}
+                      {mobileNavItem('admin', 'Administração', <BuildingOfficeIcon className="w-5 h-5" />)}
                     </>
                   )}
                 </div>
