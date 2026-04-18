@@ -17,7 +17,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',      // Teu Next.js local
-      'https://empatiya.com.br',        // Teu domínio na HostGator
+      'https://empatiyalavanderia.com.br',        // Teu domínio na HostGator
     ], // Substitui pelo teu domínio da HostGator
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
