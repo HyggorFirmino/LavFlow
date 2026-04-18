@@ -432,7 +432,7 @@ const App: React.FC = () => {
   };
 
   // Card handlers
-  const handleAddCard = (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string }) => {
+  const handleAddCard = async (newCardData: Partial<Omit<Card, 'id' | 'listId'>> & { id?: string; storeId?: number; listId?: string }, options?: { skipReload?: boolean }) => {
     const hasAssistidoTag = newCardData.tags?.some(tag => tag.name === 'Assistido');
     let calculatedValue: number | undefined = undefined;
 
@@ -546,7 +546,7 @@ const App: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
+  const handleAddList = (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
     const newListId = `list-user-${Date.now()}`;
     const newList: List = { id: newListId, title, cards: [], cardLimit: limit, type, order: listOrder.length };
 
@@ -573,7 +573,7 @@ const App: React.FC = () => {
     setIsListSettingsModalOpen(true);
   };
 
-  const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp', totalDryingTime?: number, reminderInterval?: number) => {
+  const handleSaveListSettings = (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number) => {
     setBoardData(prevData => {
       const newData = { ...prevData };
       const list = newData[listId];

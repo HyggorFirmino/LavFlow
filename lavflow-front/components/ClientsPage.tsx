@@ -404,7 +404,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       cpf: newClientCpf,
       address: newClientAddress,
       phone: newClientPhone,
-      birthDate: newClientBirthDate || null, // Convert "" to null
+      birthDate: newClientBirthDate || undefined, // Convert "" to undefined
       notes: newClientNotes
     };
 
