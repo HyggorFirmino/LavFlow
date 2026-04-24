@@ -196,10 +196,19 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     });
 
     const finalClients: Client[] = [];
+    const seenExternalKeys = new Set<string>();
 
     // Follow the order of fetchedClients (Maxpan)
     fetchedClients.forEach(extClient => {
       const key = getClientKey(extClient);
+      const nameKey = (extClient.name || '').toLowerCase().trim();
+      const duplicateMarker = key || nameKey;
+      
+      if (duplicateMarker) {
+        if (seenExternalKeys.has(duplicateMarker)) return;
+        seenExternalKeys.add(duplicateMarker);
+      }
+
       const localMatch = key ? localClientMap.get(key) : null;
       
       if (localMatch) {
@@ -233,14 +242,67 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
 
   const filteredClients = useMemo(() => {
     if (!searchTerm.trim()) {
-      return clients;
+      return [...clients];
     }
-    const lowercasedFilter = searchTerm.toLowerCase();
-    return clients.filter(client =>
-      client.name.toLowerCase().includes(lowercasedFilter) ||
-      client.document.toLowerCase().includes(lowercasedFilter) ||
-      client.phone.toLowerCase().includes(lowercasedFilter)
-    );
+    
+    const term = searchTerm.toLowerCase().trim();
+    const termDigits = term.replace(/\D/g, '');
+
+    const scored = clients.map(client => {
+      let score = 0;
+      const fullName = (client.name || '').toLowerCase().trim();
+      const doc = (client.document || '').replace(/\D/g, '');
+      const phone = (client.phone || '').replace(/\D/g, '');
+      const words = fullName.split(/\s+/);
+
+      // --- APENAS PESQUISA EXATA OU INÍCIO EXATO ---
+      
+      // 1. Nome inteiro idêntico
+      if (fullName === term) {
+        score += 2000;
+      } 
+      // 2. O nome inteiro começa EXATAMENTE com a frase pesquisada (ex: busca "Eliana", acha "Eliana Alves")
+      else if (fullName.startsWith(term + ' ')) {
+        score += 1000;
+      }
+      // 3. A primeira palavra é o termo exato
+      else if (words[0] === term) {
+        score += 800;
+      }
+      // 4. Se o termo tem várias palavras, permite match como "Eliana Alv" em "Eliana Alves"
+      else if (fullName.startsWith(term)) {
+        score += 500;
+      }
+      // 5. O termo é uma palavra exata no meio do nome (ex: "Maria Eliana")
+      else if (words.some(word => word === term)) {
+        score += 300;
+      }
+
+      // --- Pontuação por Documento (CPF) ---
+      if (termDigits && termDigits.length > 2) { // Evita matchs acidentais de poucos números
+        if (doc === termDigits) {
+          score += 1500;
+        } else if (doc.includes(termDigits) && termDigits.length >= 4) {
+          score += 100; // Somente considera parcial se tiver pelo menos 4 dígitos
+        }
+      }
+
+      // --- Pontuação por Telefone ---
+      if (termDigits && termDigits.length > 2) {
+        if (phone === termDigits) {
+          score += 1400;
+        } else if (phone.includes(termDigits) && termDigits.length >= 4) {
+          score += 100;
+        }
+      }
+
+      return { client, score };
+    });
+
+    return scored
+      .filter(item => item.score > 0)
+      .sort((a, b) => a.client.name.localeCompare(b.client.name))
+      .map(item => item.client);
   }, [clients, searchTerm]);
 
   const handleOpenCreateSingle = (client: Client) => {

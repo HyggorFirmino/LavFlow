@@ -46,14 +46,48 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ cards, onRefresh, stores, sel
   }, [cards]);
 
   const filteredEvents = useMemo(() => {
-    if (!searchTerm) {
+    if (!searchTerm.trim()) {
       return allHistoryEvents;
     }
-    const lowercasedFilter = searchTerm.toLowerCase();
-    return allHistoryEvents.filter(event =>
-      event.customerName.toLowerCase().includes(lowercasedFilter) ||
-      event.cardId.toLowerCase().includes(lowercasedFilter)
-    );
+    
+    const term = searchTerm.toLowerCase().trim();
+
+    const scored = allHistoryEvents.map(event => {
+      let score = 0;
+      const fullName = (event.customerName || '').toLowerCase().trim();
+      const id = (event.cardId || '').toLowerCase();
+      const words = fullName.split(/\s+/);
+
+      // --- Pontuação por Nome ---
+      if (fullName === term) {
+        score += 2000;
+      } 
+      else if (fullName.startsWith(term + ' ')) {
+        score += 1000;
+      }
+      else if (words[0] === term) {
+        score += 800;
+      }
+      else if (fullName.startsWith(term)) {
+        score += 500;
+      } 
+      else if (words.some(word => word === term)) {
+        score += 300;
+      }
+
+      // --- Pontuação por ID ---
+      if (term.length > 2 && id.includes(term)) {
+        if (id === term) score += 1500;
+        else if (term.length >= 4) score += 200;
+      }
+
+      return { event, score };
+    });
+
+    return scored
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score || new Date(b.event.timestamp).getTime() - new Date(a.event.timestamp).getTime())
+      .map(item => item.event);
   }, [allHistoryEvents, searchTerm]);
 
   return (

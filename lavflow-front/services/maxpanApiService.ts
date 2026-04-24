@@ -135,7 +135,14 @@ export const maxpanFetch = async (endpoint: string, options: RequestInit = {}, s
 
     if (response.status === 401 || !refreshed) {
       console.warn('maxpanFetch: Falha irreversível na autenticação. Token inválido ou não foi possível renovar.');
-      // We could optionally throw an error here depending on frontend architecture
+      
+      if (typeof window !== 'undefined' && !(window as any).isAlerting401) {
+        (window as any).isAlerting401 = true;
+        window.dispatchEvent(new CustomEvent('maxpan-auth-error'));
+        setTimeout(() => { (window as any).isAlerting401 = false; }, 5000);
+      }
+      
+      throw new Error('Falha de autenticação (401). O token da Maxpan expirou ou é inválido.');
     }
   }
 
