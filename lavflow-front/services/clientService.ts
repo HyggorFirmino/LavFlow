@@ -8,6 +8,7 @@ export interface CreateClientData {
     phone?: string;
     birthDate?: string;
     notes?: string;
+    email?: string;
 }
 
 export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
@@ -27,6 +28,7 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
             birthDate: data.birthDate,
             address: data.address,
             notes: data.notes,
+            email: data.email,
             saldo: data.saldo ?? 0
         };
     } catch (error) {
@@ -45,6 +47,7 @@ export const fetchLocalClients = async (): Promise<Client[]> => {
             phone: item.phone || '',
             address: item.address,
             notes: item.notes,
+            email: item.email,
             saldo: item.saldo ?? 0
         }));
     } catch (error) {
@@ -74,6 +77,7 @@ export const updateClient = async (id: string, clientData: Partial<CreateClientD
             birthDate: clientData.birthDate,
             address: clientData.address,
             notes: clientData.notes,
+            email: clientData.email,
             saldo: 0 // Default for optimistic update
         } as Client;
     } catch (error) {
@@ -95,6 +99,7 @@ export const findLocalClientByCpf = async (cpf: string): Promise<Client | null> 
                 phone: item.phone || '',
                 address: item.address,
                 notes: item.notes,
+                email: item.email,
                 saldo: item.saldo ?? 0
             };
         }

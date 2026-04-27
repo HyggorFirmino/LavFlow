@@ -157,6 +157,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientBirthDate, setNewClientBirthDate] = useState('');
   const [newClientNotes, setNewClientNotes] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal State
@@ -355,15 +356,29 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       }).slice(0, 3); // Sync only top 3 to be safe
 
       if (unsynced.length > 0) {
-        console.log(`[AUTO-SYNC] Sincronizando ${unsynced.length} clientes encontrados na busca...`);
+        console.log(`[AUTO-SYNC] Sincronizando/Atualizando ${unsynced.length} clientes encontrados na busca...`);
         unsynced.forEach(async (client) => {
           try {
-            await createClient({
+            // Check if exists locally to update or create
+            const localClients = await fetchLocalClients();
+            const existingLocal = localClients.find(c => c.document.replace(/\D/g, '') === client.document.replace(/\D/g, ''));
+            
+            const clientData = {
               name: client.name,
               cpf: client.document,
               phone: client.phone,
-              address: client.address
-            });
+              address: client.address,
+              email: client.email
+            };
+
+            if (existingLocal) {
+              // Only update if email is missing or different
+              if (!existingLocal.email && client.email) {
+                await updateClient(existingLocal.id, clientData);
+              }
+            } else {
+              await createClient(clientData);
+            }
           } catch (e) {
             console.error("Erro no auto-sync de busca:", e);
           }
@@ -394,6 +409,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     // Ensure date matches YYYY-MM-DD for input type="date"
     setNewClientBirthDate(client.birthDate ? client.birthDate.split('T')[0] : '');
     setNewClientNotes(client.notes || '');
+    setNewClientEmail(client.email || '');
     setIsCreateClientModalOpen(true);
   };
 
@@ -405,43 +421,54 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       const storeMaxpanId = selectedStore?.maxpanId;
       const externalClients = await fetchClients(storeMaxpanId, selectedStore); // From maxpanApiService
 
-      // Use Set for O(1) lookup of documents
-      const localDocuments = new Set(localClients.map(c => c.document.replace(/\D/g, '')));
+      const localMap = new Map(localClients.map(c => [c.document.replace(/\D/g, ''), c]));
 
-      const newClientsToCreate = externalClients.filter(extClient => {
+      let createdCount = 0;
+      let updatedCount = 0;
+
+      for (const extClient of externalClients) {
         const extDoc = extClient.document.replace(/\D/g, '');
-        return extDoc && !localDocuments.has(extDoc);
-      });
+        if (!extDoc) continue;
 
-      if (newClientsToCreate.length === 0) {
+        const existingLocal = localMap.get(extDoc);
+        
+        const clientData = {
+          name: extClient.name,
+          cpf: extClient.document,
+          phone: extClient.phone,
+          address: extClient.address,
+          email: extClient.email
+        };
+
+        if (existingLocal) {
+          // Update if local email is missing but external has it
+          if (!existingLocal.email && extClient.email) {
+            await updateClient(existingLocal.id, clientData);
+            updatedCount++;
+          }
+        } else {
+          const created = await createClient(clientData);
+          if (created) createdCount++;
+        }
+      }
+
+      if (createdCount === 0 && updatedCount === 0) {
         setModalConfig({
           isOpen: true,
           title: 'Sincronização',
-          message: 'Todos os clientes externos já estão sincronizados.',
+          message: 'Todos os clientes externos já estão sincronizados e atualizados.',
           type: 'info'
         });
       } else {
-        let createdCount = 0;
-        // Process in chunks or individually? Individually for now to handle errors gracefully
-        for (const client of newClientsToCreate) {
-          const created = await createClient({
-            name: client.name,
-            cpf: client.document,
-            phone: client.phone,
-            address: client.address
-          });
-          if (created) createdCount++;
-        }
         setModalConfig({
           isOpen: true,
           title: 'Sincronização Concluída',
-          message: `${createdCount} novos clientes importados com sucesso!`,
+          message: `${createdCount} novos clientes criados e ${updatedCount} clientes atualizados com sucesso.`,
           type: 'success'
         });
-
-        // Refresh list
-        // Refresh list
-        await fetchAndSetClients();
+        // Refresh local list
+        const updatedLocal = await fetchLocalClients();
+        setClients(updatedLocal);
       }
 
     } catch (error) {
@@ -467,7 +494,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
       address: newClientAddress,
       phone: newClientPhone,
       birthDate: newClientBirthDate || undefined, // Convert "" to undefined
-      notes: newClientNotes
+      notes: newClientNotes,
+      email: newClientEmail
     };
 
     let resultClient: Client | null = null;
@@ -504,6 +532,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
     setNewClientPhone('');
     setNewClientBirthDate('');
     setNewClientNotes('');
+    setNewClientEmail('');
     setIsEditing(false);
     setCurrentClientId(null);
   };
@@ -628,6 +657,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                       <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Endereço</span>
                       <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5 truncate">{client.address || '-'}</p>
                     </div>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Email</span>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5 truncate">
+                        {isVisible ? (client.email || '-') : (client.email ? '********@****.***' : '-')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -649,6 +684,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">CPF</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Nascimento</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Telefone</th>
+                    <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Email</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Endereço</th>
                     <th scope="col" className="px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">Saldo</th>
                     <th scope="col" className="relative px-6 py-3 text-left font-bold text-laundry-blue-800 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Ações</th>
@@ -668,6 +704,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {visibleSensitiveData.includes(client.id) ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
+                        {visibleSensitiveData.includes(client.id) ? (client.email || '-') : (client.email ? '********@****.***' : '-')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 max-w-[200px] truncate" title={client.address || ''}>
                         {client.address || '-'}
@@ -690,7 +729,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={7} className="text-center py-16">
+                      <td colSpan={8} className="text-center py-16">
                         <p className="text-xl text-gray-500 dark:text-slate-400">Nenhum cliente encontrado.</p>
                         <p className="text-base text-gray-400 dark:text-slate-500 mt-2">{searchTerm ? 'Tente ajustar sua busca.' : 'Os clientes cadastrados aparecerão aqui.'}</p>
                       </td>
@@ -767,6 +806,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                             value={newClientBirthDate}
                             onChange={(e) => setNewClientBirthDate(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-laundry-teal-500 focus:ring-laundry-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm px-3 py-2 border"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-slate-300">Email</label>
+                          <input
+                            type="email"
+                            id="email"
+                            value={newClientEmail}
+                            onChange={(e) => setNewClientEmail(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-laundry-teal-500 focus:ring-laundry-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm px-3 py-2 border"
+                            placeholder="cliente@exemplo.com"
                           />
                         </div>
                         <div>

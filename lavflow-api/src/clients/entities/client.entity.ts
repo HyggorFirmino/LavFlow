@@ -38,4 +38,8 @@ export class Client {
   @ApiProperty({ description: 'Observações internas sobre o cliente', example: 'Cliente prefere entrega à tarde', required: false })
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+
+  @ApiProperty({ description: 'Email do cliente', example: 'cliente@exemplo.com', required: false })
+  @Column({ type: 'varchar', nullable: true })
+  email: string | null;
 }

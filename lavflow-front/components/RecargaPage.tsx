@@ -1,6 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { CurrencyDollarIcon } from './icons';
 import { searchCustomerByCpf, createRecharge } from '../services/maxpanApiService';
+import { createClient, fetchLocalClients, updateClient } from '../services/clientService';
 import { Store } from '../types';
 import StoreSelector from './StoreSelector';
 
@@ -10,6 +11,7 @@ interface Customer {
     fullName: string;
     documentId: string;
     cellphone?: string;
+    email?: string;
     rechargeBalance?: number;
 }
 
@@ -111,6 +113,29 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId, onSe
                 store: storeMaxpanId,
             }, selectedStore);
 
+            // Sincronizar cliente localmente após movimentação (recarga)
+            if (customer) {
+                try {
+                    const localClients = await fetchLocalClients();
+                    const existingLocal = localClients.find(c => c.document.replace(/\D/g, '') === customer.documentId.replace(/\D/g, ''));
+                    
+                    const clientData = {
+                        name: customer.fullName,
+                        cpf: customer.documentId.replace(/\D/g, ''),
+                        phone: customer.cellphone || '',
+                        email: customer.email || ''
+                    };
+
+                    if (existingLocal) {
+                        await updateClient(existingLocal.id, clientData);
+                    } else {
+                        await createClient(clientData);
+                    }
+                } catch (syncErr) {
+                    console.error("Erro ao sincronizar cliente localmente durante recarga:", syncErr);
+                }
+            }
+
             setSuccess(
                 `Recarga de R$ ${(amountInCents / 100).toFixed(2).replace('.', ',')} realizada com sucesso para o cliente ${customer?.fullName}.`
             );
@@ -205,6 +230,9 @@ const RecargaPage: React.FC<RecargaPageProps> = ({ stores, selectedStoreId, onSe
                                 <p className="text-laundry-blue-700 dark:text-slate-300">CPF: {customer.documentId}</p>
                                 {customer.cellphone && (
                                     <p className="text-laundry-blue-700 dark:text-slate-300">Telefone: {customer.cellphone}</p>
+                                )}
+                                {customer.email && (
+                                    <p className="text-laundry-blue-700 dark:text-slate-300">Email: {customer.email}</p>
                                 )}
                                 <p className="text-laundry-blue-700 dark:text-slate-300 font-semibold mt-2">
                                     Saldo Atual: {formatBalance(customer.rechargeBalance)}

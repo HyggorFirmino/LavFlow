@@ -31,4 +31,9 @@ export class CreateClientDto {
     @IsString()
     @IsOptional()
     notes?: string | null;
+
+    @ApiProperty({ description: 'Email do cliente', example: 'cliente@exemplo.com', required: false, nullable: true })
+    @IsString()
+    @IsOptional()
+    email?: string | null;
 }

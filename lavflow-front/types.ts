@@ -11,6 +11,7 @@ export interface Client {
   document: string; // Mantido para compatibilidade se usado em outro lugar
   cpf?: string;     // Adicionado para alinhar com o backend entity
   phone: string;
+  email?: string;
   birthDate?: string;
   address?: string;
   saldo: number;
