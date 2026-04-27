@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { StoresModule } from './stores/stores.module';
 import { ClientsModule } from './clients/clients.module';
 import { SupabaseService } from './supabase.service';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { SupabaseService } from './supabase.service';
     UsersModule,
     StoresModule,
     ClientsModule,
+    LogsModule,
   ],
   controllers: [],
   providers: [SupabaseService],
