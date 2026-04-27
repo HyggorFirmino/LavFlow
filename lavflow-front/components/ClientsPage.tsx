@@ -103,7 +103,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({ client, onOpenCreateSingle, o
       </div>
 
       {isOpen && (
-        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black dark:ring-slate-700 ring-opacity-5 z-20">
+        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black dark:ring-slate-700 ring-opacity-5 z-50">
           <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
             <button onClick={handleSingleClick} className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-laundry-blue-100 dark:hover:bg-slate-700" role="menuitem">
               Criar Pedido Único
@@ -623,7 +623,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="font-bold text-laundry-blue-900 dark:text-slate-100 text-base leading-tight">{client.name}</p>
-                      <p className="text-xs text-laundry-teal-600 dark:text-laundry-teal-400 font-mono font-semibold mt-0.5">{formatCurrency(client.saldo)}</p>
+                      <p className="text-xs text-laundry-teal-600 dark:text-laundry-teal-400 font-mono font-semibold mt-0.5">{isVisible ? formatCurrency(client.saldo) : 'R$ ****'}</p>
                     </div>
                     <ActionsMenu
                       client={client}
@@ -651,11 +651,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                     </div>
                     <div>
                       <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Nascimento</span>
-                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5">{formatDate(client.birthDate) || '-'}</p>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5">{isVisible ? (formatDate(client.birthDate) || '-') : (client.birthDate ? '**/**/****' : '-')}</p>
                     </div>
                     <div>
                       <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Endereço</span>
-                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5 truncate">{client.address || '-'}</p>
+                      <p className="text-gray-700 dark:text-slate-200 text-xs mt-0.5 truncate">{isVisible ? (client.address || '-') : (client.address ? '***' : '-')}</p>
                     </div>
                     <div>
                       <span className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Email</span>
@@ -675,8 +675,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
           </div>
 
           {/* Desktop: table layout */}
-          <div className="hidden md:block bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700 overflow-hidden">
-            <div className="w-full overflow-x-auto">
+          <div className="hidden md:block bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg border border-laundry-blue-200 dark:border-slate-700">
+            <div className="w-full">
               <table className="min-w-full divide-y divide-laundry-blue-200 dark:divide-slate-700 text-sm">
                 <thead className="bg-laundry-blue-100/70 dark:bg-slate-800/70">
                   <tr>
@@ -700,7 +700,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                         {visibleSensitiveData.includes(client.id) ? maskVisibleCpf(client.document) : maskCpf(client.document)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
-                        {formatDate(client.birthDate) || '-'}
+                        {visibleSensitiveData.includes(client.id) ? (formatDate(client.birthDate) || '-') : (client.birthDate ? '**/**/****' : '-')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200">
                         {visibleSensitiveData.includes(client.id) ? maskVisiblePhone(client.phone) : maskPhone(client.phone)}
@@ -709,10 +709,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ onAddCard, onOpenAddCardModal
                         {visibleSensitiveData.includes(client.id) ? (client.email || '-') : (client.email ? '********@****.***' : '-')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 max-w-[200px] truncate" title={client.address || ''}>
-                        {client.address || '-'}
+                        {visibleSensitiveData.includes(client.id) ? (client.address || '-') : (client.address ? '***' : '-')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-200 font-mono">
-                        {formatCurrency(client.saldo)}
+                        {visibleSensitiveData.includes(client.id) ? formatCurrency(client.saldo) : 'R$ ****'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium min-w-[120px]">
                         <ActionsMenu
