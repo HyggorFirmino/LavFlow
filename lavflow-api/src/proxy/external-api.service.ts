@@ -138,8 +138,9 @@ export class ExternalApiService {
                 throw new Error('Formato de resposta de refresh desconhecido.');
             }
 
-        } catch (error) {
-            this.logger.error(`Erro ao fazer refresh do token para loja ${storeId}`, error);
+        } catch (error: any) {
+            const status = error.response?.status;
+            this.logger.error(`Erro ao fazer refresh do token para loja ${storeId} (Status: ${status}): ${error.message}`);
             throw error;
         }
     }
