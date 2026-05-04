@@ -11,6 +11,7 @@ import { StoresModule } from './stores/stores.module';
 import { ClientsModule } from './clients/clients.module';
 import { SupabaseService } from './supabase.service';
 import { LogsModule } from './logs/logs.module';
+import { ProxyModule } from './proxy/proxy.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { LogsModule } from './logs/logs.module';
     StoresModule,
     ClientsModule,
     LogsModule,
+    ProxyModule,
   ],
   controllers: [],
   providers: [SupabaseService],

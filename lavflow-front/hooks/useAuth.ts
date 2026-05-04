@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { getAccessToken } from '../services/maxpanApiService';
 import { login as apiLogin } from '../services/userService';
 
 // This is a simplified example. In a real app, you'd fetch the user from the API.
-// This is a simplified example. In a real app, you'd fetch the user from the API.
 const fetchUser = async (): Promise<User | null> => {
-  const token = getAccessToken();
+  const token = localStorage.getItem('accessToken');
   if (!token) return null;
 
   // Returning a mock user as the backend auth/profile route does not exist

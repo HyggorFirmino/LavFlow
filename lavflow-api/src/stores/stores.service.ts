@@ -43,6 +43,11 @@ export class StoresService {
     return store || null;
   }
 
+  async findByMaxpanId(maxpanId: string): Promise<Store | null> {
+    const store = await this.storeRepository.findOne({ where: { maxpanId } });
+    return store || null;
+  }
+
   async update(id: number, updateStoreDto: UpdateStoreDto): Promise<Store> {
     const store = await this.storeRepository.preload({
       id: id,

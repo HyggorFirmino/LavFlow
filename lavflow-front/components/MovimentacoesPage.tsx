@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { maxpanFetch } from "../services/maxpanApiService";
+import { chamarApiExterna } from "../services/proxyService";
 import { WashingMachineIcon, ExclamationTriangleIcon } from "./icons"; // Using existing icon
 import { Store } from "../types";
 import StoreSelector from "./StoreSelector";
@@ -109,13 +109,8 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
             setError(null);
             try {
                 const endpoint = `orders?page=1&limit=50&mask=true&showName=true&storeId=${targetStoreId}&period=today`;
-                const response = await maxpanFetch(endpoint, {}, selectedStore);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
+                const dbStoreId = String(selectedStore?.id || selectedStoreId || '');
+                const data = await chamarApiExterna('GET', endpoint, dbStoreId);
 
                 if (data.results && data.results.length > 0) {
                     const allMachinesWithCustomer = data.results.flatMap((result: any) => {

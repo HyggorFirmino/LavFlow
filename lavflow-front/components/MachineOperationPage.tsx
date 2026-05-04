@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { getAccessToken, refreshTokenFn } from '../services/maxpanApiService';
+import { chamarApiExterna } from '../services/proxyService';
 import { Store } from '../types';
 import { WashingMachineIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from './icons';
 import StoreSelector from './StoreSelector';
@@ -197,35 +197,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
         setTimeout(() => setNotification(null), 3000);
     };
 
-    const authenticatedFetch = useMemo(() => {
-        return async (url: string, options: RequestInit = {}) => {
-            const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
-            const token = getAccessToken(selectedStore);
-            if (!token) return null;
-
-            const makeRequest = (token: string) => fetch(url, {
-                ...options,
-                headers: { ...options.headers, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            });
-
-            let response = await makeRequest(token);
-            if (response.status === 401) {
-                try {
-                    const refreshed = await refreshTokenFn(selectedStore);
-                    if (refreshed) {
-                        const newToken = getAccessToken();
-                        if (!newToken) throw new Error('Sessão expirada.');
-                        response = await makeRequest(newToken);
-                    }
-                } catch (error) {
-                    console.error("Falha ao renovar token", error);
-                    return null;
-                }
-            }
-            return response;
-        };
-    }, [stores, selectedStoreId]);
-
+    // authenticatedFetch has been replaced by chamarApiExterna
     const fetchStatuses = async () => {
         const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
         // Use Maxpan ID if available, otherwise selectedStoreId
@@ -233,13 +205,12 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
 
         if (!targetStoreId) return;
 
-        const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}stores/${targetStoreId}`;
+        const endpoint = `stores/${targetStoreId}`;
+        const dbStoreId = String(selectedStore?.id || selectedStoreId || '');
 
         try {
-            const response = await authenticatedFetch(url, { method: 'GET' });
-            if (response && response.ok) {
-                const data = await response.json();
+            const data = await chamarApiExterna('GET', endpoint, dbStoreId);
+            if (data) {
                 const newStatuses: Record<string, any[]> = { lavadora: [], secadora: [] };
                 if (data.machines && Array.isArray(data.machines)) {
                     data.machines.forEach((machine: any) => {
@@ -285,7 +256,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
         fetchInitialData();
         const interval = setInterval(fetchStatuses, 15000);
         return () => clearInterval(interval);
-    }, [selectedStoreId, authenticatedFetch]);
+    }, [selectedStoreId]);
 
     const fetchCustomers = async () => {
         const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
@@ -293,37 +264,30 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
         if (!targetStoreId) return;
 
         setLoadingCustomers(true);
-        const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}users/customer-stores?mask=false&showName=true&limit=3000&store=${targetStoreId}`;
+        const endpoint = `users/customer-stores?mask=false&showName=true&limit=3000&store=${targetStoreId}`;
+        const dbStoreId = String(selectedStore?.id || selectedStoreId || '');
 
         try {
-            const response = await authenticatedFetch(url, { method: 'GET' });
-            if (response && response.ok) {
-                const data = await response.json();
-                setCustomers(Array.isArray(data) ? data : data?.data || data?.results || []);
-            } else {
-                console.error("Falha ao buscar clientes");
-            }
+            const data = await chamarApiExterna('GET', endpoint, dbStoreId);
+            setCustomers(Array.isArray(data) ? data : data?.data || data?.results || []);
         } catch (e) {
             console.error("Erro fetch customers", e);
         }
         setLoadingCustomers(false);
     };
 
-    const makeApiCall = async (url: string, operationName: string, options: RequestInit = {}) => {
-        // const toastId = toast.loading(`${operationName}...`); // Replaced
+    const makeApiCall = async (endpoint: string, operationName: string, method: string = 'GET', data?: any) => {
+        const selectedStore = stores.find(s => String(s.id) === selectedStoreId);
+        const dbStoreId = String(selectedStore?.id || selectedStoreId || '');
+
         showNotification(`${operationName}...`, 'info');
 
         try {
-            const response = await authenticatedFetch(url, options);
-            if (response && response.ok) {
-                showNotification('Operação realizada com sucesso!', 'success');
-                fetchStatuses();
-            } else {
-                showNotification('Falha na operação.', 'error');
-            }
+            await chamarApiExterna(method, endpoint, dbStoreId, data);
+            showNotification('Operação realizada com sucesso!', 'success');
+            fetchStatuses();
         } catch (e) {
-            showNotification('Erro de conexão.', 'error');
+            showNotification('Falha na operação.', 'error');
         }
     };
 
@@ -335,10 +299,9 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     const handleLogAndSendPulse = async (customer: any) => {
         if (!selectedMachine) return;
         const machineId = selectedMachine.id;
-        const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}machines/send-start-pulse?machineId=${machineId}`;
+        const endpoint = `machines/send-start-pulse?machineId=${machineId}`;
 
-        makeApiCall(url, `Enviando pulso para ${selectedMachine.type === 'washer' ? 'Lavadora' : 'Secadora'} #${selectedMachine.machineCode}`, { method: 'GET' });
+        makeApiCall(endpoint, `Enviando pulso para ${selectedMachine.type === 'washer' ? 'Lavadora' : 'Secadora'} #${selectedMachine.machineCode}`);
 
         const newLog = {
             customerName: customer.fullName || customer.name,
@@ -369,18 +332,13 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     };
 
     const handleRelease = (machineId: string) => {
-        const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}machines/reset-operation-time?machineId=${machineId}`;
-        makeApiCall(url, `Liberando máquina`, { method: 'GET' });
+        const endpoint = `machines/reset-operation-time?machineId=${machineId}`;
+        makeApiCall(endpoint, `Liberando máquina`);
     };
 
     const handleToggleMachine = (machineId: string, isActive: boolean) => {
-        const apiUrl = process.env.NEXT_PUBLIC_MAXPAN_API_URL || process.env.NEXT_PUBLIC_MAXPAN_URL;
-        const url = `${apiUrl}machines/${machineId}`;
-        makeApiCall(url, `Alterando status da máquina`, {
-            method: 'PATCH',
-            body: JSON.stringify({ isActive }) // Assuming API supports patch isActive
-        });
+        const endpoint = `machines/${machineId}`;
+        makeApiCall(endpoint, `Alterando status da máquina`, 'PATCH', { isActive });
     };
 
     const getStatusBadge = (status: string) => {

@@ -1,6 +1,5 @@
 import type { AppProps } from 'next/app';
 import { useEffect, useState } from 'react';
-import { refreshTokenFn } from '../services/maxpanApiService';
 import CustomModal from '../components/CustomModal';
 import '../styles/globals.css';
 
@@ -8,7 +7,6 @@ function MyApp({ Component, pageProps }: AppProps) {
   const [showAuthError, setShowAuthError] = useState(false);
 
   useEffect(() => {
-    refreshTokenFn();
 
     const handleAuthError = () => {
       setShowAuthError(true);
