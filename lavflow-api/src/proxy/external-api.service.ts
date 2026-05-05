@@ -112,6 +112,19 @@ export class ExternalApiService {
         this.logger.log(`Tokens atualizados no banco para a loja ${storeId} (ID Interno: ${store.id}).`);
     }
 
+    private extractIpFromToken(token: string): string | null {
+        try {
+            if (!token) return null;
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            const payload = Buffer.from(parts[1], 'base64').toString('utf-8');
+            const decoded = JSON.parse(payload);
+            return decoded.ip || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
     private async refreshTokens(storeId: string): Promise<string> {
         this.logger.log(`Iniciando refresh do token para a loja ${storeId}...`);
         try {
@@ -121,10 +134,20 @@ export class ExternalApiService {
             const refreshEndpoint = this.configService.get<string>('EXTERNAL_API_REFRESH_ENDPOINT') || 'auth/refresh-tokens';
             const baseURL = this.configService.get<string>('EXTERNAL_API_BASE_URL') || 'https://api-dashboard.maxpan.com.br/v1/';
             
+            const ip = this.extractIpFromToken(refreshToken);
+            const headers: any = {};
+            if (ip) {
+                headers['X-Forwarded-For'] = ip;
+                headers['X-Real-IP'] = ip;
+                headers['CF-Connecting-IP'] = ip;
+                headers['True-Client-IP'] = ip;
+                this.logger.debug(`Usando IP extraído do token de refresh: ${ip}`);
+            }
+
             // Real API call to refresh token
             const response = await axios.post(`${baseURL}${refreshEndpoint}`, {
                 refreshToken: refreshToken
-            });
+            }, { headers });
             const data = response.data;
             
             const access_token = data?.access?.token || data?.accessToken || data?.token;
@@ -151,9 +174,22 @@ export class ExternalApiService {
 
     public async dynamicRequest(method: string, endpoint: string, storeId: string, data?: any): Promise<any> {
         const accessToken = await this.getAccessToken(storeId);
+        const ip = this.extractIpFromToken(accessToken);
 
         if (!accessToken) {
             this.logger.warn(`Tentativa de requisição sem token para loja ${storeId}`);
+        }
+
+        const headers: any = {
+            Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
+            'X-Store-Id': storeId,
+        };
+
+        if (ip) {
+            headers['X-Forwarded-For'] = ip;
+            headers['X-Real-IP'] = ip;
+            headers['CF-Connecting-IP'] = ip;
+            headers['True-Client-IP'] = ip;
         }
 
         try {
@@ -161,10 +197,7 @@ export class ExternalApiService {
                 method,
                 url: endpoint,
                 data,
-                headers: {
-                    Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-                    'X-Store-Id': storeId,
-                },
+                headers,
             });
             return response.data;
         } catch (error: any) {
