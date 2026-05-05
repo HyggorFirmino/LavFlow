@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Store } from '../types';
 import { BuildingOfficeIcon, SunIcon, MoonIcon, ChevronDownIcon } from './icons';
 import CustomModal, { ModalType } from './CustomModal';
+import { forceRefreshToken } from '../services/proxyService';
 
 interface ProfilePageProps {
   stores: Store[];
@@ -14,6 +15,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
   const [formData, setFormData] = useState<Partial<Store>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshingToken, setIsRefreshingToken] = useState(false);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -68,6 +70,31 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
     }
   };
 
+  const handleForceRefresh = async () => {
+    if (!selectedStoreId) return;
+    try {
+      setIsRefreshingToken(true);
+      await forceRefreshToken(selectedStoreId);
+      setModalConfig({
+        isOpen: true,
+        title: 'Token Atualizado',
+        message: 'O Token Maxpan foi atualizado com sucesso!',
+        type: 'success'
+      });
+      // Optionally reload the page or fetch stores again to show new token, but a success message is enough
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      setModalConfig({
+        isOpen: true,
+        title: 'Erro de Token',
+        message: 'Ocorreu um erro ao tentar atualizar o token. Verifique se o Refresh Token é válido e tente novamente.',
+        type: 'error'
+      });
+    } finally {
+      setIsRefreshingToken(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStoreId) return;
@@ -75,6 +102,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
     try {
       setIsSaving(true);
       await onUpdateStore(selectedStoreId, formData);
+      
+      // Auto-refresh token if they provided one
+      if (formData.refreshTokenMaxpan) {
+          try {
+              await forceRefreshToken(selectedStoreId);
+          } catch (err) {
+              console.warn("Auto-refresh failed after save", err);
+              // It will show the generic save success, but the token might be invalid
+          }
+      }
+
       setModalConfig({
         isOpen: true,
         title: 'Sucesso',
@@ -241,6 +279,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ stores, currentUser, onUpdate
                             <input id="BearerTokenMaxpanExpiration" name="BearerTokenMaxpanExpiration" type="datetime-local" value={formData.BearerTokenMaxpanExpiration ? String(formData.BearerTokenMaxpanExpiration).substring(0, 16) : ''} onChange={handleChange} disabled={!isAdmin} className="shadow-inner bg-laundry-blue-50/50 dark:bg-slate-800/50 appearance-none border border-laundry-blue-200 dark:border-slate-600 rounded-lg w-full py-2 px-3 text-gray-700 dark:text-slate-200 leading-tight focus:outline-none focus:ring-2 focus:ring-laundry-teal-400 disabled:bg-gray-200/50 dark:disabled:bg-slate-700/50" />
                           </div>
                         </div>
+
+                        {isAdmin && (
+                          <div className="flex justify-end mt-2">
+                            <button
+                              type="button"
+                              onClick={handleForceRefresh}
+                              disabled={isRefreshingToken}
+                              className="text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                            >
+                              {isRefreshingToken ? 'Atualizando...' : 'Testar / Atualizar Token Maxpan'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

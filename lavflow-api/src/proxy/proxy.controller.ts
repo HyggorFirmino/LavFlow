@@ -20,4 +20,20 @@ export class ProxyController {
             throw new HttpException(message, status);
         }
     }
+
+    @Post('force-refresh')
+    async forceRefresh(@Body() body: { storeId: string }) {
+        if (!body.storeId) {
+            throw new HttpException('storeId is required', HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            const newAccessToken = await this.externalApiService.forceRefreshTokens(body.storeId);
+            return { success: true, accessToken: newAccessToken };
+        } catch (error: any) {
+            const status = error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+            const message = error.response?.data || error.message || 'Erro ao forçar refresh';
+            throw new HttpException(message, status);
+        }
+    }
 }

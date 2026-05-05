@@ -145,6 +145,10 @@ export class ExternalApiService {
         }
     }
 
+    public async forceRefreshTokens(storeId: string): Promise<string> {
+        return this.refreshTokens(storeId);
+    }
+
     public async dynamicRequest(method: string, endpoint: string, storeId: string, data?: any): Promise<any> {
         const accessToken = await this.getAccessToken(storeId);
 

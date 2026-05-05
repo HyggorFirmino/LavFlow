@@ -30,3 +30,27 @@ export const chamarApiExterna = async (method: string, endpoint: string, storeId
         throw error;
     }
 };
+
+export const forceRefreshToken = async (storeId: string) => {
+    try {
+        const response = await fetch(`${API_URL}/proxy/force-refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ storeId }),
+        });
+
+        const text = await response.text();
+        const result = text ? JSON.parse(text) : {};
+
+        if (!response.ok) {
+            throw { status: response.status, message: result.message || result.error || 'Erro ao atualizar token', data: result };
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Erro ao forçar atualização do token:', error);
+        throw error;
+    }
+};
