@@ -125,11 +125,11 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // Limit to 2MB
+      if (file.size > 5 * 1024 * 1024) { // Limit to 5MB
         setModalConfig({
           isOpen: true,
           title: 'Arquivo muito grande',
-          message: 'Por favor, selecione um arquivo de áudio de no máximo 2MB.',
+          message: 'Por favor, selecione um arquivo de áudio de no máximo 5MB.',
           type: 'warning'
         });
         return;
@@ -268,7 +268,7 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Recomendado: Arquivo curto (mp3, wav) até 2MB.</p>
+                <p className="text-xs text-gray-400 mt-1">Recomendado: Arquivo curto (mp3, wav) até 5MB.</p>
               </div>
             </div>
           )}
