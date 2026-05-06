@@ -61,6 +61,7 @@ export interface List {
   type?: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao'; // Mapeado de 'tipo'
   totalDryingTime?: number | null; // Mapeado de 'tempoSecagemTotal'
   reminderInterval?: number | null; // Mapeado de 'intervaloLeitura'
+  alertaSonoro?: string | null; // Áudio em base64
 
   // Adicionado no frontend para conter os cartões
   cards: Card[];

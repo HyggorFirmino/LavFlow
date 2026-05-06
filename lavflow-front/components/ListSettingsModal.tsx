@@ -6,7 +6,7 @@ import CustomModal, { ModalType } from './CustomModal';
 interface ListSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number) => void;
+  onSave: (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number, alertaSonoro?: string) => void;
   onDelete: (listId: string) => void;
   list: List | null;
 }
@@ -17,6 +17,9 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
   const [type, setType] = useState<'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao'>('default');
   const [totalDryingTime, setTotalDryingTime] = useState('');
   const [reminderInterval, setReminderInterval] = useState('');
+  const [alertaSonoro, setAlertaSonoro] = useState<string>('');
+  const [alertaSonoroName, setAlertaSonoroName] = useState<string>('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -40,6 +43,8 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
       setType(list.type || 'default');
       setTotalDryingTime(list.totalDryingTime?.toString() || '');
       setReminderInterval(list.reminderInterval?.toString() || '');
+      setAlertaSonoro(list.alertaSonoro || '');
+      setAlertaSonoroName(list.alertaSonoro ? 'Áudio configurado' : '');
     }
   }, [list]);
 
@@ -100,7 +105,7 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
       return;
     }
 
-    onSave(list.id, title, newLimit, type, newTotalTime, newReminderInterval);
+    onSave(list.id, title, newLimit, type, newTotalTime, newReminderInterval, alertaSonoro);
     onClose();
   };
 
@@ -115,6 +120,34 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
         onClose();
       }
     });
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // Limit to 2MB
+        setModalConfig({
+          isOpen: true,
+          title: 'Arquivo muito grande',
+          message: 'Por favor, selecione um arquivo de áudio de no máximo 2MB.',
+          type: 'warning'
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAlertaSonoro(reader.result as string);
+        setAlertaSonoroName(file.name);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const playAudio = () => {
+    if (alertaSonoro) {
+      const audio = new Audio(alertaSonoro);
+      audio.play().catch(e => console.error("Error playing audio", e));
+    }
   };
 
   return (
@@ -193,6 +226,49 @@ const ListSettingsModal: React.FC<ListSettingsModalProps> = ({ isOpen, onClose, 
                     placeholder="Ex: 15"
                   />
                 </div>
+              </div>
+              <div className="mt-4 border-t border-laundry-blue-200 dark:border-slate-600 pt-4">
+                <label className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Áudio de Alerta</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleAudioUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200 py-1.5 px-3 rounded hover:bg-gray-300 dark:hover:bg-slate-500 transition-colors text-sm"
+                  >
+                    Escolher Arquivo
+                  </button>
+                  <span className="text-sm text-gray-500 dark:text-slate-400 truncate flex-1">
+                    {alertaSonoroName || 'Nenhum áudio selecionado'}
+                  </span>
+                  {alertaSonoro && (
+                    <button
+                      type="button"
+                      onClick={playAudio}
+                      className="text-laundry-teal-500 hover:text-laundry-teal-600 dark:text-laundry-teal-400 p-1"
+                      title="Testar áudio"
+                    >
+                      ▶️ Play
+                    </button>
+                  )}
+                  {alertaSonoro && (
+                    <button
+                      type="button"
+                      onClick={() => { setAlertaSonoro(''); setAlertaSonoroName(''); }}
+                      className="text-red-500 hover:text-red-600 p-1"
+                      title="Remover áudio"
+                    >
+                      ✖
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Recomendado: Arquivo curto (mp3, wav) até 2MB.</p>
               </div>
             </div>
           )}

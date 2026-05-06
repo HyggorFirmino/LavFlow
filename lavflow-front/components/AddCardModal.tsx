@@ -362,7 +362,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onSave, ca
                     <div key={index} className="text-xs text-gray-800 dark:text-slate-300 flex items-start">
                       <ClockIcon className="w-4 h-4 mr-2 mt-0.5 text-laundry-blue-500 dark:text-laundry-blue-400 flex-shrink-0" />
                       <div className="leading-snug">
-                        <span className="font-semibold block">{new Date(event.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        <span className="font-semibold block">{new Date(event.timestamp?.endsWith('Z') ? event.timestamp : `${event.timestamp}Z`).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })}</span>
                         <span>
                           Movido de <strong className="font-bold text-laundry-blue-900 dark:text-slate-100">{event.fromListTitle}</strong> para <strong className="font-bold text-laundry-blue-900 dark:text-slate-100">{event.toListTitle}</strong>
                         </span>

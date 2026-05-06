@@ -33,6 +33,10 @@ export class StatusKanban {
   @Column({ name: 'intervalo_leitura', type: 'int', nullable: true })
   intervaloLeitura: number | null;
 
+  @ApiProperty({ description: 'Áudio de alerta em base64', required: false, nullable: true })
+  @Column({ name: 'alerta_sonoro', type: 'text', nullable: true })
+  alertaSonoro: string | null;
+
   @ApiProperty({ type: () => [OrdemServico] })
   @OneToMany(() => OrdemServico, (ordem) => ordem.status)
   ordens: OrdemServico[];

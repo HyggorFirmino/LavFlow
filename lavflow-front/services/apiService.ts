@@ -84,6 +84,7 @@ export const createList = (data: Partial<List> & { storeId: number }): Promise<a
     tipo: data.type,
     tempoSecagemTotal: data.totalDryingTime,
     intervaloLeitura: data.reminderInterval,
+    alertaSonoro: data.alertaSonoro,
   };
   return apiFetch('/status-kanban', { method: 'POST', body: JSON.stringify(payload) });
 };
@@ -95,6 +96,7 @@ export const updateList = (id: string, data: Partial<List>): Promise<any> => {
   if (data.type !== undefined) payload.tipo = data.type;
   if (data.totalDryingTime !== undefined) payload.tempoSecagemTotal = data.totalDryingTime;
   if (data.reminderInterval !== undefined) payload.intervaloLeitura = data.reminderInterval;
+  if (data.alertaSonoro !== undefined) payload.alertaSonoro = data.alertaSonoro;
 
   return apiFetch(`/status-kanban/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
 };

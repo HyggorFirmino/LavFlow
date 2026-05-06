@@ -219,6 +219,7 @@ const Home: React.FC = () => {
           type: status.tipo,
           totalDryingTime: status.tempoSecagemTotal,
           reminderInterval: status.intervaloLeitura,
+          alertaSonoro: status.alertaSonoro,
           cards: [],
         };
       });
@@ -659,7 +660,7 @@ const Home: React.FC = () => {
     setIsAddListModalOpen(true);
   };
 
-  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', storeId: number, totalDryingTime?: number, reminderInterval?: number) => {
+  const handleAddList = async (title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', storeId: number, totalDryingTime?: number, reminderInterval?: number, alertaSonoro?: string) => {
     try {
       if (!storeId) {
         addNotification("Loja não selecionada.", "error");
@@ -673,7 +674,8 @@ const Home: React.FC = () => {
         cardLimit: limit,
         type,
         totalDryingTime,
-        reminderInterval
+        reminderInterval,
+        alertaSonoro
       });
       addNotification("Lista criada com sucesso!", "success");
       setIsAddListModalOpen(false);
@@ -697,14 +699,15 @@ const Home: React.FC = () => {
     setIsListSettingsModalOpen(true);
   };
 
-  const handleSaveListSettings = async (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number) => {
+  const handleSaveListSettings = async (listId: string, title: string, limit: number | null, type: 'default' | 'dryer' | 'lavadora' | 'whatsapp' | 'conclusao', totalDryingTime?: number, reminderInterval?: number, alertaSonoro?: string) => {
     try {
       await updateList(listId, {
         title,
         cardLimit: limit,
         type,
         totalDryingTime,
-        reminderInterval
+        reminderInterval,
+        alertaSonoro
       });
       addNotification("Lista atualizada com sucesso!", "success");
       setIsListSettingsModalOpen(false);

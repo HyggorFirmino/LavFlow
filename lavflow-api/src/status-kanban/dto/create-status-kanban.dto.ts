@@ -61,6 +61,14 @@ export class CreateStatusKanbanDto {
   intervaloLeitura?: number;
 
   @ApiProperty({
+    description: 'Áudio de alerta em base64.',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  alertaSonoro?: string;
+
+  @ApiProperty({
     description: 'O ID da loja à qual esta lista pertence.',
     example: 1,
     required: true,

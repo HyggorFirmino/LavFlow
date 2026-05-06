@@ -54,6 +54,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDragging = useRef(false);
   const scrollAnimFrame = useRef<number | null>(null);
+  const audioPlayedRef = useRef(false);
+  const lastCycleRef = useRef<number | null>(null);
 
   const isAdmin = currentUser.role === 'admin';
 
@@ -76,6 +78,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
     }
     setIsMoveDropdownOpen(false);
   };
+
+  useEffect(() => {
+    // Reset audio played flag when card entered dryer time changes
+    audioPlayedRef.current = false;
+    lastCycleRef.current = null;
+  }, [card.enteredDryerAt]);
 
   useEffect(() => {
     // Timers should only run for cards in a 'dryer' list with a valid start time.
@@ -103,6 +111,14 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       if (list.totalDryingTime) {
         const totalDurationMs = list.totalDryingTime * 60 * 1000;
         if (elapsedMs >= totalDurationMs) {
+          if (!audioPlayedRef.current) {
+            if (list.alertaSonoro) {
+              const audio = new Audio(list.alertaSonoro);
+              audio.play().catch(e => console.error("Error playing alert sound", e));
+            }
+            audioPlayedRef.current = true;
+          }
+
           setTimerStatus('done');
           setRemainingTime('00:00');
           if (interval) clearInterval(interval);
@@ -116,8 +132,18 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       if (list.reminderInterval && list.reminderInterval > 0) {
         // Show time remaining until next pause/interval
         const intervalMs = list.reminderInterval * 60 * 1000;
+        const currentCycle = Math.floor(elapsedMs / intervalMs);
         const msIntoCycle = elapsedMs % intervalMs;
         remainingMs = intervalMs - msIntoCycle;
+
+        if (lastCycleRef.current !== null && currentCycle > lastCycleRef.current) {
+          if (list.alertaSonoro) {
+            const audio = new Audio(list.alertaSonoro);
+            audio.play().catch(e => console.error("Error playing alert sound", e));
+          }
+        }
+        lastCycleRef.current = currentCycle;
+        
       } else if (list.totalDryingTime) {
         // Show total remaining time
         const totalDurationMs = list.totalDryingTime * 60 * 1000;

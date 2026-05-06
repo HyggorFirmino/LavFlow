@@ -141,7 +141,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ cards, onRefresh, stores, sel
                   </div>
                   <div className="flex items-center text-xs md:text-sm text-gray-500 dark:text-slate-400 flex-shrink-0">
                     <ClockIcon className="w-3 h-3 md:w-4 md:h-4 mr-1" />
-                    <span>{new Date(event.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <span>{new Date(event.timestamp?.endsWith('Z') ? event.timestamp : `${event.timestamp}Z`).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })}</span>
                   </div>
                 </div>
               </div>
