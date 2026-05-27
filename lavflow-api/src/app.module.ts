@@ -12,6 +12,8 @@ import { ClientsModule } from './clients/clients.module';
 import { SupabaseService } from './supabase.service';
 import { LogsModule } from './logs/logs.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -52,8 +54,8 @@ import { ProxyModule } from './proxy/proxy.module';
     LogsModule,
     ProxyModule,
   ],
-  controllers: [],
-  providers: [SupabaseService],
+  controllers: [AppController],
+  providers: [SupabaseService, AppService],
   exports: [SupabaseService],
 })
 export class AppModule { }
