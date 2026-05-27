@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { BoardData, Card, List, TagDefinition, User, Store } from '../types';
 import KanbanList from './KanbanList';
-import { ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, TagIcon, CurrencyDollarIcon, WashingMachineIcon, XMarkIcon } from './icons';
 
 interface KanbanBoardProps {
   boardData: BoardData;
@@ -24,6 +24,18 @@ interface KanbanBoardProps {
   onSelectStore: (id: string) => void;
   onMoveCard: (cardId: string, sourceListId: string, targetListId: string) => void;
   onUpdateCard?: (cardId: string, updates: Partial<Card>) => Promise<void>;
+  filters: {
+    search: string;
+    paymentMethod: string;
+    tag: string;
+    service: string;
+  };
+  onSetFilters: React.Dispatch<React.SetStateAction<{
+    search: string;
+    paymentMethod: string;
+    tag: string;
+    service: string;
+  }>>;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -45,6 +57,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onSelectStore,
   onMoveCard,
   onUpdateCard,
+  filters = { search: '', paymentMethod: 'all', tag: 'all', service: 'all' },
+  onSetFilters = () => {},
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -112,6 +126,79 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Barra de Filtros */}
+      <div className="mb-4 px-1 flex flex-wrap items-center gap-3">
+        {/* Busca por Texto */}
+        <div className="relative flex-grow max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por nome, cesto ou documento..."
+            value={filters.search}
+            onChange={(e) => onSetFilters(prev => ({ ...prev, search: e.target.value }))}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-laundry-teal-500 sm:text-sm transition-all"
+          />
+        </div>
+
+        {/* Filtro de Pagamento */}
+        <div className="flex items-center space-x-2">
+          <CurrencyDollarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <select
+            value={filters.paymentMethod}
+            onChange={(e) => onSetFilters(prev => ({ ...prev, paymentMethod: e.target.value }))}
+            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+          >
+            <option value="all">Todos Pagamentos</option>
+            <option value="pix">Pix</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="none">Nenhum (Pendente)</option>
+          </select>
+        </div>
+
+        {/* Filtro de Etiquetas */}
+        <div className="flex items-center space-x-2">
+          <TagIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <select
+            value={filters.tag}
+            onChange={(e) => onSetFilters(prev => ({ ...prev, tag: e.target.value }))}
+            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+          >
+            <option value="all">Todas Etiquetas</option>
+            {Array.from(tagsMap.keys()).map(tagName => (
+              <option key={tagName} value={tagName}>{tagName}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filtro de Serviço */}
+        <div className="flex items-center space-x-2">
+          <WashingMachineIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <select
+            value={filters.service}
+            onChange={(e) => onSetFilters(prev => ({ ...prev, service: e.target.value }))}
+            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+          >
+            <option value="all">Todos Serviços</option>
+            <option value="washing">Apenas Lavagem</option>
+            <option value="drying">Apenas Secagem</option>
+            <option value="both">Lavagem e Secagem</option>
+          </select>
+        </div>
+
+        {/* Botão de Limpar */}
+        {(filters.search || filters.paymentMethod !== 'all' || filters.tag !== 'all' || filters.service !== 'all') && (
+          <button
+            onClick={() => onSetFilters({ search: '', paymentMethod: 'all', tag: 'all', service: 'all' })}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="h-4 w-4" />
+            Limpar Filtros
+          </button>
+        )}
       </div>
 
       <div className="relative group flex-1 overflow-hidden">

@@ -159,6 +159,12 @@ const Home: React.FC = () => {
   });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [kanbanFilters, setKanbanFilters] = useState({
+    search: '',
+    paymentMethod: 'all', // all, pix, dinheiro, none
+    tag: 'all',
+    service: 'all' // all, washing, drying, both
+  });
 
   // Notification handler
   const addNotification = (message: string, type: ToastNotification['type'] = 'error') => {
@@ -406,6 +412,47 @@ const Home: React.FC = () => {
 
   const draggedItem = useRef<{ cardId: string; sourceListId: string } | { listId: string } | null>(null);
   const tagsMap = useMemo(() => new Map(tags.map(tag => [tag.name, tag])), [tags]);
+
+  const filteredBoardData = useMemo(() => {
+    const newData: BoardData = {};
+    Object.keys(boardData).forEach(listId => {
+      const list = boardData[listId];
+      const filteredCards = list.cards.filter(card => {
+        // Search filter (Name, Basket, Document)
+        const matchesSearch = !kanbanFilters.search ||
+          card.customerName.toLowerCase().includes(kanbanFilters.search.toLowerCase()) ||
+          card.basketIdentifier?.toLowerCase().includes(kanbanFilters.search.toLowerCase()) ||
+          String(card.numeroCesto).includes(kanbanFilters.search) ||
+          (card.customerDocument && card.customerDocument.includes(kanbanFilters.search));
+
+        // Payment method filter
+        let matchesPayment = true;
+        if (kanbanFilters.paymentMethod !== 'all') {
+          if (kanbanFilters.paymentMethod === 'none') {
+            matchesPayment = !card.paymentMethod;
+          } else {
+            matchesPayment = card.paymentMethod === kanbanFilters.paymentMethod;
+          }
+        }
+
+        // Tag filter
+        const matchesTag = kanbanFilters.tag === 'all' || card.tags.some(t => t.name === kanbanFilters.tag);
+
+        // Service filter
+        let matchesService = true;
+        if (kanbanFilters.service !== 'all') {
+          if (kanbanFilters.service === 'washing') matchesService = !!card.services?.washing;
+          if (kanbanFilters.service === 'drying') matchesService = !!card.services?.drying;
+          if (kanbanFilters.service === 'both') matchesService = !!(card.services?.washing && card.services?.drying);
+        }
+
+        return matchesSearch && matchesPayment && matchesTag && matchesService;
+      });
+
+      newData[listId] = { ...list, cards: filteredCards };
+    });
+    return newData;
+  }, [boardData, kanbanFilters]);
 
   // Notification handlers
   const removeNotification = (id: number) => {
@@ -1065,7 +1112,9 @@ const Home: React.FC = () => {
       default:
         return (
           <KanbanBoard
-            boardData={boardData}
+            boardData={filteredBoardData}
+            filters={kanbanFilters}
+            onSetFilters={setKanbanFilters}
             listOrder={listOrder}
             onEditCard={handleOpenEditCardModal}
             onDeleteCard={handleDeleteCard}

@@ -690,7 +690,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
 
         {renderTimer()}
 
-        {card.completedAt && card.listId === 'list-5' && (
+        {card.completedAt && list.type === 'conclusao' && (
           <div className="flex items-center text-green-700 dark:text-green-300 mt-3 bg-green-100 dark:bg-green-500/20 p-2 rounded-lg border border-green-200 dark:border-green-500/30">
             <CheckCircleIcon className="w-5 h-5 mr-2" />
             <div className="text-sm">

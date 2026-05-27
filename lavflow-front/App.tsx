@@ -209,6 +209,12 @@ const App: React.FC = () => {
     return process.env.NEXT_PUBLIC_SELECTED_STORE_ID || '';
   });
   const [initialRechargeCpf, setInitialRechargeCpf] = useState<string | undefined>(undefined);
+  const [kanbanFilters, setKanbanFilters] = useState({
+    search: '',
+    paymentMethod: 'all', // all, pix, dinheiro, none
+    tag: 'all',
+    service: 'all' // all, washing, drying, both
+  });
 
   // Initialize selected store
   useEffect(() => {
@@ -394,6 +400,47 @@ const App: React.FC = () => {
     });
     return map;
   }, [boardData]);
+
+  const filteredBoardData = useMemo(() => {
+    const newData: BoardData = {};
+    Object.keys(boardData).forEach(listId => {
+      const list = boardData[listId];
+      const filteredCards = list.cards.filter(card => {
+        // Search filter (Name, Basket, Document)
+        const matchesSearch = !kanbanFilters.search ||
+          card.customerName.toLowerCase().includes(kanbanFilters.search.toLowerCase()) ||
+          card.basketIdentifier?.toLowerCase().includes(kanbanFilters.search.toLowerCase()) ||
+          String(card.numeroCesto).includes(kanbanFilters.search) ||
+          (card.customerDocument && card.customerDocument.includes(kanbanFilters.search));
+
+        // Payment method filter
+        let matchesPayment = true;
+        if (kanbanFilters.paymentMethod !== 'all') {
+          if (kanbanFilters.paymentMethod === 'none') {
+            matchesPayment = !card.paymentMethod;
+          } else {
+            matchesPayment = card.paymentMethod === kanbanFilters.paymentMethod;
+          }
+        }
+
+        // Tag filter
+        const matchesTag = kanbanFilters.tag === 'all' || card.tags.some(t => t.name === kanbanFilters.tag);
+
+        // Service filter
+        let matchesService = true;
+        if (kanbanFilters.service !== 'all') {
+          if (kanbanFilters.service === 'washing') matchesService = !!card.services?.washing;
+          if (kanbanFilters.service === 'drying') matchesService = !!card.services?.drying;
+          if (kanbanFilters.service === 'both') matchesService = !!(card.services?.washing && card.services?.drying);
+        }
+
+        return matchesSearch && matchesPayment && matchesTag && matchesService;
+      });
+
+      newData[listId] = { ...list, cards: filteredCards };
+    });
+    return newData;
+  }, [boardData, kanbanFilters]);
 
   // Notification handlers
   const addNotification = (message: string, type: ToastNotification['type'] = 'error') => {
@@ -719,11 +766,12 @@ const App: React.FC = () => {
       }
 
       // 4. Check for "Em Aberto" tag before moving to "Finalizado"
-      if (targetListId === 'list-5' && cardToMove.tags.some(tag => tag.name === 'Em Aberto')) {
+      if (targetListFromState.type === 'conclusao' && cardToMove.tags.some(tag => tag.name === 'Em Aberto')) {
         addNotification("Não é possível finalizar um pedido com a etiqueta 'Em Aberto'.");
         draggedItem.current = null;
         return;
       }
+
 
       // 5. Check if moving between machines of the same type
       const isMovingBetweenSameMachineType =
@@ -814,11 +862,12 @@ const App: React.FC = () => {
         }
 
         // Check if card moved to 'Finalizado' list
-        if (targetListId === 'list-5' && sourceListId !== 'list-5') {
+        if (targetList.type === 'conclusao' && sourceList.type !== 'conclusao') {
           movedCard.completedAt = new Date().toISOString();
-        } else if (sourceListId === 'list-5' && targetListId !== 'list-5') {
+        } else if (sourceList.type === 'conclusao' && targetList.type !== 'conclusao') {
           delete movedCard.completedAt;
         }
+
 
         // Check if card moved to 'Pronto para Retirada'
         if (targetListId === 'list-4' && sourceListId !== 'list-4') {
@@ -861,13 +910,14 @@ const App: React.FC = () => {
   const getActiveCards = () => {
     let activeCards: Card[] = [];
     listOrder.forEach(listId => {
-      // 'list-5' is the 'Finalizado' (Completed) column
-      if (listId !== 'list-5') {
+      // Exclude 'conclusao' (Completed) columns
+      if (boardData[listId] && boardData[listId].type !== 'conclusao') {
         activeCards = activeCards.concat(boardData[listId].cards);
       }
     });
     return activeCards;
   };
+
 
   const getAllCardsSorted = (): Card[] => {
     const allCards = listOrder.flatMap(listId =>
@@ -936,7 +986,9 @@ const App: React.FC = () => {
       default:
         return (
           <KanbanBoard
-            boardData={boardData}
+            boardData={filteredBoardData}
+            filters={kanbanFilters}
+            onSetFilters={setKanbanFilters}
             listOrder={listOrder}
             onEditCard={handleOpenEditCardModal}
             onDeleteCard={handleDeleteCard}

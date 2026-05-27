@@ -120,7 +120,10 @@ const PaymentMethodChart: React.FC<{ data: { pix: { count: number; totalValue: n
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, selectedStoreId, onSelectStore, tags }) => {
   const stats = useMemo(() => {
-    const completedCards = boardData['list-5']?.cards.filter(c => c.completedAt) || [];
+    const lists = Object.values(boardData);
+    const conclusionLists = lists.filter(l => l.type === 'conclusao');
+    const completedCards = conclusionLists.flatMap(l => l.cards);
+    
     const totalRevenue = completedCards.reduce((sum, card) => sum + (card.serviceValue || 0), 0);
     const totalCompletedOrders = completedCards.length;
 
@@ -129,8 +132,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
     let incomingValue = 0;
     const valorTagsTotals: Record<string, { totalValue: number, count: number, color: string }> = {};
 
-    Object.values(boardData).forEach(list => {
-      if (list.id !== 'list-5') {
+
+    lists.forEach(list => {
+      if (list.type !== 'conclusao') {
         pendingOrders += list.cards.length;
         list.cards.forEach(card => {
           if (card.tags && card.tags.some(tag => tag.name === 'Assistido')) {
@@ -139,6 +143,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
           }
         });
       }
+
 
       list.cards.forEach(card => {
         if (!card.tags) return;
@@ -166,7 +171,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ boardData, stores, select
     }).reverse();
 
     completedCards.forEach(card => {
-      const completedDate = new Date(card.completedAt!);
+      if (!card.completedAt) return;
+      const completedDate = new Date(card.completedAt);
       const today = new Date();
 
       const startOfCompletedDate = new Date(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
