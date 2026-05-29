@@ -115,6 +115,137 @@ const CustomerSearchModal = ({ isOpen, onClose, customers, onSelectCustomer, loa
     );
 };
 
+// --- Pulse Reason Modal ---
+
+const PulseReasonModal = ({ isOpen, onClose, onConfirm, machine, customer }: any) => {
+    const [selectedReason, setSelectedReason] = useState('Pagamento em outra unidade');
+    const [customReason, setCustomReason] = useState('');
+
+    if (!isOpen) return null;
+
+    const handleConfirm = () => {
+        const finalReason = selectedReason === 'other' ? customReason.trim() : selectedReason;
+        if (!finalReason) {
+            alert('Por favor, informe ou selecione o motivo.');
+            return;
+        }
+        onConfirm(finalReason);
+    };
+
+    const predefinedReasons = [
+        'Pagamento em outra unidade',
+        'Liberação manual'
+    ];
+
+    return (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/50 flex justify-center items-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all flex flex-col max-h-[90vh]">
+                <div className="p-6 bg-laundry-teal-600 rounded-t-2xl">
+                    <h2 className="text-xl font-semibold text-white">Confirmar Envio de Pulso</h2>
+                    <p className="text-sm text-laundry-teal-100 mt-1">
+                        Selecione ou informe o motivo para ativar a máquina.
+                    </p>
+                </div>
+                
+                <div className="p-6 flex-grow overflow-y-auto space-y-4">
+                    {/* Machine & Customer details summary */}
+                    <div className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl space-y-2 border border-gray-100 dark:border-slate-700">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Máquina:</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                {machine?.type === 'washer' ? 'Lavadora' : 'Secadora'} #{machine?.machineCode}
+                            </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Cliente:</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                {customer?.fullName || customer?.name}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block">
+                            Selecione o Motivo:
+                        </label>
+                        
+                        {predefinedReasons.map((reason) => (
+                            <label
+                                key={reason}
+                                className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                                    selectedReason === reason
+                                        ? 'border-laundry-teal-500 bg-laundry-teal-50/50 dark:bg-laundry-teal-950/20'
+                                        : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/30'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="pulse-reason"
+                                    value={reason}
+                                    checked={selectedReason === reason}
+                                    onChange={(e) => setSelectedReason(e.target.value)}
+                                    className="h-4 w-4 text-laundry-teal-600 border-gray-300 focus:ring-laundry-teal-500"
+                                />
+                                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {reason}
+                                </span>
+                            </label>
+                        ))}
+
+                        <label
+                            className={`flex flex-col p-3 rounded-lg border cursor-pointer transition-all ${
+                                selectedReason === 'other'
+                                    ? 'border-laundry-teal-500 bg-laundry-teal-50/50 dark:bg-laundry-teal-950/20'
+                                    : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/30'
+                            }`}
+                        >
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    name="pulse-reason"
+                                    value="other"
+                                    checked={selectedReason === 'other'}
+                                    onChange={(e) => setSelectedReason(e.target.value)}
+                                    className="h-4 w-4 text-laundry-teal-600 border-gray-300 focus:ring-laundry-teal-500"
+                                />
+                                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    Outro motivo (especificar)
+                                </span>
+                            </div>
+                            {selectedReason === 'other' && (
+                                <input
+                                    type="text"
+                                    value={customReason}
+                                    onChange={(e) => setCustomReason(e.target.value)}
+                                    placeholder="Digite o motivo..."
+                                    className="mt-3 w-full bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-laundry-teal-500 focus:border-laundry-teal-500 outline-none text-gray-800 dark:text-gray-100 transition animate-fadeIn"
+                                    autoFocus
+                                />
+                            )}
+                        </label>
+                    </div>
+                </div>
+
+                <div className="p-6 bg-gray-50 dark:bg-slate-700/50 rounded-b-2xl flex justify-end space-x-2">
+                    <Button
+                        onClick={onClose}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-white text-sm"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleConfirm}
+                        className="bg-laundry-teal-600 hover:bg-laundry-teal-700 text-white text-sm"
+                        disabled={selectedReason === 'other' && !customReason.trim()}
+                    >
+                        Confirmar e Enviar
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Machine Card ---
 
 const MachineCard = ({ machine, onRelease, onSendPulse, onToggle, getStatusBadge }: any) => {
@@ -187,6 +318,8 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     const [loadingCustomers, setLoadingCustomers] = useState<boolean>(true);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedMachine, setSelectedMachine] = useState<any | null>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+    const [isReasonModalOpen, setIsReasonModalOpen] = useState<boolean>(false);
     const [operationLogs, setOperationLogs] = useState<any[]>([]);
 
     // Local notification state since we can't easily hook into App's toasts without refactoring App.tsx props
@@ -296,19 +429,30 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
         setIsModalOpen(true);
     };
 
-    const handleLogAndSendPulse = async (customer: any) => {
-        if (!selectedMachine) return;
+    const handleSelectCustomer = (customer: any) => {
+        setSelectedCustomer(customer);
+        setIsModalOpen(false);
+        setIsReasonModalOpen(true);
+    };
+
+    const handleConfirmReason = async (reason: string) => {
+        if (!selectedMachine || !selectedCustomer) return;
         const machineId = selectedMachine.id;
         const endpoint = `machines/send-start-pulse?machineId=${machineId}`;
 
-        makeApiCall(endpoint, `Enviando pulso para ${selectedMachine.type === 'washer' ? 'Lavadora' : 'Secadora'} #${selectedMachine.machineCode}`);
+        await makeApiCall(
+            endpoint,
+            `Enviando pulso para ${selectedMachine.type === 'washer' ? 'Lavadora' : 'Secadora'} #${selectedMachine.machineCode}`,
+            'POST',
+            { reason }
+        );
 
         const newLog = {
-            customerName: customer.fullName || customer.name,
+            customerName: selectedCustomer.fullName || selectedCustomer.name,
             machineName: `${selectedMachine.type === 'washer' ? 'Lavadora' : 'Secadora'} #${selectedMachine.machineCode}`,
             machineType: selectedMachine.type,
             storeId: selectedStoreId,
-            // timestamp is created by backend
+            reason: reason,
         };
 
         const lavflowApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' || process.env.NEXT_PUBLIC_API_URL2;
@@ -327,8 +471,20 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
             console.error("Failed to save log", e);
         }
 
+        setIsReasonModalOpen(false);
+        setSelectedMachine(null);
+        setSelectedCustomer(null);
+    };
+
+    const handleCloseCustomerModal = () => {
         setIsModalOpen(false);
         setSelectedMachine(null);
+    };
+
+    const handleCloseReasonModal = () => {
+        setIsReasonModalOpen(false);
+        setSelectedMachine(null);
+        setSelectedCustomer(null);
     };
 
     const handleRelease = (machineId: string) => {
@@ -405,10 +561,18 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
 
                 <CustomerSearchModal
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={handleCloseCustomerModal}
                     customers={customers}
                     loading={loadingCustomers}
-                    onSelectCustomer={handleLogAndSendPulse}
+                    onSelectCustomer={handleSelectCustomer}
+                />
+
+                <PulseReasonModal
+                    isOpen={isReasonModalOpen}
+                    onClose={handleCloseReasonModal}
+                    onConfirm={handleConfirmReason}
+                    machine={selectedMachine}
+                    customer={selectedCustomer}
                 />
 
                 <section className="w-full mt-12 mb-20">
@@ -422,6 +586,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                                     <tr>
                                         <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300">Cliente</th>
                                         <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300">Máquina</th>
+                                        <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300">Motivo</th>
                                         <th className="p-2 md:p-4 font-semibold text-gray-600 dark:text-slate-300 hidden sm:table-cell">Data/Hora</th>
                                     </tr>
                                 </thead>
@@ -438,13 +603,22 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
                                                             {log.machineName}
                                                         </span>
                                                     </td>
+                                                    <td className="p-2 md:p-4">
+                                                        {log.reason ? (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800/30">
+                                                                {log.reason}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs italic">-</span>
+                                                        )}
+                                                    </td>
                                                     <td className="p-2 md:p-4 text-gray-600 dark:text-slate-400 text-sm hidden sm:table-cell">{new Date(log.timestamp).toLocaleString()}</td>
                                                 </tr>
                                             );
                                         })
                                     ) : (
                                         <tr>
-                                            <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-slate-500">Nenhum registro de operação ainda.</td>
+                                            <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-slate-500">Nenhum registro de operação ainda.</td>
                                         </tr>
                                     )}
                                 </tbody>

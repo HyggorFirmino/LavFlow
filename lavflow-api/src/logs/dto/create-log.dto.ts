@@ -12,4 +12,7 @@ export class CreateLogDto {
 
     @ApiProperty()
     storeId: string;
+
+    @ApiProperty()
+    reason: string;
 }

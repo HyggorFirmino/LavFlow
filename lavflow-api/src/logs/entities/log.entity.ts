@@ -23,6 +23,10 @@ export class Log {
     @Column()
     storeId: string;
 
+    @ApiProperty({ example: 'Pagamento em outra unidade', required: true })
+    @Column({ default: 'Liberação manual' })
+    reason: string;
+
     @ApiProperty({ example: new Date().toISOString() })
     @CreateDateColumn()
     timestamp: Date;
