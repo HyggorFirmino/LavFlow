@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { BoardData, Card, List, TagDefinition, User, Store } from '../types';
 import KanbanList from './KanbanList';
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, TagIcon, CurrencyDollarIcon, WashingMachineIcon, XMarkIcon } from './icons';
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, TagIcon, CurrencyDollarIcon, WashingMachineIcon, XMarkIcon, ChevronDownIcon } from './icons';
 
 interface KanbanBoardProps {
   boardData: BoardData;
@@ -63,6 +63,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Set initial state on mount based on screen width
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsFiltersOpen(window.innerWidth >= 768);
+    }
+  }, []);
 
   // Compute the ordered list of all List objects for the move dropdown
   const allLists = useMemo(() => {
@@ -70,6 +78,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       .map(id => boardData[id])
       .filter(Boolean);
   }, [listOrder, boardData]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.paymentMethod && filters.paymentMethod !== 'all') count++;
+    if (filters.tag && filters.tag !== 'all') count++;
+    if (filters.service && filters.service !== 'all') count++;
+    return count;
+  }, [filters]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -110,95 +128,119 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   return (
     <main className="flex-grow overflow-y-hidden p-2 md:p-4 flex flex-col">
-      <div className="mb-3 md:mb-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 px-1">
-        <label htmlFor="store-selector" className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          Loja Atual:
-        </label>
-        <select
-          id="store-selector"
-          value={selectedStoreId}
-          onChange={(e) => onSelectStore(e.target.value)}
-          className="w-full sm:w-auto bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2.5"
-        >
-          {stores.map((store) => (
-            <option key={store.id} value={String(store.id)}>
-              {store.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Barra de Filtros */}
-      <div className="mb-4 px-1 flex flex-wrap items-center gap-3">
-        {/* Busca por Texto */}
-        <div className="relative flex-grow max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar por nome, cesto ou documento..."
-            value={filters.search}
-            onChange={(e) => onSetFilters(prev => ({ ...prev, search: e.target.value }))}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-laundry-teal-500 sm:text-sm transition-all"
-          />
-        </div>
-
-        {/* Filtro de Pagamento */}
-        <div className="flex items-center space-x-2">
-          <CurrencyDollarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+      <div className="mb-3 md:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
+          <label htmlFor="store-selector" className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+            Loja Atual:
+          </label>
           <select
-            value={filters.paymentMethod}
-            onChange={(e) => onSetFilters(prev => ({ ...prev, paymentMethod: e.target.value }))}
-            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+            id="store-selector"
+            value={selectedStoreId}
+            onChange={(e) => onSelectStore(e.target.value)}
+            className="flex-grow sm:flex-grow-0 min-w-[150px] bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
           >
-            <option value="all">Todos Pagamentos</option>
-            <option value="pix">Pix</option>
-            <option value="dinheiro">Dinheiro</option>
-            <option value="none">Nenhum (Pendente)</option>
-          </select>
-        </div>
-
-        {/* Filtro de Etiquetas */}
-        <div className="flex items-center space-x-2">
-          <TagIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          <select
-            value={filters.tag}
-            onChange={(e) => onSetFilters(prev => ({ ...prev, tag: e.target.value }))}
-            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
-          >
-            <option value="all">Todas Etiquetas</option>
-            {Array.from(tagsMap.keys()).map(tagName => (
-              <option key={tagName} value={tagName}>{tagName}</option>
+            {stores.map((store) => (
+              <option key={store.id} value={String(store.id)}>
+                {store.name}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Filtro de Serviço */}
-        <div className="flex items-center space-x-2">
-          <WashingMachineIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          <select
-            value={filters.service}
-            onChange={(e) => onSetFilters(prev => ({ ...prev, service: e.target.value }))}
-            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
-          >
-            <option value="all">Todos Serviços</option>
-            <option value="washing">Apenas Lavagem</option>
-            <option value="drying">Apenas Secagem</option>
-            <option value="both">Lavagem e Secagem</option>
-          </select>
-        </div>
+        <button
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 text-sm font-medium transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-laundry-teal-500"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4 text-gray-500 dark:text-gray-400">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
+          <span>Filtros</span>
+          {activeFiltersCount > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-laundry-teal-500 text-white text-xs font-bold px-1.5 py-0.5">
+              {activeFiltersCount}
+            </span>
+          )}
+          <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isFiltersOpen ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
 
-        {/* Botão de Limpar */}
-        {(filters.search || filters.paymentMethod !== 'all' || filters.tag !== 'all' || filters.service !== 'all') && (
-          <button
-            onClick={() => onSetFilters({ search: '', paymentMethod: 'all', tag: 'all', service: 'all' })}
-            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-          >
-            <XMarkIcon className="h-4 w-4" />
-            Limpar Filtros
-          </button>
-        )}
+      {/* Barra de Filtros (Expansível) */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden px-1 ${
+          isFiltersOpen ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0 pointer-events-none'
+        }`}
+      >
+        <div className="p-4 bg-white dark:bg-slate-800/40 rounded-xl border border-gray-200 dark:border-slate-800/80 flex flex-wrap items-center gap-4 shadow-sm">
+          {/* Busca por Texto */}
+          <div className="relative flex-grow min-w-[240px] max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar por nome, cesto ou documento..."
+              value={filters.search}
+              onChange={(e) => onSetFilters(prev => ({ ...prev, search: e.target.value }))}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-laundry-teal-500 sm:text-sm transition-all"
+            />
+          </div>
+
+          {/* Filtro de Pagamento */}
+          <div className="flex items-center space-x-2">
+            <CurrencyDollarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <select
+              value={filters.paymentMethod}
+              onChange={(e) => onSetFilters(prev => ({ ...prev, paymentMethod: e.target.value }))}
+              className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+            >
+              <option value="all">Todos Pagamentos</option>
+              <option value="pix">Pix</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="none">Nenhum (Pendente)</option>
+            </select>
+          </div>
+
+          {/* Filtro de Etiquetas */}
+          <div className="flex items-center space-x-2">
+            <TagIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <select
+              value={filters.tag}
+              onChange={(e) => onSetFilters(prev => ({ ...prev, tag: e.target.value }))}
+              className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+            >
+              <option value="all">Todas Etiquetas</option>
+              {Array.from(tagsMap.keys()).map(tagName => (
+                <option key={tagName} value={tagName}>{tagName}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de Serviço */}
+          <div className="flex items-center space-x-2">
+            <WashingMachineIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <select
+              value={filters.service}
+              onChange={(e) => onSetFilters(prev => ({ ...prev, service: e.target.value }))}
+              className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-laundry-teal-500 focus:border-laundry-teal-500 block p-2"
+            >
+              <option value="all">Todos Serviços</option>
+              <option value="washing">Apenas Lavagem</option>
+              <option value="drying">Apenas Secagem</option>
+              <option value="both">Lavagem e Secagem</option>
+            </select>
+          </div>
+
+          {/* Botão de Limpar */}
+          {(filters.search || filters.paymentMethod !== 'all' || filters.tag !== 'all' || filters.service !== 'all') && (
+            <button
+              onClick={() => onSetFilters({ search: '', paymentMethod: 'all', tag: 'all', service: 'all' })}
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors sm:ml-auto"
+            >
+              <XMarkIcon className="h-4 w-4" />
+              Limpar Filtros
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative group flex-1 overflow-hidden">

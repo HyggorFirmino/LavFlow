@@ -172,9 +172,9 @@ const Home: React.FC = () => {
     setNotifications(prev => [...prev, { id, message, type }]);
   };
 
-  const loadBoardData = React.useCallback(async () => {
+  const loadBoardData = React.useCallback(async (showFullLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showFullLoading) setIsLoading(true);
       const [statuses, ordens, storesData] = await Promise.all([
         getStatusKanban(),
         getOrdens(),
@@ -347,7 +347,7 @@ const Home: React.FC = () => {
       console.error("Erro ao carregar dados do quadro:", error);
       addNotification("Falha ao carregar os dados do quadro. Tente recarregar a página.", "error");
     } finally {
-      setIsLoading(false);
+      if (showFullLoading) setIsLoading(false);
     }
   }, [selectedStoreId]);
 
@@ -655,7 +655,7 @@ const Home: React.FC = () => {
 
       setIsCardModalOpen(false);
       if (!options.skipReload) {
-        loadBoardData();
+        loadBoardData(false);
       }
 
     } catch (e) {
@@ -671,7 +671,7 @@ const Home: React.FC = () => {
       addNotification("Cartão atualizado com sucesso!", "success");
       setIsEditCardModalOpen(false);
       setCardToEdit(null);
-      loadBoardData();
+      loadBoardData(false);
     } catch (e) {
       console.error("Erro ao atualizar cartão:", e);
       addNotification("Erro ao atualizar cartão.", "error");
@@ -693,12 +693,24 @@ const Home: React.FC = () => {
 
   const handleDeleteCard = async (cardId: string, listId: string) => {
     try {
+      // Optimistic delete
+      setBoardData(prev => {
+        const newData = { ...prev };
+        if (newData[listId]) {
+          newData[listId] = {
+            ...newData[listId],
+            cards: newData[listId].cards.filter(c => c.id !== cardId)
+          };
+        }
+        return newData;
+      });
       await deleteOrdem(cardId);
       addNotification("Pedido excluído com sucesso!", "success");
-      await loadBoardData();
+      await loadBoardData(false);
     } catch (e) {
       console.error("Erro ao excluir cartão:", e);
       addNotification("Erro ao excluir pedido.", "error");
+      loadBoardData(true);
     }
   };
 
@@ -734,7 +746,7 @@ const Home: React.FC = () => {
       // Ideally we would just call loadBoardData() but since it's wrapped in useEffect heavily, 
       // let's try to convert it to useCallback to be callable.
       // Now that loadBoardData is a useCallback, we can call it:
-      loadBoardData();
+      loadBoardData(false);
     } catch (error) {
       console.error("Erro ao criar lista:", error);
       addNotification("Erro ao criar lista.", "error");
@@ -759,7 +771,7 @@ const Home: React.FC = () => {
       addNotification("Lista atualizada com sucesso!", "success");
       setIsListSettingsModalOpen(false);
       setListToEdit(null);
-      loadBoardData();
+      loadBoardData(false);
     } catch (e) {
       console.error("Erro ao atualizar lista:", e);
       addNotification("Erro ao atualizar lista.", "error");
@@ -773,7 +785,7 @@ const Home: React.FC = () => {
         addNotification("Lista excluída com sucesso!", "success");
         setIsListSettingsModalOpen(false);
         setListToEdit(null);
-        loadBoardData();
+        loadBoardData(false);
       } catch (e) {
         console.error("Erro ao excluir lista:", e);
         // Backend likely validates if it has cards, but let's see if we get a specific error message.
@@ -897,7 +909,7 @@ const Home: React.FC = () => {
         const orderedIds = newListOrder.map(id => parseInt(id, 10));
         await reorderStatusOrdem(storeIdNumber, orderedIds);
         // Recarregar os dados do backend para garantir consistência
-        await loadBoardData();
+        await loadBoardData(false);
       } catch (error) {
         console.error("Erro ao reordenar listas:", error);
         addNotification("Falha ao reordenar listas. Desfazendo.", "error");
