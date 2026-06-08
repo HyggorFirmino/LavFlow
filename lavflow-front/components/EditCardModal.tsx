@@ -231,7 +231,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                             <h2 className="text-2xl font-bold text-laundry-blue-900 dark:text-slate-100">Editar Pedido</h2>
                             <div className="text-xs text-gray-400 mt-1">ID: {card.id}</div>
                         </div>
-                        {isAdmin && (
+                        {currentUser.role !== 'EMPLOYEE' && (
                             <button
                                 type="button"
                                 onClick={handleOpenDeleteModal}

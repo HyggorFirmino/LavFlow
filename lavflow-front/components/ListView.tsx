@@ -30,7 +30,7 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
   const [listTypeFilter, setListTypeFilter] = useState<'all' | 'default' | 'dryer' | 'lavadora'>('all');
   const [listIdFilter, setListIdFilter] = useState<string>('all');
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'ADMIN';
 
   const handleDelete = (card: Card) => {
     if (window.confirm(`Tem certeza que deseja excluir o pedido de ${card.customerName}?`)) {
@@ -167,9 +167,11 @@ const ListView: React.FC<ListViewProps> = ({ cards, boardData, tagsMap, onEditCa
                         <button onClick={() => onEditCard(card)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-laundry-blue-600 dark:hover:text-laundry-blue-300 hover:bg-laundry-blue-200/70 dark:hover:bg-slate-600/70 rounded-full transition-colors" aria-label={`Editar pedido de ${card.customerName}`}>
                           <PencilIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={() => handleDelete(card)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-full transition-colors" aria-label={`Excluir pedido de ${card.customerName}`}>
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
+                        {currentUser.role !== 'EMPLOYEE' && (
+                          <button onClick={() => handleDelete(card)} className="p-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-full transition-colors" aria-label={`Excluir pedido de ${card.customerName}`}>
+                            <TrashIcon className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

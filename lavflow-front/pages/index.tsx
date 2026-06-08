@@ -173,6 +173,7 @@ const Home: React.FC = () => {
   };
 
   const loadBoardData = React.useCallback(async (showFullLoading = true) => {
+    if (!currentUser) return;
     try {
       if (showFullLoading) setIsLoading(true);
       const [statuses, ordens, storesData] = await Promise.all([
@@ -181,17 +182,22 @@ const Home: React.FC = () => {
         getStores(),
       ]);
 
-      // Select first store if none selected
+      const userStores = currentUser?.stores || [];
+      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'ADMIN';
+      const permittedStores = isAdmin ? storesData : storesData.filter(s => userStores.some(us => us.id === s.id));
+
+      // Select first store if none selected or if the currently selected store is not permitted
       let currentStoreId = selectedStoreId;
-      if (!currentStoreId && storesData.length > 0) {
-        currentStoreId = String(storesData[0].id);
+      const isStorePermitted = permittedStores.some(s => String(s.id) === currentStoreId);
+      if ((!currentStoreId || !isStorePermitted) && permittedStores.length > 0) {
+        currentStoreId = String(permittedStores[0].id);
         setSelectedStoreId(currentStoreId);
       }
 
       // Fetch tags with specific store
-      const fetchedTags = await getTags(currentStoreId);
+      const fetchedTags = currentStoreId ? await getTags(currentStoreId) : [];
 
-      setStores(storesData);
+      setStores(permittedStores);
 
       const newBoardData: BoardData = {};
       const newTagMap = new Map<string, TagDefinition>();
@@ -349,7 +355,7 @@ const Home: React.FC = () => {
     } finally {
       if (showFullLoading) setIsLoading(false);
     }
-  }, [selectedStoreId]);
+  }, [selectedStoreId, currentUser]);
 
   useEffect(() => {
     loadBoardData();
@@ -375,12 +381,14 @@ const Home: React.FC = () => {
         const user = JSON.parse(storedUser);
         if (user) {
           setCurrentUser(user);
+          return; // loadBoardData will run and handle setIsLoading(false)
         }
       } catch (e) {
         console.error("Failed to parse stored user", e);
         localStorage.removeItem('lavflow_user');
       }
     }
+    setIsLoading(false); // If no user, show login screen immediately
   }, []);
 
   // Save UI preferences on change

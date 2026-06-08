@@ -85,9 +85,11 @@ const KanbanList: React.FC<KanbanListProps> = ({
               </span>
             </h3>
           </div>
-          <button onClick={() => onOpenSettings(list.id)} className="text-gray-500 dark:text-slate-400 hover:text-laundry-blue-600 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-200/70 dark:hover:bg-slate-700/70 transition-colors">
-            <EllipsisHorizontalIcon className="w-6 h-6" />
-          </button>
+          {currentUser.role !== 'EMPLOYEE' && (
+            <button onClick={() => onOpenSettings(list.id)} className="text-gray-500 dark:text-slate-400 hover:text-laundry-blue-600 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-200/70 dark:hover:bg-slate-700/70 transition-colors">
+              <EllipsisHorizontalIcon className="w-6 h-6" />
+            </button>
+          )}
         </div>
         <div className="overflow-y-auto px-3 pt-3 pb-3 flex-grow min-h-[50px]">
           {list.cards.map(card => (

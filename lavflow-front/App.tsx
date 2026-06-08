@@ -253,14 +253,20 @@ const App: React.FC = () => {
       // Debug: Log raw API response for dryer cards
       console.log('🔍 RAW API RESPONSE - Sample ordem:', ordens.find((o: any) => o.status?.tipo === 'dryer'));
 
-      if (loadedStores && loadedStores.length > 0) {
-        setStores(loadedStores);
-        // Select the first store by default if none selected
-        if (!selectedStoreId) {
-          // PROPOSED CHANGE: Use maxpanId as the primary ID
-          const firstStore = loadedStores[0];
+      const userStores = currentUser?.stores || [];
+      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'ADMIN';
+      const permittedStores = isAdmin ? loadedStores : loadedStores.filter(s => userStores.some(us => us.id === s.id));
+
+      if (permittedStores && permittedStores.length > 0) {
+        setStores(permittedStores);
+        
+        const isStorePermitted = permittedStores.some(s => (s.maxpanId || String(s.id)) === selectedStoreId);
+        if (!selectedStoreId || !isStorePermitted) {
+          const firstStore = permittedStores[0];
           setSelectedStoreId(firstStore.maxpanId || String(firstStore.id));
         }
+      } else {
+        setStores([]);
       }
 
       const newBoardData: BoardData = {};
@@ -357,7 +363,7 @@ const App: React.FC = () => {
       // For now, let's keep the mock data as fallback or just log.
       // setBoardData(buildInitialBoardData());
     }
-  }, [currentUser]);
+  }, [currentUser, selectedStoreId]);
 
   useEffect(() => {
     document.title = 'Lavanderia Kanban Inteligente';

@@ -57,7 +57,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
   const audioPlayedRef = useRef(false);
   const lastCycleRef = useRef<number | null>(null);
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'ADMIN';
 
   // Close move dropdown on click outside
   useEffect(() => {
@@ -611,9 +611,11 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
             <button onClick={() => onEditCard(card)} className="text-gray-400 dark:text-slate-400 hover:text-laundry-blue-500 dark:hover:text-laundry-blue-300 p-1 rounded-full hover:bg-laundry-blue-100 dark:hover:bg-slate-700 transition-colors" aria-label="Editar Pedido">
               <PencilIcon className="w-5 h-5" />
             </button>
-            <button onClick={handleDelete} className="text-gray-400 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors" aria-label="Excluir Pedido">
-              <TrashIcon className="w-5 h-5" />
-            </button>
+            {currentUser.role !== 'EMPLOYEE' && (
+              <button onClick={handleDelete} className="text-gray-400 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors" aria-label="Excluir Pedido">
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
