@@ -513,7 +513,7 @@ const MachineOperationPage: React.FC<MachineOperationPageProps> = ({ stores, sel
     const currentStoreName = stores.find(s => String(s.id) === selectedStoreId)?.name || "Loja";
 
     return (
-        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-laundry-blue-50 dark:bg-slate-900 min-h-screen relative">
+        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-laundry-blue-50 dark:bg-slate-900 h-full relative">
 
             {/* Simple Notification Toast */}
             {notification && (

@@ -6,6 +6,16 @@ html {
   overflow-x: hidden;
 }
 
+.h-screen-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.max-h-screen-dvh {
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+
 html, body {
   font-family: 'Poppins', sans-serif;
 }

@@ -1159,7 +1159,7 @@ const Home: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-laundry-blue-50 dark:bg-slate-900">
+      <div className="flex items-center justify-center h-screen-dvh bg-laundry-blue-50 dark:bg-slate-900">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-laundry-blue-900 dark:text-slate-100">LavFlow</h1>
           <p className="mt-2 text-lg text-laundry-blue-700 dark:text-slate-300">Carregando quadro...</p>
@@ -1177,7 +1177,7 @@ const Home: React.FC = () => {
       <Head>
         <title>Lavanderia Kanban Inteligente</title>
       </Head>
-      <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
+      <div className="flex flex-col h-screen-dvh max-h-screen-dvh font-sans bg-laundry-blue-50 dark:bg-slate-900">
         <Header onAddCard={() => handleOpenAddCardModal()} onNavigate={handleNavigate} onLogout={handleLogout} currentUser={currentUser} currentView={currentView} />
         <ToastContainer notifications={notifications} removeNotification={removeNotification} />
         {renderContent()}

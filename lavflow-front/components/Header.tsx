@@ -72,14 +72,14 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
           {/* Hamburger button - only on mobile */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg bg-laundry-blue-100 dark:bg-slate-700 text-laundry-blue-800 dark:text-slate-200 hover:bg-laundry-blue-200 dark:hover:bg-slate-600 transition-colors"
+            className="lg:hidden p-2 rounded-lg bg-laundry-blue-100 dark:bg-slate-700 text-laundry-blue-800 dark:text-slate-200 hover:bg-laundry-blue-200 dark:hover:bg-slate-600 transition-colors"
             aria-label="Menu"
           >
             <HamburgerIcon className="w-6 h-6" />
           </button>
 
           {/* Desktop nav - hidden on mobile */}
-          <div className="hidden md:flex items-center space-x-2 md:space-x-3">
+          <div className="hidden lg:flex items-center space-x-2 lg:space-x-3">
             <div className="h-8 border-l border-laundry-blue-200 dark:border-slate-700 mx-1"></div>
 
             <Dropdown
@@ -129,7 +129,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
               aria-label="Imprimir Etiquetas dos Pedidos"
             >
               <PrinterIcon className="w-5 h-5" />
-              <span className="hidden md:inline">Imprimir</span>
+              <span className="hidden lg:inline">Imprimir</span>
             </button>
 
             <button
@@ -139,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
               aria-label="Ver Perfil"
             >
               <UserCircleIcon className="w-5 h-5" />
-              <span className="hidden md:inline">Perfil</span>
+              <span className="hidden lg:inline">Perfil</span>
             </button>
 
             <div className="h-8 border-l border-laundry-blue-200 dark:border-slate-700 mx-1"></div>
@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
               aria-label="Sair"
             >
               <LogoutIcon className="w-5 h-5" />
-              <span className="hidden md:inline">Sair</span>
+              <span className="hidden lg:inline">Sair</span>
             </button>
           </div>
         </div>
@@ -159,7 +159,7 @@ const Header: React.FC<HeaderProps> = ({ onAddCard, onNavigate, onLogout, curren
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[9999] flex flex-col">
+        <div className="lg:hidden fixed inset-0 z-[9999] flex flex-col">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"

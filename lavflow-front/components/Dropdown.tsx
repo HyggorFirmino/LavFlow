@@ -74,7 +74,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                 aria-expanded={isOpen}
             >
                 <span className="w-5 h-5">{icon}</span>
-                <span className="hidden md:inline">{label}</span>
+                <span className="hidden lg:inline">{label}</span>
                 <ChevronDownIcon
                     className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
                         }`}

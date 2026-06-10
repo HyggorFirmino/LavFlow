@@ -1030,7 +1030,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen max-h-screen font-sans bg-laundry-blue-50 dark:bg-slate-900">
+    <div className="flex flex-col h-screen-dvh max-h-screen-dvh font-sans bg-laundry-blue-50 dark:bg-slate-900">
       <Header
         onAddCard={() => handleOpenAddCardModal()}
         onNavigate={(v) => {

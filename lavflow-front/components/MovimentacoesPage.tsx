@@ -165,7 +165,7 @@ const MovimentacoesPage: React.FC<MovimentacoesPageProps> = ({ stores, selectedS
     const washers = machines.filter((m) => m.type === "washer");
 
     return (
-        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-gradient-to-br from-laundry-blue-50 via-laundry-teal-50 to-laundry-blue-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen">
+        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-gradient-to-br from-laundry-blue-50 via-laundry-teal-50 to-laundry-blue-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 h-full">
 
             <div className="max-w-7xl mx-auto">
                 {error && (
