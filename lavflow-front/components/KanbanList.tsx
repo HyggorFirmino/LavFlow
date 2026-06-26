@@ -60,7 +60,7 @@ const KanbanList: React.FC<KanbanListProps> = ({
   };
 
   return (
-    <div className="w-[80vw] md:w-80 flex-shrink-0 flex flex-col snap-start h-full">
+    <div className="w-[80vw] lg:w-80 flex-shrink-0 flex flex-col snap-start h-full">
       <div
         data-list-id={list.id}
         onDragOver={handleDragOver}

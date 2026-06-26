@@ -127,8 +127,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   return (
-    <main className="flex-grow overflow-y-hidden p-2 md:p-4 flex flex-col">
-      <div className="mb-3 md:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+    <main className="flex-grow overflow-y-hidden p-2 lg:p-4 flex flex-col">
+      <div className="mb-3 lg:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <label htmlFor="store-selector" className="text-sm font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
             Loja Atual:
@@ -249,7 +249,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onClick={() => handleScroll('left')}
           className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-lg border border-gray-200 dark:border-slate-700 text-laundry-blue-600 dark:text-laundry-blue-400 transition-all duration-300 hover:scale-110 active:scale-95 ${
             showLeftScroll ? 'opacity-100 visible' : 'opacity-0 invisible'
-          } hidden md:flex items-center justify-center`}
+          } hidden lg:flex items-center justify-center`}
           aria-label="Rolar para esquerda"
         >
           <ChevronLeftIcon className="h-6 w-6" />
@@ -260,7 +260,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           onClick={() => handleScroll('right')}
           className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-lg border border-gray-200 dark:border-slate-700 text-laundry-blue-600 dark:text-laundry-blue-400 transition-all duration-300 hover:scale-110 active:scale-95 ${
             showRightScroll ? 'opacity-100 visible' : 'opacity-0 invisible'
-          } hidden md:flex items-center justify-center`}
+          } hidden lg:flex items-center justify-center`}
           aria-label="Rolar para direita"
         >
           <ChevronRightIcon className="h-6 w-6" />
@@ -269,7 +269,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <div
           ref={scrollContainerRef}
           data-kanban-scroll
-          className="flex space-x-3 md:space-x-4 h-full snap-x snap-mandatory md:snap-none overflow-x-auto pb-6 px-1"
+          className="flex space-x-3 lg:space-x-4 h-full snap-x snap-mandatory lg:snap-none overflow-x-auto pb-6 px-1"
         >
           {listOrder.map(listId => {
             const list = boardData[listId];
@@ -295,7 +295,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             );
           })}
           {(currentUser.role === 'ADMIN' || currentUser.role === 'admin') && (
-            <div className="w-[80vw] md:w-80 flex-shrink-0 snap-start">
+            <div className="w-[80vw] lg:w-80 flex-shrink-0 snap-start">
               <button
                 onClick={onAddList}
                 className="w-full h-12 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-sm flex items-center justify-center text-laundry-blue-600 dark:text-laundry-blue-300 font-bold text-lg transition-all border-2 border-dashed border-laundry-blue-200 dark:border-slate-700 hover:border-laundry-blue-400"

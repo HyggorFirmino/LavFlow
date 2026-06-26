@@ -10,6 +10,7 @@ import { HistoricoStatus } from './entities/historico-status.entity';
 import { Notificacao } from './entities/notificacao.entity';
 import { Client } from 'src/clients/entities/client.entity';
 import { UsersModule } from 'src/users/users.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { UsersModule } from 'src/users/users.module';
       Client,
     ]),
     UsersModule,
+    RealtimeModule,
   ],
   controllers: [OrdensController],
   providers: [OrdensService],

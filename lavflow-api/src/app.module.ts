@@ -12,6 +12,7 @@ import { ClientsModule } from './clients/clients.module';
 import { SupabaseService } from './supabase.service';
 import { LogsModule } from './logs/logs.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -53,6 +54,7 @@ import { AppService } from './app.service';
     ClientsModule,
     LogsModule,
     ProxyModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [SupabaseService, AppService],

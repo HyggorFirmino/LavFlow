@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Tag } from './entities/tag.entity';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class TagsService {
   constructor(
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
+    private readonly realtimeService: RealtimeService,
   ) {}
 
   async create(createTagDto: CreateTagDto): Promise<Tag> {
@@ -23,7 +25,13 @@ export class TagsService {
       ...createTagDto,
       store: { id: createTagDto.storeId }
     });
-    return this.tagRepository.save(tag);
+    const saved = await this.tagRepository.save(tag);
+
+    if (createTagDto.storeId) {
+      this.realtimeService.emit(createTagDto.storeId, 'tags_changed');
+    }
+
+    return saved;
   }
 
   findAll(storeId?: number): Promise<Tag[]> {
@@ -46,13 +54,33 @@ export class TagsService {
     if (!tag) {
       throw new NotFoundException(`Etiqueta com ID ${id} não encontrada.`);
     }
-    return this.tagRepository.save(tag);
+    const saved = await this.tagRepository.save(tag);
+
+    const tagWithStore = await this.tagRepository.findOne({
+      where: { id: saved.id },
+      relations: ['store']
+    });
+    if (tagWithStore?.store?.id) {
+      this.realtimeService.emit(tagWithStore.store.id, 'tags_changed');
+    }
+
+    return saved;
   }
 
   async remove(id: number): Promise<void> {
+    const tag = await this.tagRepository.findOne({
+      where: { id },
+      relations: ['store']
+    });
+    const storeId = tag?.store?.id;
+
     const result = await this.tagRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Etiqueta com ID ${id} não encontrada.`);
+    }
+
+    if (storeId) {
+      this.realtimeService.emit(storeId, 'tags_changed');
     }
   }
 }

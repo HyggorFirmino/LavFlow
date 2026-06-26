@@ -48,4 +48,14 @@ export class CreateUserDto {
     @IsNumber({}, { each: true })
     @IsOptional()
     storeIds?: number[];
+
+    @ApiProperty({
+        description: 'Tema de aparência do usuário (claro ou escuro)',
+        example: 'claro',
+        default: 'claro',
+        required: false,
+    })
+    @IsString()
+    @IsOptional()
+    theme?: string;
 }

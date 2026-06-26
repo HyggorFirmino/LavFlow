@@ -20,8 +20,8 @@ html, body {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Smooth snap scrolling for kanban on mobile */
-@media (max-width: 767px) {
+/* Smooth snap scrolling for kanban on mobile and tablet */
+@media (max-width: 1023px) {
   .snap-x {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;

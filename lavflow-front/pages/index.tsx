@@ -25,9 +25,10 @@ import { ExclamationTriangleIcon, XMarkIcon } from '../components/icons';
 import { fetchClients } from '../services/maxpanApiService';
 import { getOrdens, getStatusKanban, createList, updateList, deleteList, createOrdem, updateOrdem, mudarStatusOrdem, reorderStatusOrdem, getTags, createTag, updateTag, deleteTag, deleteOrdem } from '../services/apiService';
 import { getStores, updateStore } from '../services/storeService';
-import { login } from '../services/userService';
+import { login, updateUser } from '../services/userService';
 import { createClient, findLocalClientByCpf } from '../services/clientService';
 import CreateMultipleCardsModal from '../components/CreateMultipleCardsModal';
+import { API_URL } from '../services/api';
 
 // --- Toast Notification Components ---
 
@@ -361,6 +362,71 @@ const Home: React.FC = () => {
     loadBoardData();
   }, [loadBoardData]); // Reload when loadBoardData changes (which depends on selectedStoreId)
 
+  // SSE Real-time Updates Listener
+  useEffect(() => {
+    if (!currentUser || !selectedStoreId) return;
+
+    const sseUrl = `${API_URL}/realtime/sse`;
+    console.log('[SSE] Conectando ao canal em tempo real:', sseUrl);
+    
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
+    const connectSSE = () => {
+      eventSource = new EventSource(sseUrl);
+
+      eventSource.onopen = () => {
+        console.log('[SSE] Conexão ativa com o servidor de tempo real.');
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          
+          if (parsed && parsed.type === 'ping') {
+            // Heartbeat ping, ignore
+            return;
+          }
+
+          console.log('[SSE] Evento recebido:', parsed);
+
+          // Verifica se o evento é para a loja atualmente selecionada
+          if (parsed && String(parsed.storeId) === String(selectedStoreId)) {
+            console.log('[SSE] Atualizando dados da loja:', selectedStoreId);
+            loadBoardData(false); // Silent reload
+          }
+        } catch (error) {
+          console.error('[SSE] Erro ao processar mensagem SSE:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('[SSE] Erro ou desconexão no canal SSE:', error);
+        if (eventSource) {
+          eventSource.close();
+        }
+        
+        // Tentar reconectar após 5 segundos
+        reconnectTimeout = setTimeout(() => {
+          console.log('[SSE] Tentando reconectar...');
+          connectSSE();
+        }, 5000);
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      console.log('[SSE] Desconectando do canal em tempo real.');
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [selectedStoreId, currentUser, loadBoardData]);
+
   // Initial load of stores from currentUser
   useEffect(() => {
     if (currentUser && currentUser.stores && currentUser.stores.length > 0) {
@@ -514,15 +580,24 @@ const Home: React.FC = () => {
     setLaundryProfile(profile);
   };
 
-  const handleUpdateUserTheme = (theme: 'claro' | 'escuro') => {
+  const handleUpdateUserTheme = async (theme: 'claro' | 'escuro') => {
     if (!currentUser) return;
 
     const updatedUser = { ...currentUser, theme };
     setCurrentUser(updatedUser);
+    localStorage.setItem('lavflow_user', JSON.stringify(updatedUser));
 
     setUsers(prevUsers =>
       prevUsers.map(u => (u.id === currentUser.id ? updatedUser : u))
     );
+
+    if (currentUser.id && currentUser.id !== 'user-maxpan') {
+      try {
+        await updateUser(currentUser.id, { theme });
+      } catch (error) {
+        console.error("Erro ao salvar tema no servidor:", error);
+      }
+    }
   };
 
   const handleSaveUser = (newUser: Omit<User, 'id'>): boolean => {

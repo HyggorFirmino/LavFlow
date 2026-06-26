@@ -6,6 +6,7 @@ import { Store } from '../stores/entities/store.entity';
 import { CreateStatusKanbanDto } from './dto/create-status-kanban.dto';
 import { UpdateStatusKanbanDto } from './dto/update-status-kanban.dto';
 import { OrdemServico } from '../ordens/entities/ordem-servico.entity';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class StatusKanbanService {
@@ -17,6 +18,7 @@ export class StatusKanbanService {
     private readonly ordemRepository: Repository<OrdemServico>,
     @InjectRepository(Store)
     private readonly storeRepository: Repository<Store>,
+    private readonly realtimeService: RealtimeService,
   ) { }
 
   async create(createStatusDto: CreateStatusKanbanDto): Promise<StatusKanban> {
@@ -40,7 +42,13 @@ export class StatusKanbanService {
       ordem: nextOrder,
       store: store
     });
-    return this.statusRepository.save(status);
+    const saved = await this.statusRepository.save(status);
+
+    if (storeId) {
+      this.realtimeService.emit(storeId, 'kanban_changed');
+    }
+
+    return saved;
   }
 
   // É crucial ordenar os status para que o Kanban seja exibido corretamente
@@ -76,10 +84,26 @@ export class StatusKanbanService {
     if (!status) {
       throw new NotFoundException(`Status com ID ${id} não encontrado.`);
     }
-    return this.statusRepository.save(status);
+    const saved = await this.statusRepository.save(status);
+
+    const statusWithStore = await this.statusRepository.findOne({
+      where: { id: saved.id },
+      relations: ['store']
+    });
+    if (statusWithStore?.store?.id) {
+      this.realtimeService.emit(statusWithStore.store.id, 'kanban_changed');
+    }
+
+    return saved;
   }
 
   async remove(id: number): Promise<void> {
+    const status = await this.statusRepository.findOne({
+      where: { id },
+      relations: ['store']
+    });
+    const storeId = status?.store?.id;
+
     // REGRA DE NEGÓCIO IMPORTANTE: Não permitir exclusão se o status estiver em uso.
     const ordensComStatus = await this.ordemRepository.count({
       where: { status: { id } },
@@ -94,6 +118,10 @@ export class StatusKanbanService {
     const result = await this.statusRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Status com ID ${id} não encontrado.`);
+    }
+
+    if (storeId) {
+      this.realtimeService.emit(storeId, 'kanban_changed');
     }
   }
 
@@ -112,5 +140,7 @@ export class StatusKanbanService {
         await manager.update(StatusKanban, { id: orderedIds[i], store: { id: storeId } }, { ordem: i + 1 });
       }
     });
+
+    this.realtimeService.emit(storeId, 'kanban_changed');
   }
 }

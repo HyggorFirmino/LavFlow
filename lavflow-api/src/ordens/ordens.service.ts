@@ -10,6 +10,7 @@ import { MudarStatusOrdemDto } from './dto/mudar-status-ordem.dto';
 
 import { User } from 'src/users/entities/user.entity';
 import { Client } from 'src/clients/entities/client.entity';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class OrdensService {
@@ -27,6 +28,7 @@ export class OrdensService {
     private readonly clientRepository: Repository<Client>,
 
     private readonly dataSource: DataSource,
+    private readonly realtimeService: RealtimeService,
   ) { }
 
   async create(createOrdemDto: CreateOrdemDto): Promise<OrdemServico> {
@@ -39,7 +41,10 @@ export class OrdensService {
     let statusInicial;
 
     if (idStatusInicial) {
-      statusInicial = await this.statusKanbanRepository.findOneBy({ id: idStatusInicial });
+      statusInicial = await this.statusKanbanRepository.findOne({
+        where: { id: idStatusInicial },
+        relations: ['store'],
+      });
       if (!statusInicial) {
         throw new NotFoundException(`Status com ID ${idStatusInicial} não encontrado.`);
       }
@@ -48,7 +53,8 @@ export class OrdensService {
         where: {
           store: { id: storeId },
           ordem: 1
-        }
+        },
+        relations: ['store'],
       });
 
       if (!statusInicial) {
@@ -108,6 +114,11 @@ export class OrdensService {
         idFuncionarioAcao: idFuncionarioResponsavel,
       });
       await this.historicoRepository.save(historico);
+
+      const resolvedStoreId = storeId || statusInicial?.store?.id;
+      if (resolvedStoreId) {
+        this.realtimeService.emit(resolvedStoreId, 'orders_changed');
+      }
 
       return ordemSalva;
     } catch (error) {
@@ -179,13 +190,23 @@ export class OrdensService {
 
     this.ordemServicoRepository.merge(ordem, dadosAtualizaveis);
 
-    return this.ordemServicoRepository.save(ordem);
+    const saved = await this.ordemServicoRepository.save(ordem);
+
+    const ordemComLoja = await this.ordemServicoRepository.findOne({
+      where: { id: saved.id },
+      relations: ['status', 'status.store']
+    });
+    if (ordemComLoja?.status?.store?.id) {
+      this.realtimeService.emit(ordemComLoja.status.store.id, 'orders_changed');
+    }
+
+    return saved;
   }
 
   async mudarStatus(id: number, mudarStatusDto: MudarStatusOrdemDto): Promise<OrdemServico> {
     const { novoStatusId, idFuncionarioAcao } = mudarStatusDto;
 
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const ordemRepo = manager.getRepository(OrdemServico);
       const historicoRepo = manager.getRepository(HistoricoStatus);
       const statusRepo = manager.getRepository(StatusKanban);
@@ -214,12 +235,32 @@ export class OrdensService {
 
       return ordem;
     });
+
+    const ordemComLoja = await this.ordemServicoRepository.findOne({
+      where: { id: result.id },
+      relations: ['status', 'status.store']
+    });
+    if (ordemComLoja?.status?.store?.id) {
+      this.realtimeService.emit(ordemComLoja.status.store.id, 'orders_changed');
+    }
+
+    return result;
   }
 
   async remove(id: number): Promise<void> {
+    const ordem = await this.ordemServicoRepository.findOne({
+      where: { id },
+      relations: ['status', 'status.store']
+    });
+    const storeId = ordem?.status?.store?.id;
+
     const result = await this.ordemServicoRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Ordem com ID ${id} não encontrada.`);
+    }
+
+    if (storeId) {
+      this.realtimeService.emit(storeId, 'orders_changed');
     }
   }
 }

@@ -20,10 +20,7 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document);
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000',      // Teu Next.js local
-      'https://empatiyalavanderia.com.br',        // Teu domínio na HostGator
-    ], // Substitui pelo teu domínio da HostGator
+    origin: true, // Permite qualquer origem dinamicamente (necessário para testes em múltiplos dispositivos locais)
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

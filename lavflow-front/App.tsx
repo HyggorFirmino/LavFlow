@@ -22,6 +22,8 @@ import MachineOperationPage from './components/MachineOperationPage';
 import { ExclamationTriangleIcon, XMarkIcon } from './components/icons';
 import CreateMultipleCardsModal from './components/CreateMultipleCardsModal';
 import { useAuth } from './hooks/useAuth';
+import { updateUser } from './services/userService';
+import { API_URL } from './services/api';
 
 // --- Toast Notification Components ---
 
@@ -373,6 +375,71 @@ const App: React.FC = () => {
     }
   }, [currentUser, fetchData]);
 
+  // SSE Real-time Updates Listener
+  useEffect(() => {
+    if (!currentUser || !selectedStoreId) return;
+
+    const sseUrl = `${API_URL}/realtime/sse`;
+    console.log('[SSE] Conectando ao canal em tempo real:', sseUrl);
+    
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
+    const connectSSE = () => {
+      eventSource = new EventSource(sseUrl);
+
+      eventSource.onopen = () => {
+        console.log('[SSE] Conexão ativa com o servidor de tempo real.');
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          
+          if (parsed && parsed.type === 'ping') {
+            // Heartbeat ping, ignore
+            return;
+          }
+
+          console.log('[SSE] Evento recebido:', parsed);
+
+          // Verifica se o evento é para a loja atualmente selecionada
+          if (parsed && String(parsed.storeId) === String(selectedStoreId)) {
+            console.log('[SSE] Atualizando dados da loja:', selectedStoreId);
+            fetchData(); // Silent reload
+          }
+        } catch (error) {
+          console.error('[SSE] Erro ao processar mensagem SSE:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('[SSE] Erro ou desconexão no canal SSE:', error);
+        if (eventSource) {
+          eventSource.close();
+        }
+        
+        // Tentar reconectar após 5 segundos
+        reconnectTimeout = setTimeout(() => {
+          console.log('[SSE] Tentando reconectar...');
+          connectSSE();
+        }, 5000);
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      console.log('[SSE] Desconectando do canal em tempo real.');
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [selectedStoreId, currentUser, fetchData]);
+
   // Dark mode handler
   useEffect(() => {
     if (currentUser?.theme === 'escuro') {
@@ -476,12 +543,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUserTheme = (theme: 'claro' | 'escuro') => {
+  const handleUpdateUserTheme = async (theme: 'claro' | 'escuro') => {
     if (!currentUser) return;
 
-    // This should be handled by the backend
-    // const updatedUser = { ...currentUser, theme };
-    // setCurrentUser(updatedUser);
+    const updatedUser = { ...currentUser, theme };
+    localStorage.setItem('lavflow_user', JSON.stringify(updatedUser));
+
+    if (currentUser.id && currentUser.id !== 'user-maxpan') {
+      try {
+        await updateUser(currentUser.id, { theme });
+      } catch (error) {
+        console.error("Erro ao salvar tema no servidor:", error);
+      }
+    }
   };
 
   // Card handlers

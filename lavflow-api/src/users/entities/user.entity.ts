@@ -26,6 +26,10 @@ export class User {
     @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
     role: UserRole;
 
+    @ApiProperty({ description: 'Tema do usuário (claro ou escuro)', default: 'claro' })
+    @Column({ type: 'varchar', length: 20, default: 'claro' })
+    theme: string;
+
     @ManyToMany(() => Store, (store) => store.users)
     stores: Store[];
 
