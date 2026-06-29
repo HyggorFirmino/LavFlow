@@ -540,6 +540,12 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
       >
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="px-2 py-0.5 rounded-lg bg-laundry-teal-100 dark:bg-laundry-teal-900/40 text-laundry-teal-800 dark:text-laundry-teal-300 text-lg font-mono font-bold border border-laundry-teal-200 dark:border-laundry-teal-800/40 shrink-0 shadow-sm"
+              title={`ID do Pedido: ${card.id}`}
+            >
+              #{card.id.substring(0, 8).toUpperCase()}
+            </span>
             <h4 className="font-bold text-lg text-laundry-blue-900 dark:text-slate-100 break-words">
               {card.client?.name || card.customerName}
             </h4>
@@ -742,9 +748,6 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ card, list, onEditCard, onDelet
           </div>
         )}
 
-        <div className="flex justify-end items-center mt-4 pt-2 border-t border-gray-100 dark:border-slate-700">
-          <span className="text-xs text-gray-400 dark:text-slate-500">ID: {card.id.substring(0, 8)}</span>
-        </div>
       </div>
 
        <CustomModal
