@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, TagDefinition, User } from '../types';
 import { DEFAULT_TAG_COLOR } from '../constants';
 import { ClockIcon, TrashIcon } from './icons';
-import { maskVisibleCpf, maskVisiblePhone } from '../utils/formatters';
+import { maskVisibleCpf, maskVisiblePhone, getTrackingUrl } from '../utils/formatters';
 import { deleteOrdem } from '../services/apiService';
 import CustomModal, { ModalType } from './CustomModal';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface CardTag {
     name: string;
@@ -23,6 +24,14 @@ interface EditCardModalProps {
 }
 
 const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, card, allTags, tagsMap, currentUser, onDelete }) => {
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const trackingUrl = card ? getTrackingUrl(card.id) : '';
+
     const [customerName, setCustomerName] = useState('');
     const [customerDocument, setCustomerDocument] = useState('');
     const [contact, setContact] = useState('');
@@ -466,6 +475,26 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ isOpen, onClose, onSave, 
                                 placeholder="Nenhuma observação cadastrada no cliente."
                             />
                         </div>
+
+                        {mounted && trackingUrl && (
+                            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700/80 flex flex-col items-center text-center shadow-inner">
+                                <span className="text-sm font-bold text-laundry-blue-900 dark:text-slate-200 mb-2">QR Code de Rastreio do Cliente</span>
+                                <div className="bg-white p-2 rounded-lg shadow-md border border-slate-100 dark:border-slate-800">
+                                    <QRCodeSVG value={trackingUrl} size={110} />
+                                </div>
+                                <div className="mt-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono break-all max-w-xs">{trackingUrl}</div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(trackingUrl);
+                                        alert('Link de rastreio copiado para a área de transferência!');
+                                    }}
+                                    className="mt-2 text-xs font-bold text-laundry-teal-600 dark:text-laundry-teal-400 hover:underline"
+                                >
+                                    Copiar Link de Rastreio
+                                </button>
+                            </div>
+                        )}
 
                         <div className="mb-6">
                             <label htmlFor="notes" className="block text-laundry-blue-800 dark:text-slate-200 text-sm font-bold mb-2">Observações do Pedido</label>

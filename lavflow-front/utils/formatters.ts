@@ -31,3 +31,22 @@ export const formatDate = (dateString?: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 };
+
+export const getTrackingUrl = (cardId: string): string => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  let origin = '';
+  
+  if (typeof window !== 'undefined') {
+    origin = window.location.origin;
+  }
+  
+  // Se a API estiver rodando em IP local, o frontend também estará no mesmo IP local na porta 3000
+  if (apiUrl && (apiUrl.includes('192.168') || apiUrl.includes('10.') || apiUrl.includes('172.'))) {
+    try {
+      const url = new URL(apiUrl);
+      origin = `http://${url.hostname}:3000`;
+    } catch (e) {}
+  }
+  
+  return `${origin}/lavflow/rastreio?id=${cardId}`;
+};

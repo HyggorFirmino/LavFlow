@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../types';
 import { UserIcon, BasketIcon, WashingMachineIcon, SunIcon, PrinterIcon, IdentificationIcon } from './icons';
 import { Store } from '../types';
 import StoreSelector from './StoreSelector';
+import { QRCodeSVG } from 'qrcode.react';
+import { getTrackingUrl } from '../utils/formatters';
 
 interface PrintLabelsPageProps {
   cards: Card[];
@@ -12,45 +14,63 @@ interface PrintLabelsPageProps {
   onSelectStore: (storeId: string) => void;
 }
 
-const Label: React.FC<{ card: Card }> = ({ card }) => (
-  <div className="bg-white border border-dashed border-gray-400 p-3 flex flex-col justify-between text-black break-inside-avoid" style={{ width: '3.5in', height: '2.25in' }}>
-    <div>
-      <div className="flex justify-between items-start border-b border-gray-300 pb-2 mb-2">
-        <div className="flex items-center">
-          <UserIcon className="w-6 h-6 mr-2 text-gray-700" />
-          <h3 className="font-bold text-lg">{card.customerName}</h3>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500">ID Pedido</p>
-          <p className="font-mono font-bold text-sm">{card.id.substring(0, 8).toUpperCase()}</p>
-        </div>
-      </div>
-      {card.customerDocument && (
-        <div className="flex items-center text-gray-800 mt-2">
-          <IdentificationIcon className="w-5 h-5 mr-2" />
-          <span className="text-base font-semibold">{card.customerDocument}</span>
-        </div>
-      )}
-      {card.basketIdentifier && (
-        <div className="flex items-center text-gray-800 mt-2">
-          <BasketIcon className="w-5 h-5 mr-2" />
-          <span className="text-base font-semibold">{card.basketIdentifier}</span>
-        </div>
-      )}
-    </div>
+const Label: React.FC<{ card: Card }> = ({ card }) => {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-    <div className="flex justify-between items-end">
-      <div className="flex items-center space-x-3">
-        {card.services?.washing && <div title="Lavagem"><WashingMachineIcon className="w-8 h-8 text-gray-700" /></div>}
-        {card.services?.drying && <div title="Secagem"><SunIcon className="w-8 h-8 text-gray-700" /></div>}
+  const trackingUrl = getTrackingUrl(card.id);
+
+  return (
+    <div className="bg-white border border-dashed border-gray-400 p-3 flex flex-col justify-between text-black break-inside-avoid" style={{ width: '3.5in', height: '2.25in' }}>
+      <div>
+        <div className="flex justify-between items-start border-b border-gray-300 pb-2 mb-2">
+          <div className="flex items-center">
+            <UserIcon className="w-6 h-6 mr-2 text-gray-700" />
+            <h3 className="font-bold text-lg">{card.customerName}</h3>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">ID Pedido</p>
+            <p className="font-mono font-bold text-sm">{card.id.substring(0, 8).toUpperCase()}</p>
+          </div>
+        </div>
+        {card.customerDocument && (
+          <div className="flex items-center text-gray-800 mt-2">
+            <IdentificationIcon className="w-5 h-5 mr-2" />
+            <span className="text-base font-semibold">{card.customerDocument}</span>
+          </div>
+        )}
+        {card.basketIdentifier && (
+          <div className="flex items-center text-gray-800 mt-2">
+            <BasketIcon className="w-5 h-5 mr-2" />
+            <span className="text-base font-semibold">{card.basketIdentifier}</span>
+          </div>
+        )}
       </div>
-      <div className="text-right">
-        <p className="text-xs text-gray-500">Data de Entrada</p>
-        <p className="font-semibold">{new Date(card.createdAt).toLocaleDateString('pt-BR')}</p>
+
+      <div className="flex justify-between items-end">
+        <div className="flex items-center space-x-3">
+          {card.services?.washing && <div title="Lavagem"><WashingMachineIcon className="w-8 h-8 text-gray-700" /></div>}
+          {card.services?.drying && <div title="Secagem"><SunIcon className="w-8 h-8 text-gray-700" /></div>}
+        </div>
+        {mounted && trackingUrl ? (
+          <div className="flex flex-col items-center animate-fade-in" title="Escaneie para Rastrear">
+            <QRCodeSVG value={trackingUrl} size={65} />
+            <span className="text-[8px] text-gray-500 mt-1 uppercase tracking-wider font-extrabold">Rastrear Pedido</span>
+          </div>
+        ) : (
+          <div className="w-16 h-16 bg-gray-100 rounded animate-pulse" />
+        )}
+        <div className="text-right">
+          <p className="text-xs text-gray-500">Data de Entrada</p>
+          <p className="font-semibold">{new Date(card.createdAt).toLocaleDateString('pt-BR')}</p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const PrintLabelsPage: React.FC<PrintLabelsPageProps> = ({ cards, stores, selectedStoreId, onSelectStore }) => {
   const handlePrint = () => {
